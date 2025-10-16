@@ -30,6 +30,10 @@
 [functions]
   node_bundler = "esbuild"
 
+# Netlify plugins
+[[plugins]]
+  package = "@netlify/plugin-functions-install-core"
+
 # Security headers
 [[headers]]
   for = "/*"

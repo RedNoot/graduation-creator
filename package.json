@@ -8,6 +8,11 @@
     "build": "echo 'Static site - no build required'",
     "deploy": "netlify deploy --prod"
   },
+  "dependencies": {
+    "firebase-admin": "^12.0.0",
+    "pdf-lib": "^1.17.1",
+    "node-fetch": "^2.7.0"
+  },
   "keywords": [
     "graduation",
     "website",
