@@ -142,8 +142,9 @@ exports.handler = async (event, context) => {
                             body: JSON.stringify({ error: 'Password must be at least 4 characters' }),
                         };
                     }
-                    // Generate secure hash on server
+                    // Generate secure hash on server and store plain password for teacher display
                     studentData.passwordHash = hashPassword(password);
+                    studentData.passwordPlain = password; // Store for teacher to see
                 }
 
                 const studentRef = await db.collection('graduations').doc(graduationId).collection('students').add(studentData);
