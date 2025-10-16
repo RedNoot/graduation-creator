@@ -472,13 +472,20 @@
                 
                 try {
                     if (isSignUpMode) {
+                        console.log('Attempting to create user with Firebase...'); // Debug log
                         await createUserWithEmailAndPassword(auth, email, password);
+                        console.log('User created successfully!'); // Debug log
                         // Success - auth state change will trigger redirect
                     } else {
+                        console.log('Attempting to sign in with Firebase...'); // Debug log
                         await signInWithEmailAndPassword(auth, email, password);
+                        console.log('User signed in successfully!'); // Debug log
                         // Success - auth state change will trigger redirect
                     }
                 } catch (error) {
+                    console.error('Firebase Auth Error:', error); // Enhanced error logging
+                    console.error('Error Code:', error.code); // Debug log
+                    console.error('Error Message:', error.message); // Debug log
                     let errorMessage = isSignUpMode ? 'Account creation failed. ' : 'Login failed. ';
                     
                     switch (error.code) {
