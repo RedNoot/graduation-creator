@@ -630,6 +630,7 @@
                         schoolName,
                         graduationYear: graduationYear,
                         ownerUid: currentUser.uid,
+                        createdBy: currentUser.uid, // Add this field for Firestore rules
                         isLocked: false,
                         generatedBookletUrl: null,
                         createdAt: new Date(),
