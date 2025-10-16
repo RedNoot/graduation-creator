@@ -849,26 +849,15 @@
 
                     const result = await response.json();
                     
-                    // Update the client-side display with the new student
-                    const studentsRef = collection(db, "graduations", gradId, "students");
-                    const newStudentData = {
-                        name: sanitizedName,
-                        accessType: accessType,
-                        profilePdfUrl: null,
-                    };
-
-                    if (result.uniqueLinkId) {
-                        newStudentData.uniqueLinkId = result.uniqueLinkId;
-                    }
-                    
-                    if (result.generatedPassword) {
-                        newStudentData.passwordPlain = result.generatedPassword;
-                    }
-
-                    await addDoc(studentsRef, newStudentData);
+                    // The student is already created server-side, no need to add again
                     document.getElementById('add-student-form').reset();
                     
                     showModal('Success', 'Student added successfully!');
+                    
+                    // Refresh the current page to show the new student
+                    setTimeout(() => {
+                        router(); // Reload the current route
+                    }, 1000);
                     
                 } catch (error) {
                     console.error('Student creation error:', error);
@@ -1510,7 +1499,7 @@
             }
         };
         
-        const renderPublicView = async (gradData, students) => {
+        const renderPublicView = async (gradData, students, gradId) => {
              const { config } = gradData;
              const fontFamily = config.font || 'Inter';
              const layoutClass = config.layout === 'scroll' ? 'space-y-8' : 
@@ -1544,7 +1533,7 @@
              }[config.animationStyle] || '';
              
              // Fetch content pages
-             const contentPagesRef = collection(db, "graduations", gradData.id, "contentPages");
+             const contentPagesRef = collection(db, "graduations", gradId, "contentPages");
              const contentSnapshot = await getDocs(contentPagesRef);
              const contentPages = [];
              contentSnapshot.forEach(doc => {
@@ -1970,7 +1959,7 @@
                      const studentSnapshot = await getDocs(studentsRef);
                      const students = studentSnapshot.docs.map(doc => doc.data());
                      
-                     renderPublicView(gradData, students);
+                     renderPublicView(gradData, students, gradId);
                  } else {
                      appContainer.innerHTML = `<p class="text-center p-8">Graduation not found.</p>`;
                  }
