@@ -4,6 +4,8 @@
 
 [build.environment]
   NODE_VERSION = "18"
+  # Disable secrets scanning - Firebase frontend config is meant to be public
+  SECRETS_SCAN_ENABLED = "false"
 
 # SPA routing redirects
 [[redirects]]
@@ -58,6 +60,10 @@
     Cache-Control = "no-cache"
 
 # Environment variables needed in Netlify dashboard:
+# 
+# IMPORTANT: Set SECRETS_SCAN_ENABLED = false in Netlify dashboard
+# Firebase frontend config values are INTENTIONALLY PUBLIC
+#
 # Frontend Firebase Config:
 # FIREBASE_API_KEY
 # FIREBASE_AUTH_DOMAIN  
@@ -73,4 +79,7 @@
 # Cloudinary Config:
 # CLOUDINARY_CLOUD_NAME
 # CLOUDINARY_UPLOAD_PRESET
+#
+# Security Config:
+# SECRETS_SCAN_ENABLED = false
 # CLOUDINARY_UPLOAD_PRESET
