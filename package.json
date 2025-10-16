@@ -1,0 +1,20 @@
+{
+  "name": "graduation-creator",
+  "version": "1.0.0",
+  "description": "Grade 6 Graduation Website Creator",
+  "main": "index.html",
+  "scripts": {
+    "dev": "python -m http.server 8000",
+    "build": "echo 'Static site - no build required'",
+    "deploy": "netlify deploy --prod"
+  },
+  "keywords": [
+    "graduation",
+    "website",
+    "creator",
+    "firebase",
+    "netlify"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+}
