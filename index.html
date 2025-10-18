@@ -1016,8 +1016,14 @@
 
                     let response;
                     if (accessType === 'password') {
-                        // Generate secure password on server
-                        const generatedPassword = `Class${Math.floor(100 + Math.random() * 900)}`;
+                        // Generate memorable password
+                        const adjectives = ['Blue', 'Red', 'Green', 'Gold', 'Silver', 'Bright', 'Smart', 'Cool', 'Star', 'Epic'];
+                        const nouns = ['Tiger', 'Eagle', 'Lion', 'Bear', 'Wolf', 'Shark', 'Falcon', 'Phoenix', 'Dragon', 'Hawk'];
+                        const randomAdj = adjectives[Math.floor(Math.random() * adjectives.length)];
+                        const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
+                        const randomNum = Math.floor(10 + Math.random() * 90);
+                        const generatedPassword = `${randomAdj}${randomNoun}${randomNum}`;
+                        
                         response = await fetch('/.netlify/functions/secure-operations', {
                             method: 'POST',
                             headers: {
@@ -1057,7 +1063,12 @@
                     // The student is already created server-side, no need to add again
                     document.getElementById('add-student-form').reset();
                     
-                    showModal('Success', 'Student added successfully!');
+                    // Show success message with password if it's a password student
+                    if (accessType === 'password' && result.generatedPassword) {
+                        showModal('Success', `Student added successfully! Password: ${result.generatedPassword}`);
+                    } else {
+                        showModal('Success', 'Student added successfully!');
+                    }
                     
                     // Refresh the current page to show the new student
                     setTimeout(() => {
