@@ -6,11 +6,16 @@ const admin = require('firebase-admin');
 
 // Initialize Firebase Admin if not already initialized
 if (!admin.apps.length) {
+    // Decode the Base64 private key
+    const privateKey = process.env.FIREBASE_PRIVATE_BASE_64_KEY 
+        ? Buffer.from(process.env.FIREBASE_PRIVATE_BASE_64_KEY, 'base64').toString('utf8')
+        : process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'); // Fallback for old format
+        
     admin.initializeApp({
         credential: admin.credential.cert({
             projectId: process.env.FIREBASE_PROJECT_ID,
             clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-            privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+            privateKey: privateKey,
         }),
     });
 }
@@ -176,23 +181,32 @@ exports.handler = async (event, context) => {
         const pdfBytes = await mergedPdf.save();
         console.log(`Generated PDF with ${mergedPdf.getPageCount()} pages`);
 
-        // Upload to Cloudinary
+        // Upload to Cloudinary using base64 encoding (Node.js compatible)
         const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${process.env.CLOUDINARY_CLOUD_NAME}/upload`;
         
-        const formData = new FormData();
-        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-        formData.append('file', blob);
-        formData.append('upload_preset', process.env.CLOUDINARY_UPLOAD_PRESET);
-        formData.append('resource_type', 'raw');
-        formData.append('public_id', `graduation-booklets/${graduationId}-booklet`);
+        // Convert PDF bytes to base64
+        const base64Pdf = Buffer.from(pdfBytes).toString('base64');
+        const dataUri = `data:application/pdf;base64,${base64Pdf}`;
+        
+        const uploadData = {
+            file: dataUri,
+            upload_preset: process.env.CLOUDINARY_UPLOAD_PRESET,
+            resource_type: 'raw',
+            public_id: `graduation-booklets/${graduationId}-booklet`,
+        };
 
         const uploadResponse = await fetch(cloudinaryUrl, {
             method: 'POST',
-            body: formData,
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(uploadData),
         });
 
         if (!uploadResponse.ok) {
-            throw new Error(`Cloudinary upload failed: ${uploadResponse.status}`);
+            const errorText = await uploadResponse.text();
+            console.error('Cloudinary upload error:', errorText);
+            throw new Error(`Cloudinary upload failed: ${uploadResponse.status} - ${errorText}`);
         }
 
         const uploadResult = await uploadResponse.json();
