@@ -198,14 +198,64 @@
             });
         }
 
-        // Upload PDF for student function (for teachers) - Global function
+        // Upload PDF for student function (for teachers) - Global function with modal
         function uploadPdfForStudent(studentId, studentName) {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = '.pdf';
-            input.onchange = async (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
+            // Create modal HTML
+            const modalHtml = `
+                <div id="upload-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+                    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+                        <div class="mt-3">
+                            <h3 class="text-lg font-medium text-gray-900 text-center">Upload PDF for ${studentName}</h3>
+                            <div class="mt-4 px-7 py-3">
+                                <div class="mb-4">
+                                    <label for="teacher-pdf-upload" class="block text-sm font-medium text-gray-700 mb-2">
+                                        Select PDF file (max 10MB)
+                                    </label>
+                                    <input type="file" id="teacher-pdf-upload" accept=".pdf" 
+                                           class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                                </div>
+                                <div class="flex gap-3">
+                                    <button id="upload-confirm-btn" class="flex-1 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">
+                                        Upload PDF
+                                    </button>
+                                    <button id="upload-cancel-btn" class="flex-1 px-4 py-2 bg-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-400">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Add modal to document
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            
+            // Get modal elements
+            const modal = document.getElementById('upload-modal');
+            const uploadBtn = document.getElementById('upload-confirm-btn');
+            const cancelBtn = document.getElementById('upload-cancel-btn');
+            const fileInput = document.getElementById('teacher-pdf-upload');
+            
+            // Cancel button functionality
+            cancelBtn.onclick = () => {
+                document.body.removeChild(modal);
+            };
+            
+            // Close modal on outside click
+            modal.onclick = (e) => {
+                if (e.target === modal) {
+                    document.body.removeChild(modal);
+                }
+            };
+            
+            // Upload button functionality
+            uploadBtn.onclick = async () => {
+                const file = fileInput.files[0];
+                if (!file) {
+                    showModal('Error', 'Please select a PDF file.');
+                    return;
+                }
                 
                 if (file.type !== 'application/pdf') {
                     showModal('Error', 'Please select a PDF file.');
@@ -218,6 +268,9 @@
                 }
                 
                 try {
+                    // Remove the modal first
+                    document.body.removeChild(modal);
+                    
                     showModal('Uploading...', `Uploading PDF for ${studentName}...`, false);
                     
                     // Create FormData for Cloudinary upload
@@ -252,8 +305,10 @@
                     showModal('Error', 'Failed to upload PDF. Please try again.');
                 }
             };
-            input.click();
         }
+
+        // Ensure function is available globally
+        window.uploadPdfForStudent = uploadPdfForStudent;
 
         // Helper function to get current graduation ID - Global function
         function getCurrentGradId() {
@@ -1802,9 +1857,8 @@
         };
 
         const renderStudentUploadPortal = (gradId, students) => {
-            // Filter students by access type for display
-            const publicStudents = students.filter(s => s.accessType === 'public');
-            const passwordStudents = students.filter(s => s.accessType === 'password');
+            // Combine all students for single dropdown
+            const allStudents = students.filter(s => s.accessType === 'public' || s.accessType === 'password');
             
             appContainer.innerHTML = `
                  <div class="min-h-screen bg-gray-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -1812,92 +1866,87 @@
                         <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
                             Student PDF Upload
                         </h2>
+                        <p class="mt-2 text-center text-sm text-gray-600">
+                            Select your name from the list below to upload your graduation PDF
+                        </p>
                     </div>
 
                     <div id="student-selector" class="mt-8 sm:mx-auto sm:w-full sm:max-w-xl bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10 space-y-4">
-                        ${publicStudents.length > 0 ? `
+                        ${allStudents.length > 0 ? `
                         <div>
                             <label for="student-select" class="block text-sm font-medium text-gray-700">Select Your Name</label>
                             <select id="student-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
-                                <option value="">-- Please select --</option>
-                                ${publicStudents.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
+                                <option value="">-- Please select your name --</option>
+                                ${allStudents.map(s => {
+                                    const label = s.accessType === 'password' ? `${s.name} 🔒` : s.name;
+                                    return `<option value="${s.id}" data-access-type="${s.accessType}">${label}</option>`;
+                                }).join('')}
                             </select>
                         </div>
-                        ` : ''}
                         
-                        ${passwordStudents.length > 0 ? `
-                        <div>
-                            <label for="password-student-select" class="block text-sm font-medium text-gray-700">Select Your Name (Password Required)</label>
-                            <select id="password-student-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
-                                <option value="">-- Please select --</option>
-                                ${passwordStudents.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
-                            </select>
-                        </div>
                         <div id="password-area" class="hidden">
                             <label for="student-password" class="block text-sm font-medium text-gray-700">Enter Your Password</label>
-                            <input type="password" id="student-password" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                            <input type="password" id="student-password" placeholder="Enter the password provided by your teacher" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
                             <button id="verify-password-btn" class="mt-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Verify Password</button>
                         </div>
-                        ` : ''}
                         
                          <div id="upload-area" class="hidden">
                             <label for="pdf-upload" class="block text-sm font-medium text-gray-700">Upload Your PDF Profile</label>
-                            <input type="file" id="pdf-upload" accept=".pdf" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                            <p class="text-xs text-gray-500 mt-1">Please upload your graduation profile as a PDF (max 10MB)</p>
+                            <input type="file" id="pdf-upload" accept=".pdf" class="mt-2 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
                             <button id="submit-pdf-btn" class="mt-4 w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">Upload PDF</button>
                         </div>
-                        
-                        ${publicStudents.length === 0 && passwordStudents.length === 0 ? `
+                        ` : `
                         <div class="text-center text-gray-500">
                             <p>No students available for upload. Please check with your teacher.</p>
                         </div>
-                        ` : ''}
+                        `}
                     </div>
                  </div>
             `;
 
             let selectedStudentId = null;
+            let selectedStudentData = null;
 
-            // Handle public student selection
-            if (publicStudents.length > 0) {
+            // Handle unified student selection
+            if (allStudents.length > 0) {
                 document.getElementById('student-select').addEventListener('change', (e) => {
-                    selectedStudentId = e.target.value;
-                    if (selectedStudentId) {
-                        document.getElementById('upload-area').classList.remove('hidden');
-                        // Hide password area if visible
-                        const passwordArea = document.getElementById('password-area');
-                        if (passwordArea) passwordArea.classList.add('hidden');
-                    } else {
-                        document.getElementById('upload-area').classList.add('hidden');
-                    }
-                });
-            }
-
-            // Handle password-protected student selection
-            if (passwordStudents.length > 0) {
-                document.getElementById('password-student-select').addEventListener('change', (e) => {
                     const studentId = e.target.value;
+                    const selectedOption = e.target.selectedOptions[0];
+                    const accessType = selectedOption?.getAttribute('data-access-type');
+                    
+                    // Reset areas
+                    document.getElementById('password-area').classList.add('hidden');
+                    document.getElementById('upload-area').classList.add('hidden');
+                    selectedStudentId = null;
+                    selectedStudentData = null;
+                    
                     if (studentId) {
-                        document.getElementById('password-area').classList.remove('hidden');
-                        // Hide upload area until password is verified
-                        document.getElementById('upload-area').classList.add('hidden');
-                        selectedStudentId = null;
-                    } else {
-                        document.getElementById('password-area').classList.add('hidden');
-                        document.getElementById('upload-area').classList.add('hidden');
+                        selectedStudentData = allStudents.find(s => s.id === studentId);
+                        
+                        if (accessType === 'password') {
+                            // Show password area for password-protected students
+                            document.getElementById('password-area').classList.remove('hidden');
+                            document.getElementById('student-password').value = ''; // Clear password field
+                        } else {
+                            // Show upload area directly for public students
+                            selectedStudentId = studentId;
+                            document.getElementById('upload-area').classList.remove('hidden');
+                        }
                     }
                 });
 
+                // Handle password verification
                 document.getElementById('verify-password-btn').addEventListener('click', async () => {
-                    const studentId = document.getElementById('password-student-select').value;
                     const password = document.getElementById('student-password').value;
                     
-                    if (!studentId || !password) {
-                        showModal('Error', 'Please select a student and enter the password.');
+                    if (!selectedStudentData || !password) {
+                        showModal('Error', 'Please enter the password.');
                         return;
                     }
 
                     // Rate limiting for password attempts
-                    const rateLimitKey = `password-verify-${studentId}`;
+                    const rateLimitKey = `password-verify-${selectedStudentData.id}`;
                     if (!rateLimiter.isAllowed(rateLimitKey, 3, 300000)) { // 3 attempts per 5 minutes
                         showModal('Rate Limit', 'Too many password attempts. Please wait 5 minutes before trying again.');
                         return;
@@ -1906,10 +1955,10 @@
                     try {
                         showModal('Verifying...', 'Checking your password.', false);
                         
-                        const isValid = await verifyStudentPassword(gradId, studentId, password);
+                        const isValid = await verifyStudentPassword(gradId, selectedStudentData.id, password);
                         
                         if (isValid) {
-                            selectedStudentId = studentId;
+                            selectedStudentId = selectedStudentData.id;
                             document.getElementById('upload-area').classList.remove('hidden');
                             rateLimiter.reset(rateLimitKey); // Reset on successful verification
                             showModal('Success', 'Password verified! You can now upload your PDF.');
