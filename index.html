@@ -166,11 +166,10 @@
             }
         };
 
-        // Copy to clipboard utility function
-        const copyToClipboard = async (text, buttonElement = null) => {
+        // Copy to clipboard utility function - Global function
+        function copyToClipboard(text, buttonElement = null) {
             const targetButton = buttonElement || event.target;
-            try {
-                await navigator.clipboard.writeText(text);
+            navigator.clipboard.writeText(text).then(() => {
                 // Show brief feedback
                 const originalText = targetButton.textContent;
                 targetButton.textContent = 'Copied!';
@@ -181,7 +180,7 @@
                     targetButton.style.backgroundColor = '';
                     targetButton.style.color = '';
                 }, 1000);
-            } catch (err) {
+            }).catch(() => {
                 // Fallback for older browsers
                 const textArea = document.createElement('textarea');
                 textArea.value = text;
@@ -196,11 +195,11 @@
                 setTimeout(() => {
                     targetButton.textContent = originalText;
                 }, 1000);
-            }
-        };
+            });
+        }
 
-        // Upload PDF for student function (for teachers)
-        const uploadPdfForStudent = async (studentId, studentName) => {
+        // Upload PDF for student function (for teachers) - Global function
+        function uploadPdfForStudent(studentId, studentName) {
             const input = document.createElement('input');
             input.type = 'file';
             input.accept = '.pdf';
@@ -254,14 +253,14 @@
                 }
             };
             input.click();
-        };
+        }
 
-        // Helper function to get current graduation ID
-        const getCurrentGradId = () => {
+        // Helper function to get current graduation ID - Global function
+        function getCurrentGradId() {
             const path = window.location.hash;
             const match = path.match(/#\/graduation\/([^\/]+)/);
             return match ? match[1] : null;
-        };
+        }
 
         // Rate limiting helper (client-side basic implementation)
         const rateLimiter = {
