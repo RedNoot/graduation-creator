@@ -199,7 +199,7 @@
         }
 
         // Upload PDF for student function (for teachers) - Global function with modal
-        function uploadPdfForStudent(studentId, studentName) {
+        function uploadPdfForStudent(studentId, studentName, gradId) {
             // Create modal HTML
             const modalHtml = `
                 <div id="upload-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
@@ -277,7 +277,7 @@
                     const formData = new FormData();
                     formData.append('file', file);
                     formData.append('upload_preset', 'Graduation-Uploads');
-                    formData.append('folder', `graduation-pdfs/${getCurrentGradId()}`);
+                    formData.append('folder', `graduation-pdfs/${gradId}`);
                     
                     // Upload to Cloudinary
                     const cloudinaryResponse = await fetch('https://api.cloudinary.com/v1_1/dkm3avvjl/upload', {
@@ -292,7 +292,7 @@
                     const cloudinaryData = await cloudinaryResponse.json();
                     
                     // Update student document with PDF URL
-                    const studentRef = doc(db, "graduations", getCurrentGradId(), "students", studentId);
+                    const studentRef = doc(db, "graduations", gradId, "students", studentId);
                     await updateDoc(studentRef, {
                         profilePdfUrl: cloudinaryData.secure_url,
                         updatedAt: serverTimestamp()
@@ -954,11 +954,11 @@
                     const uploadSection = student.profilePdfUrl 
                         ? `<div class="text-right">
                              <a href="${student.profilePdfUrl}" target="_blank" class="text-sm text-green-600 font-medium">✓ PDF Uploaded</a>
-                             <button onclick="uploadPdfForStudent('${studentId}', '${student.name}')" class="ml-2 text-xs text-blue-600 hover:text-blue-800 underline">Replace PDF</button>
+                             <button onclick="uploadPdfForStudent('${studentId}', '${student.name}', '${gradId}')" class="ml-2 text-xs text-blue-600 hover:text-blue-800 underline">Replace PDF</button>
                            </div>` 
                         : `<div class="text-right">
                              <span class="text-sm text-orange-500">⏳ No PDF</span>
-                             <button onclick="uploadPdfForStudent('${studentId}', '${student.name}')" class="ml-2 px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700">Upload PDF</button>
+                             <button onclick="uploadPdfForStudent('${studentId}', '${student.name}', '${gradId}')" class="ml-2 px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700">Upload PDF</button>
                            </div>`;
                     
                     html += `
