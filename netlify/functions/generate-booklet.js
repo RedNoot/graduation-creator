@@ -1,4 +1,4 @@
-const { PDFDocument } = require('pdf-lib');
+const { PDFDocument, rgb } = require('pdf-lib');
 const fetch = require('node-fetch');
 
 // Initialize Firebase Admin (server-side)
@@ -134,21 +134,21 @@ exports.handler = async (event, context) => {
             x: 50,
             y: height - 100,
             size: 24,
-            color: { r: 0, g: 0, b: 0 },
+            color: rgb(0, 0, 0),
         });
 
         titlePage.drawText(`Class of ${graduationData.graduationYear}`, {
             x: 50,
             y: height - 140,
             size: 18,
-            color: { r: 0.5, g: 0.5, b: 0.5 },
+            color: rgb(0.5, 0.5, 0.5),
         });
 
         titlePage.drawText(`Student Profiles`, {
             x: 50,
             y: height - 180,
             size: 16,
-            color: { r: 0.5, g: 0.5, b: 0.5 },
+            color: rgb(0.5, 0.5, 0.5),
         });
 
         // Add student PDFs
