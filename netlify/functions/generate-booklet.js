@@ -238,18 +238,11 @@ exports.handler = async (event, context) => {
             const publicIdPath = match[1]; // e.g., "v1760843683/graduation-pdfs/Zfza5VrVBmKfjowtv7N1/mwdj5ggzrn1d7xyusmeh"
             const cloudinaryCloudName = process.env.CLOUDINARY_CLOUD_NAME;
             
-            // Create signed URL with expiration
-            const timestamp = Math.floor(Date.now() / 1000) + 3600; // Valid for 1 hour
-            const toSign = `public_id=${publicIdPath}&timestamp=${timestamp}`;
-            
-            const signature = require('crypto')
-                .createHash('sha256')
-                .update(toSign + cloudinaryApiSecret)
-                .digest('hex');
-            
-            const signedUrl = `https://res.cloudinary.com/${cloudinaryCloudName}/image/upload/${publicIdPath}.pdf?timestamp=${timestamp}&signature=${signature}`;
-            console.log(`[getSignedCloudinaryUrl] Generated signed URL with signature`);
-            return signedUrl;
+            // Use raw delivery endpoint which allows direct file access for PDFs
+            // Format: /raw/upload/ instead of /image/upload/
+            const rawUrl = `https://res.cloudinary.com/${cloudinaryCloudName}/raw/upload/${publicIdPath}.pdf`;
+            console.log(`[getSignedCloudinaryUrl] Converted to raw delivery URL`);
+            return rawUrl;
         };
 
         // Add student PDFs
