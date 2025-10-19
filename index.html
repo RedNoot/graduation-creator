@@ -384,6 +384,10 @@
             const formData = new FormData();
             formData.append('file', file);
             formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+            // Ensure public access for PDFs
+            formData.append('resource_type', 'auto');
+            formData.append('type', 'upload');
+            formData.append('access_mode', 'public');
 
             try {
                 const response = await fetch(CLOUDINARY_URL, {
