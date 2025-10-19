@@ -234,6 +234,30 @@ exports.handler = async (event, context) => {
                     }),
                 };
 
+            case 'getCloudinarySignature':
+                // Generate a signed upload signature for Cloudinary
+                const timestamp = Math.floor(Date.now() / 1000);
+                const folder = `graduation-pdfs/${graduationId}`;
+                const paramsToSign = `folder=${folder}&timestamp=${timestamp}`;
+                
+                const signature = crypto
+                    .createHash('sha256')
+                    .update(paramsToSign + process.env.CLOUDINARY_API_SECRET)
+                    .digest('hex');
+                
+                return {
+                    statusCode: 200,
+                    headers,
+                    body: JSON.stringify({
+                        success: true,
+                        timestamp: timestamp,
+                        signature: signature,
+                        folder: folder,
+                        apiKey: process.env.CLOUDINARY_API_KEY,
+                        cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+                    }),
+                };
+
             default:
                 return {
                     statusCode: 400,

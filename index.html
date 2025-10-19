@@ -296,20 +296,41 @@
                     
                     showModal('Uploading...', `Uploading PDF for ${studentName}...`, false);
                     
-                    // Create FormData for Cloudinary upload
+                    // Get signature from backend
+                    const signatureResponse = await fetch('/.netlify/functions/secure-operations', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            action: 'getCloudinarySignature',
+                            graduationId: gradId,
+                        }),
+                    });
+                    
+                    if (!signatureResponse.ok) {
+                        throw new Error('Failed to get upload signature');
+                    }
+                    
+                    const signatureData = await signatureResponse.json();
+                    
+                    // Create FormData for Cloudinary upload with signature
                     const formData = new FormData();
                     formData.append('file', file);
-                    formData.append('upload_preset', 'Graduation-Uploads');
-                    formData.append('folder', `graduation-pdfs/${gradId}`);
+                    formData.append('api_key', signatureData.apiKey);
+                    formData.append('timestamp', signatureData.timestamp);
+                    formData.append('signature', signatureData.signature);
+                    formData.append('folder', signatureData.folder);
                     
-                    // Upload to Cloudinary
-                    const cloudinaryResponse = await fetch('https://api.cloudinary.com/v1_1/dkm3avvjl/upload', {
+                    // Upload to Cloudinary using signed request
+                    const cloudinaryResponse = await fetch(`https://api.cloudinary.com/v1_1/${signatureData.cloudName}/upload`, {
                         method: 'POST',
                         body: formData
                     });
                     
                     if (!cloudinaryResponse.ok) {
-                        throw new Error('Failed to upload PDF to Cloudinary');
+                        const errorData = await cloudinaryResponse.json();
+                        throw new Error(`Cloudinary error: ${errorData.error?.message || 'Unknown error'}`);
                     }
                     
                     const cloudinaryData = await cloudinaryResponse.json();
@@ -325,7 +346,7 @@
                     
                 } catch (error) {
                     console.error('Upload error:', error);
-                    showModal('Error', 'Failed to upload PDF. Please try again.');
+                    showModal('Error', `Failed to upload PDF: ${error.message}`);
                 }
             };
         }

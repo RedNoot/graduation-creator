@@ -215,34 +215,16 @@ exports.handler = async (event, context) => {
             color: rgb(0.5, 0.5, 0.5),
         });
 
-        // Function to generate signed Cloudinary URL for private resources
-        const getSignedCloudinaryUrl = (url) => {
+        // Function to get Cloudinary URL for downloading PDFs
+        const getCloudinaryUrl = (url) => {
             if (!url || !url.includes('cloudinary.com')) {
                 return url;
             }
             
-            const cloudinaryApiSecret = process.env.CLOUDINARY_API_SECRET;
-            if (!cloudinaryApiSecret) {
-                console.log(`[getSignedCloudinaryUrl] Missing Cloudinary API secret, using original URL`);
-                return url;
-            }
-            
-            // Extract public_id from URL
-            // URL format: https://res.cloudinary.com/dkm3avvjl/image/upload/v1760843683/graduation-pdfs/Zfza5VrVBmKfjowtv7N1/mwdj5ggzrn1d7xyusmeh.pdf
-            const match = url.match(/\/image\/upload\/(.+)\.pdf$/);
-            if (!match) {
-                console.log(`[getSignedCloudinaryUrl] Could not extract path from URL: ${url}`);
-                return url;
-            }
-            
-            const publicIdPath = match[1]; // e.g., "v1760843683/graduation-pdfs/Zfza5VrVBmKfjowtv7N1/mwdj5ggzrn1d7xyusmeh"
-            const cloudinaryCloudName = process.env.CLOUDINARY_CLOUD_NAME;
-            
-            // Use raw delivery endpoint which allows direct file access for PDFs
-            // Format: /raw/upload/ instead of /image/upload/
-            const rawUrl = `https://res.cloudinary.com/${cloudinaryCloudName}/raw/upload/${publicIdPath}.pdf`;
-            console.log(`[getSignedCloudinaryUrl] Converted to raw delivery URL`);
-            return rawUrl;
+            // For signed uploads with proper permissions, use the URL as-is
+            // The signature ensures the file is accessible
+            console.log(`[getCloudinaryUrl] Using signed URL from Cloudinary`);
+            return url;
         };
 
         // Add student PDFs
@@ -254,12 +236,12 @@ exports.handler = async (event, context) => {
             console.log(`Processing PDF ${i + 1}/${studentsWithPdfs.length} for student: ${student.name}`);
 
             try {
-                // Generate signed URL for private Cloudinary resource
-                const signedPdfUrl = getSignedCloudinaryUrl(student.pdfUrl);
+                // Get Cloudinary URL for this PDF
+                const pdfUrl = getCloudinaryUrl(student.pdfUrl);
                 
                 console.log(`[PDF Processing] Student: ${student.name}`);
                 console.log(`[PDF Processing] Original URL: ${student.pdfUrl}`);
-                console.log(`[PDF Processing] Using signed URL`);
+                console.log(`[PDF Processing] Using Cloudinary signed URL`);
 
                 // Download the PDF with timeout
                 const controller = new AbortController();
@@ -267,7 +249,7 @@ exports.handler = async (event, context) => {
                 
                 console.log(`[PDF Processing] Fetching from signed URL`);
                 
-                const response = await fetch(signedPdfUrl, {
+                const response = await fetch(pdfUrl, {
                     signal: controller.signal,
                     headers: {
                         'User-Agent': 'Graduation-Creator-Bot/1.0'
