@@ -60,6 +60,16 @@ exports.handler = async (event, context) => {
     // For now, we'll rely on Netlify's built-in rate limiting
 
     try {
+        // Validate environment variables
+        if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_UPLOAD_PRESET) {
+            console.error('Missing Cloudinary configuration');
+            return {
+                statusCode: 500,
+                headers,
+                body: JSON.stringify({ error: 'Server configuration error' }),
+            };
+        }
+
         const { graduationId } = JSON.parse(event.body);
 
         // Input validation
@@ -152,55 +162,119 @@ exports.handler = async (event, context) => {
         });
 
         // Add student PDFs
+        let processedCount = 0;
         for (let i = 0; i < studentsWithPdfs.length; i++) {
             const student = studentsWithPdfs[i];
-            console.log(`Processing PDF for student: ${student.name}`);
+            console.log(`Processing PDF ${i + 1}/${studentsWithPdfs.length} for student: ${student.name}`);
 
             try {
-                // Download the PDF
-                const response = await fetch(student.pdfUrl);
+                // Download the PDF with timeout
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+                
+                const response = await fetch(student.pdfUrl, { 
+                    signal: controller.signal,
+                    headers: {
+                        'User-Agent': 'Graduation-Creator-Bot/1.0'
+                    }
+                });
+                clearTimeout(timeoutId);
+                
                 if (!response.ok) {
-                    console.error(`Failed to download PDF for ${student.name}: ${response.status}`);
+                    console.error(`Failed to download PDF for ${student.name}: ${response.status} ${response.statusText}`);
+                    continue;
+                }
+
+                // Check file size (limit to 50MB per student PDF)
+                const contentLength = response.headers.get('content-length');
+                if (contentLength && parseInt(contentLength) > 50 * 1024 * 1024) {
+                    console.error(`PDF too large for ${student.name}: ${contentLength} bytes`);
                     continue;
                 }
 
                 const pdfBuffer = await response.arrayBuffer();
+                
+                // Validate PDF file
+                if (pdfBuffer.byteLength === 0) {
+                    console.error(`Empty PDF file for ${student.name}`);
+                    continue;
+                }
+
                 const studentPdf = await PDFDocument.load(pdfBuffer);
+                const pageCount = studentPdf.getPageCount();
+                
+                if (pageCount === 0) {
+                    console.error(`No pages in PDF for ${student.name}`);
+                    continue;
+                }
 
                 // Copy all pages from student PDF
                 const copiedPages = await mergedPdf.copyPages(studentPdf, studentPdf.getPageIndices());
                 copiedPages.forEach((page) => mergedPdf.addPage(page));
+                
+                processedCount++;
+                console.log(`Successfully processed PDF for ${student.name} (${pageCount} pages)`);
 
             } catch (error) {
-                console.error(`Error processing PDF for ${student.name}:`, error);
+                console.error(`Error processing PDF for ${student.name}:`, error.message);
                 // Continue with other students even if one fails
             }
         }
 
+        if (processedCount === 0) {
+            return {
+                statusCode: 400,
+                headers,
+                body: JSON.stringify({ 
+                    error: 'No student PDFs could be processed successfully',
+                    totalStudents: studentsWithPdfs.length 
+                }),
+            };
+        }
+
+        console.log(`Successfully processed ${processedCount}/${studentsWithPdfs.length} student PDFs`);
+
         // Generate the final PDF
         const pdfBytes = await mergedPdf.save();
-        console.log(`Generated PDF with ${mergedPdf.getPageCount()} pages`);
+        const pdfSizeMB = (pdfBytes.length / 1024 / 1024).toFixed(2);
+        console.log(`Generated PDF with ${mergedPdf.getPageCount()} pages, size: ${pdfSizeMB}MB`);
 
-        // Upload to Cloudinary using base64 encoding (Node.js compatible)
+        // Check final PDF size (Cloudinary free tier has 10MB limit for raw files)
+        if (pdfBytes.length > 100 * 1024 * 1024) { // 100MB limit
+            return {
+                statusCode: 413,
+                headers,
+                body: JSON.stringify({ 
+                    error: 'Generated PDF is too large to upload',
+                    sizeMB: pdfSizeMB,
+                    pageCount: mergedPdf.getPageCount()
+                }),
+            };
+        }
+
+        // Upload to Cloudinary using multipart form data (proper method for raw files)
         const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${process.env.CLOUDINARY_CLOUD_NAME}/upload`;
         
-        // Convert PDF bytes to base64
-        const base64Pdf = Buffer.from(pdfBytes).toString('base64');
-        const dataUri = `data:application/pdf;base64,${base64Pdf}`;
+        // Create form data for multipart upload
+        const FormData = require('form-data');
+        const formData = new FormData();
         
-        const uploadData = {
-            file: dataUri,
-            upload_preset: process.env.CLOUDINARY_UPLOAD_PRESET,
-            resource_type: 'raw',
-            public_id: `graduation-booklets/${graduationId}-booklet`,
-        };
+        // Use safe public_id without slashes (replace with underscores)
+        const safePublicId = `graduation_booklet_${graduationId}`;
+        
+        formData.append('file', Buffer.from(pdfBytes), {
+            filename: `${safePublicId}.pdf`,
+            contentType: 'application/pdf'
+        });
+        formData.append('upload_preset', process.env.CLOUDINARY_UPLOAD_PRESET);
+        formData.append('resource_type', 'raw');
+        formData.append('public_id', safePublicId);
+        formData.append('folder', 'graduation-booklets'); // Use folder parameter instead of slashes in public_id
 
         const uploadResponse = await fetch(cloudinaryUrl, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(uploadData),
+            body: formData,
+            headers: formData.getHeaders(),
         });
 
         if (!uploadResponse.ok) {
@@ -210,15 +284,32 @@ exports.handler = async (event, context) => {
         }
 
         const uploadResult = await uploadResponse.json();
+        
+        if (!uploadResult || !uploadResult.secure_url) {
+            console.error('Invalid Cloudinary response:', uploadResult);
+            throw new Error('Cloudinary upload succeeded but returned invalid response');
+        }
+        
         const bookletUrl = uploadResult.secure_url;
-
-        console.log(`Uploaded booklet to: ${bookletUrl}`);
+        console.log(`Successfully uploaded booklet to: ${bookletUrl}`);
 
         // Update Firestore with the booklet URL
-        await db.collection('graduations').doc(graduationId).update({
-            generatedBookletUrl: bookletUrl,
-            bookletGeneratedAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
+        try {
+            await db.collection('graduations').doc(graduationId).update({
+                generatedBookletUrl: bookletUrl,
+                bookletGeneratedAt: admin.firestore.FieldValue.serverTimestamp(),
+                bookletStats: {
+                    totalPages: mergedPdf.getPageCount(),
+                    processedStudents: processedCount,
+                    totalStudents: studentsWithPdfs.length,
+                    sizeMB: parseFloat(pdfSizeMB),
+                    generatedAt: new Date().toISOString()
+                }
+            });
+        } catch (firestoreError) {
+            console.error('Failed to update Firestore:', firestoreError);
+            // Don't fail the entire operation if Firestore update fails
+        }
 
         return {
             statusCode: 200,
@@ -228,6 +319,9 @@ exports.handler = async (event, context) => {
                 bookletUrl: bookletUrl,
                 pageCount: mergedPdf.getPageCount(),
                 studentCount: studentsWithPdfs.length,
+                processedStudents: processedCount,
+                sizeMB: pdfSizeMB,
+                message: `Successfully generated booklet with ${processedCount}/${studentsWithPdfs.length} student profiles`
             }),
         };
 
