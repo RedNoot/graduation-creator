@@ -215,52 +215,44 @@ exports.handler = async (event, context) => {
             color: rgb(0.5, 0.5, 0.5),
         });
 
-        // Function to ensure PDF URL is publicly accessible
-        const ensurePublicPdfUrl = (url) => {
-            if (!url) {
-                console.log(`[ensurePublicPdfUrl] URL is empty or null`);
+        // Function to generate signed Cloudinary URL for private resources
+        const getSignedCloudinaryUrl = (url) => {
+            if (!url || !url.includes('cloudinary.com')) {
                 return url;
             }
             
-            console.log(`[ensurePublicPdfUrl] Processing URL: ${url}`);
-            return url; // Return as-is - the real fix is Cloudinary configuration
-        };
-        
-        // Function to get authenticated download URL using Cloudinary Admin API
-        const getAuthenticatedCloudinaryUrl = (url) => {
-            if (!url || !url.includes('cloudinary.com')) {
+            const cloudinaryApiSecret = process.env.CLOUDINARY_API_SECRET;
+            if (!cloudinaryApiSecret) {
+                console.log(`[getSignedCloudinaryUrl] Missing Cloudinary API secret, using original URL`);
                 return url;
             }
             
             // Extract public_id from URL
             // URL format: https://res.cloudinary.com/dkm3avvjl/image/upload/v1760843683/graduation-pdfs/Zfza5VrVBmKfjowtv7N1/mwdj5ggzrn1d7xyusmeh.pdf
-            const match = url.match(/\/upload\/(.+?)\/([^\/]+\.pdf)$/);
+            const match = url.match(/\/image\/upload\/(.+)\.pdf$/);
             if (!match) {
-                console.log(`[getAuthenticatedCloudinaryUrl] Could not extract public_id from URL: ${url}`);
+                console.log(`[getSignedCloudinaryUrl] Could not extract path from URL: ${url}`);
                 return url;
             }
             
-            const versionPath = match[1]; // e.g., "v1760843683/graduation-pdfs/Zfza5VrVBmKfjowtv7N1"
-            const filename = match[2]; // e.g., "mwdj5ggzrn1d7xyusmeh.pdf"
-            
-            // Build authenticated URL with auth token
+            const publicIdPath = match[1]; // e.g., "v1760843683/graduation-pdfs/Zfza5VrVBmKfjowtv7N1/mwdj5ggzrn1d7xyusmeh"
             const cloudinaryCloudName = process.env.CLOUDINARY_CLOUD_NAME;
-            const cloudinaryApiKey = process.env.CLOUDINARY_API_KEY;
-            const cloudinaryApiSecret = process.env.CLOUDINARY_API_SECRET;
             
-            if (!cloudinaryApiKey || !cloudinaryApiSecret) {
-                console.log(`[getAuthenticatedCloudinaryUrl] Missing Cloudinary API credentials, using original URL`);
-                return url;
-            }
+            // Create signed URL with expiration
+            const timestamp = Math.floor(Date.now() / 1000) + 3600; // Valid for 1 hour
+            const toSign = `public_id=${publicIdPath}&timestamp=${timestamp}`;
             
-            // Create auth header: "api_key:api_secret" in base64
-            const credentials = `${cloudinaryApiKey}:${cloudinaryApiSecret}`;
-            const base64Credentials = Buffer.from(credentials).toString('base64');
+            const signature = require('crypto')
+                .createHash('sha256')
+                .update(toSign + cloudinaryApiSecret)
+                .digest('hex');
             
-            // Return the original URL but we'll add auth headers when fetching
-            console.log(`[getAuthenticatedCloudinaryUrl] Generated auth credentials`);
-            return { url, authHeader: base64Credentials };
+            const signedUrl = `https://res.cloudinary.com/${cloudinaryCloudName}/image/upload/${publicIdPath}.pdf?timestamp=${timestamp}&signature=${signature}`;
+            console.log(`[getSignedCloudinaryUrl] Generated signed URL with signature`);
+            return signedUrl;
         };
+
+        // Add student PDFs
 
         // Add student PDFs
         let processedCount = 0;
@@ -269,36 +261,24 @@ exports.handler = async (event, context) => {
             console.log(`Processing PDF ${i + 1}/${studentsWithPdfs.length} for student: ${student.name}`);
 
             try {
-                // Ensure the PDF URL is publicly accessible
-                const pdfUrlInfo = getAuthenticatedCloudinaryUrl(student.pdfUrl);
-                const pdfUrl = typeof pdfUrlInfo === 'string' ? pdfUrlInfo : pdfUrlInfo.url;
-                const authHeader = typeof pdfUrlInfo === 'object' ? pdfUrlInfo.authHeader : null;
+                // Generate signed URL for private Cloudinary resource
+                const signedPdfUrl = getSignedCloudinaryUrl(student.pdfUrl);
                 
                 console.log(`[PDF Processing] Student: ${student.name}`);
                 console.log(`[PDF Processing] Original URL: ${student.pdfUrl}`);
-                console.log(`[PDF Processing] Has auth header: ${!!authHeader}`);
+                console.log(`[PDF Processing] Using signed URL`);
 
                 // Download the PDF with timeout
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
                 
-                // Build fetch headers
-                const fetchHeaders = {
-                    'User-Agent': 'Graduation-Creator-Bot/1.0'
-                };
+                console.log(`[PDF Processing] Fetching from signed URL`);
                 
-                // Add authentication header if available
-                if (authHeader) {
-                    fetchHeaders['Authorization'] = `Basic ${authHeader}`;
-                    console.log(`[PDF Processing] Using authenticated request with Cloudinary Admin API`);
-                }
-                
-                console.log(`[PDF Processing] Fetching from URL: ${pdfUrl}`);
-                console.log(`[PDF Processing] Headers: ${JSON.stringify({ ...fetchHeaders, Authorization: authHeader ? '***' : 'none' })}`);
-                
-                const response = await fetch(pdfUrl, {
+                const response = await fetch(signedPdfUrl, {
                     signal: controller.signal,
-                    headers: fetchHeaders
+                    headers: {
+                        'User-Agent': 'Graduation-Creator-Bot/1.0'
+                    }
                 });
                 clearTimeout(timeoutId);
                 
