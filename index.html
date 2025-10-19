@@ -659,9 +659,8 @@
                     // Fetch fresh graduation data with the new booklet URL
                     const graduationDoc = await getDoc(doc(db, "graduations", graduationId));
                     if (graduationDoc.exists()) {
-                        // Update the global gradData with fresh data
-                        gradData = graduationDoc.data();
-                        console.log('Fresh URL from Firestore after generation:', gradData.generatedBookletUrl);
+                        const freshGradData = graduationDoc.data();
+                        console.log('Fresh URL from Firestore after generation:', freshGradData.generatedBookletUrl);
                         
                         // Update the local state with the new booklet URL
                         showModal(
@@ -671,7 +670,7 @@
                         
                         // Reload the booklet tab to show the new download link
                         if (document.querySelector('[data-tab="booklet"]')) {
-                            renderBookletTab(graduationId, gradData);
+                            renderBookletTab(graduationId, freshGradData);
                         }
                     }
                 } else {
@@ -1077,10 +1076,10 @@
                         // Always fetch fresh data for booklet tab to get latest URL
                         getDoc(doc(db, "graduations", gradId)).then(freshDoc => {
                             if (freshDoc.exists()) {
-                                gradData = freshDoc.data();
-                                console.log('Booklet URL from Firestore:', gradData.generatedBookletUrl);
-                                console.log('Booklet generated at:', gradData.bookletGeneratedAt);
-                                renderBookletTab(gradId, gradData);
+                                const freshGradData = freshDoc.data();
+                                console.log('Booklet URL from Firestore:', freshGradData.generatedBookletUrl);
+                                console.log('Booklet generated at:', freshGradData.bookletGeneratedAt);
+                                renderBookletTab(gradId, freshGradData);
                             }
                         });
                     }

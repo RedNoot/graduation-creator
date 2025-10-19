@@ -469,7 +469,7 @@ exports.handler = async (event, context) => {
         }
 
         // Upload to Cloudinary using multipart form data (proper method for raw files)
-        const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${process.env.CLOUDINARY_CLOUD_NAME}/upload`;
+        const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${process.env.CLOUDINARY_CLOUD_NAME}/raw/upload`;
         
         // Create form data for multipart upload
         const FormData = require('form-data');
