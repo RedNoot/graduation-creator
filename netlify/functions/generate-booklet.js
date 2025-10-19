@@ -225,6 +225,42 @@ exports.handler = async (event, context) => {
             console.log(`[ensurePublicPdfUrl] Processing URL: ${url}`);
             return url; // Return as-is - the real fix is Cloudinary configuration
         };
+        
+        // Function to get authenticated download URL using Cloudinary Admin API
+        const getAuthenticatedCloudinaryUrl = (url) => {
+            if (!url || !url.includes('cloudinary.com')) {
+                return url;
+            }
+            
+            // Extract public_id from URL
+            // URL format: https://res.cloudinary.com/dkm3avvjl/image/upload/v1760843683/graduation-pdfs/Zfza5VrVBmKfjowtv7N1/mwdj5ggzrn1d7xyusmeh.pdf
+            const match = url.match(/\/upload\/(.+?)\/([^\/]+\.pdf)$/);
+            if (!match) {
+                console.log(`[getAuthenticatedCloudinaryUrl] Could not extract public_id from URL: ${url}`);
+                return url;
+            }
+            
+            const versionPath = match[1]; // e.g., "v1760843683/graduation-pdfs/Zfza5VrVBmKfjowtv7N1"
+            const filename = match[2]; // e.g., "mwdj5ggzrn1d7xyusmeh.pdf"
+            
+            // Build authenticated URL with auth token
+            const cloudinaryCloudName = process.env.CLOUDINARY_CLOUD_NAME;
+            const cloudinaryApiKey = process.env.CLOUDINARY_API_KEY;
+            const cloudinaryApiSecret = process.env.CLOUDINARY_API_SECRET;
+            
+            if (!cloudinaryApiKey || !cloudinaryApiSecret) {
+                console.log(`[getAuthenticatedCloudinaryUrl] Missing Cloudinary API credentials, using original URL`);
+                return url;
+            }
+            
+            // Create auth header: "api_key:api_secret" in base64
+            const credentials = `${cloudinaryApiKey}:${cloudinaryApiSecret}`;
+            const base64Credentials = Buffer.from(credentials).toString('base64');
+            
+            // Return the original URL but we'll add auth headers when fetching
+            console.log(`[getAuthenticatedCloudinaryUrl] Generated auth credentials`);
+            return { url, authHeader: base64Credentials };
+        };
 
         // Add student PDFs
         let processedCount = 0;
@@ -234,20 +270,32 @@ exports.handler = async (event, context) => {
 
             try {
                 // Ensure the PDF URL is publicly accessible
-                const publicPdfUrl = ensurePublicPdfUrl(student.pdfUrl);
+                const pdfUrlInfo = getAuthenticatedCloudinaryUrl(student.pdfUrl);
+                const pdfUrl = typeof pdfUrlInfo === 'string' ? pdfUrlInfo : pdfUrlInfo.url;
+                const authHeader = typeof pdfUrlInfo === 'object' ? pdfUrlInfo.authHeader : null;
+                
                 console.log(`[PDF Processing] Student: ${student.name}`);
                 console.log(`[PDF Processing] Original URL: ${student.pdfUrl}`);
-                console.log(`[PDF Processing] Public URL: ${publicPdfUrl}`);
+                console.log(`[PDF Processing] Has auth header: ${!!authHeader}`);
 
                 // Download the PDF with timeout
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
                 
-                const response = await fetch(publicPdfUrl, {
+                // Build fetch headers
+                const fetchHeaders = {
+                    'User-Agent': 'Graduation-Creator-Bot/1.0'
+                };
+                
+                // Add authentication header if available
+                if (authHeader) {
+                    fetchHeaders['Authorization'] = `Basic ${authHeader}`;
+                    console.log(`[PDF Processing] Using authenticated request`);
+                }
+                
+                const response = await fetch(pdfUrl, {
                     signal: controller.signal,
-                    headers: {
-                        'User-Agent': 'Graduation-Creator-Bot/1.0'
-                    }
+                    headers: fetchHeaders
                 });
                 clearTimeout(timeoutId);
                 
