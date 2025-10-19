@@ -19,6 +19,38 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
+// Generate Cloudinary signed URL for downloading files
+const generateCloudinarySignedUrl = (publicId) => {
+    const cloudinaryApiSecret = process.env.CLOUDINARY_API_SECRET;
+    const cloudinaryCloudName = process.env.CLOUDINARY_CLOUD_NAME;
+    
+    if (!cloudinaryApiSecret || !cloudinaryCloudName) {
+        console.error('Missing Cloudinary API secret or cloud name');
+        return null;
+    }
+    
+    const timestamp = Math.floor(Date.now() / 1000);
+    const params = {
+        public_id: publicId,
+        type: 'upload',
+        timestamp: timestamp.toString(),
+    };
+    
+    // Create the signature
+    const paramString = Object.keys(params)
+        .sort()
+        .map(key => `${key}=${params[key]}`)
+        .join('&');
+    
+    const signature = crypto
+        .createHash('sha256')
+        .update(paramString + cloudinaryApiSecret)
+        .digest('hex');
+    
+    // Return the authenticated URL
+    return `https://res.cloudinary.com/${cloudinaryCloudName}/image/upload/${paramString}&signature=${signature}/${publicId}.pdf`;
+};
+
 // Secure password hashing using Node.js crypto
 const hashPassword = (password) => {
     const salt = crypto.randomBytes(32).toString('hex');

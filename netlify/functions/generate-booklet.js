@@ -223,30 +223,7 @@ exports.handler = async (event, context) => {
             }
             
             console.log(`[ensurePublicPdfUrl] Processing URL: ${url}`);
-            
-            // If it's a Cloudinary URL, try to make it publicly accessible
-            if (url.includes('cloudinary.com')) {
-                // Convert secure_url to public URL if needed
-                // Replace /image/upload/ or /upload/ with transformation URL
-                let publicUrl = url;
-                
-                // Try multiple transformation approaches
-                // 1. Add fl_attachment to allow public viewing
-                if (publicUrl.includes('/upload/') && !publicUrl.includes('/fl_attachment/')) {
-                    publicUrl = publicUrl.replace('/upload/', '/upload/fl_attachment/');
-                    console.log(`[ensurePublicPdfUrl] Added fl_attachment: ${publicUrl}`);
-                    return publicUrl;
-                }
-                
-                // 2. Try making it a public resource
-                if (publicUrl.includes('/image/upload/') && !publicUrl.includes('/fl_attachment/')) {
-                    publicUrl = publicUrl.replace('/image/upload/', '/image/upload/fl_attachment/');
-                    console.log(`[ensurePublicPdfUrl] Added fl_attachment (image): ${publicUrl}`);
-                    return publicUrl;
-                }
-            }
-            
-            return url;
+            return url; // Return as-is - the real fix is Cloudinary configuration
         };
 
         // Add student PDFs
@@ -266,7 +243,7 @@ exports.handler = async (event, context) => {
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
                 
-                const response = await fetch(publicPdfUrl, { 
+                const response = await fetch(publicPdfUrl, {
                     signal: controller.signal,
                     headers: {
                         'User-Agent': 'Graduation-Creator-Bot/1.0'
