@@ -405,10 +405,6 @@
             const formData = new FormData();
             formData.append('file', file);
             formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-            // Ensure public access for PDFs
-            formData.append('resource_type', 'auto');
-            formData.append('type', 'upload');
-            formData.append('access_mode', 'public');
 
             try {
                 const response = await fetch(CLOUDINARY_URL, {
@@ -417,8 +413,19 @@
                 });
 
                 if (!response.ok) {
+                    // Get detailed error response from Cloudinary
+                    let errorDetail = '';
+                    try {
+                        const errorData = await response.json();
+                        errorDetail = errorData.error?.message || JSON.stringify(errorData);
+                    } catch (e) {
+                        errorDetail = await response.text();
+                    }
+                    
+                    console.error('Cloudinary error response:', errorDetail);
+                    
                     if (response.status === 400) {
-                        throw new Error('Upload failed: Invalid file or configuration');
+                        throw new Error(`Upload failed: ${errorDetail || 'Invalid file or configuration'}`);
                     } else if (response.status === 413) {
                         throw new Error('File too large for upload');
                     } else if (response.status === 429) {
@@ -426,7 +433,7 @@
                     } else if (response.status >= 500) {
                         throw new Error('Upload service temporarily unavailable');
                     } else {
-                        throw new Error(`Upload failed with status: ${response.status}`);
+                        throw new Error(`Upload failed with status: ${response.status} - ${errorDetail}`);
                     }
                 }
 
