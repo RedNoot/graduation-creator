@@ -204,31 +204,47 @@ exports.handler = async (event, context) => {
 
         // Create the master PDF document
         const mergedPdf = await PDFDocument.create();
+        
+        // Parse colors from config (hex to RGB)
+        const hexToRgb = (hex) => {
+            if (!hex) return { r: 0, g: 0, b: 0 };
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16) / 255,
+                g: parseInt(result[2], 16) / 255,
+                b: parseInt(result[3], 16) / 255
+            } : { r: 0, g: 0, b: 0 };
+        };
+        
+        // Get colors from config with defaults
+        const primaryColor = hexToRgb(config.primaryColor || '#4F46E5'); // indigo-600
+        const secondaryColor = hexToRgb(config.secondaryColor || '#6B7280'); // gray-500
+        const textColor = hexToRgb(config.textColor || '#1F2937'); // gray-800
 
         // Add title page
         const titlePage = mergedPdf.addPage([612, 792]); // Letter size
         const { width, height } = titlePage.getSize();
 
-        // Add title text
+        // Add title text with primary color
         titlePage.drawText(`${graduationData.schoolName}`, {
             x: 50,
             y: height - 100,
-            size: 24,
-            color: rgb(0, 0, 0),
+            size: 28,
+            color: rgb(primaryColor.r, primaryColor.g, primaryColor.b),
         });
 
         titlePage.drawText(`Class of ${graduationData.graduationYear}`, {
             x: 50,
             y: height - 140,
-            size: 18,
-            color: rgb(0.5, 0.5, 0.5),
+            size: 20,
+            color: rgb(secondaryColor.r, secondaryColor.g, secondaryColor.b),
         });
 
         titlePage.drawText(`Student Profiles`, {
             x: 50,
             y: height - 180,
             size: 16,
-            color: rgb(0.5, 0.5, 0.5),
+            color: rgb(secondaryColor.r, secondaryColor.g, secondaryColor.b),
         });
         
         // Helper function to add text content pages
@@ -236,26 +252,26 @@ exports.handler = async (event, context) => {
             const contentPage = mergedPdf.addPage([612, 792]);
             const { width, height } = contentPage.getSize();
             
-            // Title
+            // Title with primary color
             contentPage.drawText(title, {
                 x: 50,
                 y: height - 80,
-                size: 20,
-                color: rgb(0, 0, 0),
+                size: 22,
+                color: rgb(primaryColor.r, primaryColor.g, primaryColor.b),
                 maxWidth: width - 100,
             });
             
-            // Author (if provided)
+            // Author (if provided) with secondary color
             if (author) {
                 contentPage.drawText(`By: ${author}`, {
                     x: 50,
                     y: height - 110,
                     size: 12,
-                    color: rgb(0.4, 0.4, 0.4),
+                    color: rgb(secondaryColor.r, secondaryColor.g, secondaryColor.b),
                 });
             }
             
-            // Content - wrap text manually
+            // Content - wrap text manually with text color
             const contentLines = [];
             const words = content.replace(/\n/g, ' \n ').split(' ');
             let currentLine = '';
@@ -283,7 +299,7 @@ exports.handler = async (event, context) => {
                 contentLines.push(currentLine.trim());
             }
             
-            // Draw content lines
+            // Draw content lines with text color
             let yPosition = height - (author ? 140 : 120);
             const lineHeight = fontSize * 1.5;
             
@@ -294,7 +310,7 @@ exports.handler = async (event, context) => {
                     x: 50,
                     y: yPosition,
                     size: fontSize,
-                    color: rgb(0.2, 0.2, 0.2),
+                    color: rgb(textColor.r, textColor.g, textColor.b),
                 });
                 
                 yPosition -= lineHeight;
@@ -309,13 +325,13 @@ exports.handler = async (event, context) => {
             if (section === 'messages' && config.showMessages !== false) {
                 const messagePages = contentPages.filter(p => p.type === 'thanks' || p.type === 'memory');
                 if (messagePages.length > 0) {
-                    // Add section title page
+                    // Add section title page with primary color
                     const sectionPage = mergedPdf.addPage([612, 792]);
                     sectionPage.drawText('Messages & Memories', {
                         x: 50,
                         y: sectionPage.getHeight() - 100,
-                        size: 24,
-                        color: rgb(0, 0, 0),
+                        size: 26,
+                        color: rgb(primaryColor.r, primaryColor.g, primaryColor.b),
                     });
                     
                     // Add each message page
@@ -328,13 +344,13 @@ exports.handler = async (event, context) => {
             } else if (section === 'speeches' && config.showSpeeches !== false) {
                 const speechPages = contentPages.filter(p => p.type === 'speech' || p.type === 'text');
                 if (speechPages.length > 0) {
-                    // Add section title page
+                    // Add section title page with primary color
                     const sectionPage = mergedPdf.addPage([612, 792]);
                     sectionPage.drawText('Speeches & Presentations', {
                         x: 50,
                         y: sectionPage.getHeight() - 100,
-                        size: 24,
-                        color: rgb(0, 0, 0),
+                        size: 26,
+                        color: rgb(primaryColor.r, primaryColor.g, primaryColor.b),
                     });
                     
                     // Add each speech page

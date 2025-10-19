@@ -1839,6 +1839,18 @@
             const isScheduled = config.enableDownloadScheduling && config.downloadableAfterDate;
             const isAvailable = !isScheduled || new Date() >= new Date(config.downloadableAfterDate);
             
+            // Add fl_attachment flag to force download instead of viewing in browser
+            const getDownloadUrl = (url) => {
+                if (!url) return url;
+                // If URL doesn't already have fl_attachment, add it
+                if (!url.includes('fl_attachment')) {
+                    return url.replace('/upload/', '/upload/fl_attachment/');
+                }
+                return url;
+            };
+            
+            const downloadUrl = getDownloadUrl(gradData.generatedBookletUrl);
+            
             let bookletInfo = `
                 <p class="text-gray-600 mb-4">Click the button to combine all uploaded student PDFs into a single downloadable booklet.</p>
                 <button id="generate-booklet-btn" class="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Generate Booklet</button>
@@ -1860,7 +1872,7 @@
                                 </div>
                             </div>
                             <div class="flex gap-4">
-                                <a href="${gradData.generatedBookletUrl}" target="_blank" class="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Download Booklet</a>
+                                <a href="${downloadUrl}" download="graduation-booklet.pdf" class="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Download Booklet</a>
                                 <button id="generate-booklet-btn" class="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Re-generate Booklet</button>
                             </div>
                         `;
@@ -1902,7 +1914,7 @@
                             </div>
                         </div>
                         <div class="flex gap-4">
-                            <a href="${gradData.generatedBookletUrl}" target="_blank" class="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Download Booklet</a>
+                            <a href="${downloadUrl}" download="graduation-booklet.pdf" class="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Download Booklet</a>
                             <button id="generate-booklet-btn" class="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Re-generate Booklet</button>
                         </div>
                     `;
