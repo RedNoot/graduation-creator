@@ -290,8 +290,11 @@ exports.handler = async (event, context) => {
                 // Add authentication header if available
                 if (authHeader) {
                     fetchHeaders['Authorization'] = `Basic ${authHeader}`;
-                    console.log(`[PDF Processing] Using authenticated request`);
+                    console.log(`[PDF Processing] Using authenticated request with Cloudinary Admin API`);
                 }
+                
+                console.log(`[PDF Processing] Fetching from URL: ${pdfUrl}`);
+                console.log(`[PDF Processing] Headers: ${JSON.stringify({ ...fetchHeaders, Authorization: authHeader ? '***' : 'none' })}`);
                 
                 const response = await fetch(pdfUrl, {
                     signal: controller.signal,
