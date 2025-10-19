@@ -163,10 +163,12 @@ exports.handler = async (event, context) => {
                     name: student.name,
                     pdfUrl: student.profilePdfUrl
                 });
+                console.log(`[Student PDF Found] ${student.name}: ${student.profilePdfUrl}`);
             }
         });
 
         console.log(`Found ${allStudents.length} total students, ${studentsWithPdfs.length} with PDFs`);
+        console.log(`[Students Summary]`, allStudents);
 
         if (studentsWithPdfs.length === 0) {
             console.error('No student PDFs available:', allStudents);
@@ -275,9 +277,15 @@ exports.handler = async (event, context) => {
                 console.log(`[PDF Processing] Response status for ${student.name}: ${response.status} ${response.statusText}`);
                 
                 if (!response.ok) {
-                    console.error(`Failed to download PDF for ${student.name}: ${response.status} ${response.statusText}`);
                     const errorText = await response.text();
-                    console.error(`[PDF Processing] Error response body: ${errorText}`);
+                    console.error(`Failed to download PDF for ${student.name}: ${response.status} ${response.statusText}`);
+                    console.error(`[PDF Processing] Response headers:`, {
+                        contentType: response.headers.get('content-type'),
+                        contentLength: response.headers.get('content-length'),
+                        cacheControl: response.headers.get('cache-control'),
+                        status: response.status
+                    });
+                    console.error(`[PDF Processing] Error response body: ${errorText.substring(0, 500)}`);
                     continue;
                 }
 
