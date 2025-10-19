@@ -654,11 +654,14 @@
                 const result = await response.json();
                 
                 if (result.success) {
+                    console.log('Booklet generated successfully, returned URL:', result.bookletUrl);
+                    
                     // Fetch fresh graduation data with the new booklet URL
                     const graduationDoc = await getDoc(doc(db, "graduations", graduationId));
                     if (graduationDoc.exists()) {
                         // Update the global gradData with fresh data
                         gradData = graduationDoc.data();
+                        console.log('Fresh URL from Firestore after generation:', gradData.generatedBookletUrl);
                         
                         // Update the local state with the new booklet URL
                         showModal(
@@ -1075,6 +1078,8 @@
                         getDoc(doc(db, "graduations", gradId)).then(freshDoc => {
                             if (freshDoc.exists()) {
                                 gradData = freshDoc.data();
+                                console.log('Booklet URL from Firestore:', gradData.generatedBookletUrl);
+                                console.log('Booklet generated at:', gradData.bookletGeneratedAt);
                                 renderBookletTab(gradId, gradData);
                             }
                         });

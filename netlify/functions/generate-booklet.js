@@ -510,6 +510,8 @@ exports.handler = async (event, context) => {
         
         const bookletUrl = uploadResult.secure_url;
         console.log(`Successfully uploaded booklet to: ${bookletUrl}`);
+        console.log(`Cloudinary version: ${uploadResult.version}`);
+        console.log(`Full Cloudinary response:`, JSON.stringify(uploadResult, null, 2));
 
         // Update Firestore with the booklet URL
         try {
