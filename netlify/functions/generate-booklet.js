@@ -213,6 +213,27 @@ exports.handler = async (event, context) => {
             color: rgb(0.5, 0.5, 0.5),
         });
 
+        // Function to ensure PDF URL is publicly accessible (same as frontend)
+        const ensurePublicPdfUrl = (url) => {
+            if (!url || !url.includes('cloudinary.com')) {
+                return url; // Not a Cloudinary URL, return as-is
+            }
+            
+            // Check if URL already has fl_attachment or is already public
+            if (url.includes('/v1_1/') && !url.includes('/upload/')) {
+                return url; // Already processed URL
+            }
+            
+            // Convert to public URL format by adding fl_attachment for PDFs
+            // This allows public viewing even for files uploaded as private
+            if (url.includes('.pdf')) {
+                // Insert fl_attachment flag to make PDF publicly viewable
+                return url.replace('/upload/', '/upload/fl_attachment/');
+            }
+            
+            return url;
+        };
+
         // Add student PDFs
         let processedCount = 0;
         for (let i = 0; i < studentsWithPdfs.length; i++) {
@@ -220,11 +241,16 @@ exports.handler = async (event, context) => {
             console.log(`Processing PDF ${i + 1}/${studentsWithPdfs.length} for student: ${student.name}`);
 
             try {
+                // Ensure the PDF URL is publicly accessible
+                const publicPdfUrl = ensurePublicPdfUrl(student.pdfUrl);
+                console.log(`Original URL: ${student.pdfUrl}`);
+                console.log(`Public URL: ${publicPdfUrl}`);
+
                 // Download the PDF with timeout
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
                 
-                const response = await fetch(student.pdfUrl, { 
+                const response = await fetch(publicPdfUrl, { 
                     signal: controller.signal,
                     headers: {
                         'User-Agent': 'Graduation-Creator-Bot/1.0'
