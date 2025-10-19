@@ -19,38 +19,6 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
-// Generate Cloudinary signed URL for downloading files
-const generateCloudinarySignedUrl = (publicId) => {
-    const cloudinaryApiSecret = process.env.CLOUDINARY_API_SECRET;
-    const cloudinaryCloudName = process.env.CLOUDINARY_CLOUD_NAME;
-    
-    if (!cloudinaryApiSecret || !cloudinaryCloudName) {
-        console.error('Missing Cloudinary API secret or cloud name');
-        return null;
-    }
-    
-    const timestamp = Math.floor(Date.now() / 1000);
-    const params = {
-        public_id: publicId,
-        type: 'upload',
-        timestamp: timestamp.toString(),
-    };
-    
-    // Create the signature
-    const paramString = Object.keys(params)
-        .sort()
-        .map(key => `${key}=${params[key]}`)
-        .join('&');
-    
-    const signature = crypto
-        .createHash('sha256')
-        .update(paramString + cloudinaryApiSecret)
-        .digest('hex');
-    
-    // Return the authenticated URL
-    return `https://res.cloudinary.com/${cloudinaryCloudName}/image/upload/${paramString}&signature=${signature}/${publicId}.pdf`;
-};
-
 // Secure password hashing using Node.js crypto
 const hashPassword = (password) => {
     const salt = crypto.randomBytes(32).toString('hex');
@@ -236,9 +204,11 @@ exports.handler = async (event, context) => {
 
             case 'getCloudinarySignature':
                 // Generate a signed upload signature for Cloudinary
+                // Using type=upload (public) instead of authenticated to avoid download authorization issues
                 const timestamp = Math.floor(Date.now() / 1000);
                 const folder = `graduation-pdfs/${graduationId}`;
-                const paramsToSign = `folder=${folder}&timestamp=${timestamp}`;
+                const uploadType = 'upload'; // Public type for easier access
+                const paramsToSign = `folder=${folder}&timestamp=${timestamp}&type=${uploadType}`;
                 
                 const signature = crypto
                     .createHash('sha256')
@@ -253,6 +223,7 @@ exports.handler = async (event, context) => {
                         timestamp: timestamp,
                         signature: signature,
                         folder: folder,
+                        type: uploadType,
                         apiKey: process.env.CLOUDINARY_API_KEY,
                         cloudName: process.env.CLOUDINARY_CLOUD_NAME,
                     }),

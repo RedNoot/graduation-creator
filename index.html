@@ -321,6 +321,7 @@
                     formData.append('timestamp', signatureData.timestamp);
                     formData.append('signature', signatureData.signature);
                     formData.append('folder', signatureData.folder);
+                    formData.append('type', signatureData.type); // Specify upload type (public)
                     
                     // Upload to Cloudinary using signed request
                     const cloudinaryResponse = await fetch(`https://api.cloudinary.com/v1_1/${signatureData.cloudName}/upload`, {

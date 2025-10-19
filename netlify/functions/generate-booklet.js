@@ -215,20 +215,6 @@ exports.handler = async (event, context) => {
             color: rgb(0.5, 0.5, 0.5),
         });
 
-        // Function to get Cloudinary URL for downloading PDFs
-        const getCloudinaryUrl = (url) => {
-            if (!url || !url.includes('cloudinary.com')) {
-                return url;
-            }
-            
-            // For signed uploads with proper permissions, use the URL as-is
-            // The signature ensures the file is accessible
-            console.log(`[getCloudinaryUrl] Using signed URL from Cloudinary`);
-            return url;
-        };
-
-        // Add student PDFs
-
         // Add student PDFs
         let processedCount = 0;
         for (let i = 0; i < studentsWithPdfs.length; i++) {
@@ -236,18 +222,17 @@ exports.handler = async (event, context) => {
             console.log(`Processing PDF ${i + 1}/${studentsWithPdfs.length} for student: ${student.name}`);
 
             try {
-                // Get Cloudinary URL for this PDF
-                const pdfUrl = getCloudinaryUrl(student.pdfUrl);
+                // Use the PDF URL directly - files are uploaded as public type for easier access
+                const pdfUrl = student.pdfUrl;
                 
                 console.log(`[PDF Processing] Student: ${student.name}`);
-                console.log(`[PDF Processing] Original URL: ${student.pdfUrl}`);
-                console.log(`[PDF Processing] Using Cloudinary signed URL`);
+                console.log(`[PDF Processing] PDF URL: ${pdfUrl}`);
 
                 // Download the PDF with timeout
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
                 
-                console.log(`[PDF Processing] Fetching from signed URL`);
+                console.log(`[PDF Processing] Fetching PDF from Cloudinary`);
                 
                 const response = await fetch(pdfUrl, {
                     signal: controller.signal,
