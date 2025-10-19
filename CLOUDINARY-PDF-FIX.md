@@ -249,28 +249,36 @@ cloudinary.uploader.explicit(publicId, {
 
 ## Cloudinary Configuration Checklist
 
+### CRITICAL: Enable PDF Delivery (Account Setting)
+**THIS IS THE MOST IMPORTANT SETTING!**
+
+1. Log into Cloudinary Console: https://cloudinary.com/console
+2. Click **Settings** (gear icon)
+3. Go to **Security** tab
+4. Scroll to **Restricted file types** section
+5. Find: **"PDF and ZIP files delivery"**
+6. ✅ **CHECK this box** - This allows PDF delivery!
+
+**Without this checked, ALL PDFs return 401 Unauthorized, regardless of upload method!**
+
 ### Upload Preset Settings
 Verify your "Graduation-Uploads" preset in Cloudinary dashboard:
 
 ```
 Settings > Upload > Upload Presets > Graduation-Uploads
 
-✅ Signing Mode: Unsigned (allows both signed and unsigned uploads)
-✅ Type: Upload (public) - CRITICAL! This is the main fix
-✅ Access Mode: Public (or default)
+✅ Signing Mode: Unsigned (allows unsigned uploads)
 ✅ Unique Filename: Enabled/true
-✅ Use Filename: Disabled (optional)
 ✅ Folder: Can be set to "graduation-pdfs" or left empty
 
-Note: "Resource Type" may not be shown - it auto-detects PDFs and images
-
-* The app uses BOTH signed and unsigned uploads to the SAME preset:
-  - Unsigned: Students upload their own PDFs using the preset directly
-  - Signed: Teachers upload PDFs on behalf of students using server-side signatures
-  
-Both upload methods store PDFs to the same student.profilePdfUrl field.
-Both methods now correctly specify/inherit type=upload (public).
+Note: The app now uses /raw/upload endpoint for PDFs,
+      so preset "Type" setting is less critical.
 ```
+
+### Code Changes (Already Implemented)
+- ✅ PDFs upload to `/raw/upload` endpoint (not `/image/upload`)
+- ✅ Both teacher and student uploads use same function
+- ✅ URLs now contain `/raw/upload/` for proper delivery
 
 ### Environment Variables (Netlify)
 Required variables in Netlify environment settings:
