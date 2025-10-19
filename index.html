@@ -296,50 +296,14 @@
                     
                     showModal('Uploading...', `Uploading PDF for ${studentName}...`, false);
                     
-                    // Get signature from backend
-                    const signatureResponse = await fetch('/.netlify/functions/secure-operations', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            action: 'getCloudinarySignature',
-                            graduationId: gradId,
-                        }),
-                    });
-                    
-                    if (!signatureResponse.ok) {
-                        throw new Error('Failed to get upload signature');
-                    }
-                    
-                    const signatureData = await signatureResponse.json();
-                    
-                    // Create FormData for Cloudinary upload with signature
-                    const formData = new FormData();
-                    formData.append('file', file);
-                    formData.append('api_key', signatureData.apiKey);
-                    formData.append('timestamp', signatureData.timestamp);
-                    formData.append('signature', signatureData.signature);
-                    formData.append('folder', signatureData.folder);
-                    formData.append('type', signatureData.type); // Specify upload type (public)
-                    
-                    // Upload to Cloudinary using signed request
-                    const cloudinaryResponse = await fetch(`https://api.cloudinary.com/v1_1/${signatureData.cloudName}/upload`, {
-                        method: 'POST',
-                        body: formData
-                    });
-                    
-                    if (!cloudinaryResponse.ok) {
-                        const errorData = await cloudinaryResponse.json();
-                        throw new Error(`Cloudinary error: ${errorData.error?.message || 'Unknown error'}`);
-                    }
-                    
-                    const cloudinaryData = await cloudinaryResponse.json();
+                    // Use the SAME uploadFile function as students - no signatures, just unsigned preset
+                    // This ensures both paths create the exact same type of resource
+                    const pdfUrl = await uploadFile(file);
                     
                     // Update student document with PDF URL
                     const studentRef = doc(db, "graduations", gradId, "students", studentId);
                     await updateDoc(studentRef, {
-                        profilePdfUrl: cloudinaryData.secure_url,
+                        profilePdfUrl: pdfUrl,
                         updatedAt: serverTimestamp()
                     });
                     
@@ -502,9 +466,16 @@
             const formData = new FormData();
             formData.append('file', file);
             formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+            
+            // Determine the correct Cloudinary endpoint based on file type
+            // PDFs must use /raw/upload, not /image/upload
+            const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+            const uploadUrl = isPdf 
+                ? `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/raw/upload`
+                : CLOUDINARY_URL; // Use default for images
 
             try {
-                const response = await fetch(CLOUDINARY_URL, {
+                const response = await fetch(uploadUrl, {
                     method: 'POST',
                     body: formData,
                 });
