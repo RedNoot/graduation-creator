@@ -486,8 +486,8 @@ exports.handler = async (event, context) => {
         formData.append('resource_type', 'raw');
         formData.append('public_id', safePublicId);
         formData.append('folder', 'graduation-booklets'); // Use folder parameter instead of slashes in public_id
-        formData.append('overwrite', 'true'); // Replace existing file with same public_id
-        formData.append('invalidate', 'true'); // Invalidate CDN cache to serve fresh file
+        // Note: overwrite and invalidate are only allowed with signed uploads
+        // Cloudinary will automatically version files and serve the latest version
 
         const uploadResponse = await fetch(cloudinaryUrl, {
             method: 'POST',
