@@ -213,22 +213,35 @@ exports.handler = async (event, context) => {
             color: rgb(0.5, 0.5, 0.5),
         });
 
-        // Function to ensure PDF URL is publicly accessible (same as frontend)
+        // Function to ensure PDF URL is publicly accessible
         const ensurePublicPdfUrl = (url) => {
-            if (!url || !url.includes('cloudinary.com')) {
-                return url; // Not a Cloudinary URL, return as-is
+            if (!url) {
+                console.log(`[ensurePublicPdfUrl] URL is empty or null`);
+                return url;
             }
             
-            // Check if URL already has fl_attachment or is already public
-            if (url.includes('/v1_1/') && !url.includes('/upload/')) {
-                return url; // Already processed URL
-            }
+            console.log(`[ensurePublicPdfUrl] Processing URL: ${url}`);
             
-            // Convert to public URL format by adding fl_attachment for PDFs
-            // This allows public viewing even for files uploaded as private
-            if (url.includes('.pdf')) {
-                // Insert fl_attachment flag to make PDF publicly viewable
-                return url.replace('/upload/', '/upload/fl_attachment/');
+            // If it's a Cloudinary URL, try to make it publicly accessible
+            if (url.includes('cloudinary.com')) {
+                // Convert secure_url to public URL if needed
+                // Replace /image/upload/ or /upload/ with transformation URL
+                let publicUrl = url;
+                
+                // Try multiple transformation approaches
+                // 1. Add fl_attachment to allow public viewing
+                if (publicUrl.includes('/upload/') && !publicUrl.includes('/fl_attachment/')) {
+                    publicUrl = publicUrl.replace('/upload/', '/upload/fl_attachment/');
+                    console.log(`[ensurePublicPdfUrl] Added fl_attachment: ${publicUrl}`);
+                    return publicUrl;
+                }
+                
+                // 2. Try making it a public resource
+                if (publicUrl.includes('/image/upload/') && !publicUrl.includes('/fl_attachment/')) {
+                    publicUrl = publicUrl.replace('/image/upload/', '/image/upload/fl_attachment/');
+                    console.log(`[ensurePublicPdfUrl] Added fl_attachment (image): ${publicUrl}`);
+                    return publicUrl;
+                }
             }
             
             return url;
@@ -243,8 +256,9 @@ exports.handler = async (event, context) => {
             try {
                 // Ensure the PDF URL is publicly accessible
                 const publicPdfUrl = ensurePublicPdfUrl(student.pdfUrl);
-                console.log(`Original URL: ${student.pdfUrl}`);
-                console.log(`Public URL: ${publicPdfUrl}`);
+                console.log(`[PDF Processing] Student: ${student.name}`);
+                console.log(`[PDF Processing] Original URL: ${student.pdfUrl}`);
+                console.log(`[PDF Processing] Public URL: ${publicPdfUrl}`);
 
                 // Download the PDF with timeout
                 const controller = new AbortController();
@@ -258,8 +272,12 @@ exports.handler = async (event, context) => {
                 });
                 clearTimeout(timeoutId);
                 
+                console.log(`[PDF Processing] Response status for ${student.name}: ${response.status} ${response.statusText}`);
+                
                 if (!response.ok) {
                     console.error(`Failed to download PDF for ${student.name}: ${response.status} ${response.statusText}`);
+                    const errorText = await response.text();
+                    console.error(`[PDF Processing] Error response body: ${errorText}`);
                     continue;
                 }
 
@@ -295,17 +313,26 @@ exports.handler = async (event, context) => {
 
             } catch (error) {
                 console.error(`Error processing PDF for ${student.name}:`, error.message);
+                console.error(`Stack trace:`, error.stack);
                 // Continue with other students even if one fails
             }
         }
 
         if (processedCount === 0) {
+            console.error(`CRITICAL: No PDFs processed. Students with PDFs: ${studentsWithPdfs.length}`);
+            studentsWithPdfs.forEach(s => {
+                console.error(`  - ${s.name}: ${s.pdfUrl}`);
+            });
             return {
                 statusCode: 400,
                 headers,
                 body: JSON.stringify({ 
                     error: 'No student PDFs could be processed successfully',
-                    totalStudents: studentsWithPdfs.length 
+                    totalStudents: studentsWithPdfs.length,
+                    debug: {
+                        message: 'Check server logs for detailed error information',
+                        studentsAttempted: studentsWithPdfs.map(s => ({ name: s.name, url: s.pdfUrl }))
+                    }
                 }),
             };
         }
