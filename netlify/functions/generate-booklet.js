@@ -62,22 +62,60 @@ exports.handler = async (event, context) => {
     try {
         // Validate environment variables
         if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_UPLOAD_PRESET) {
-            console.error('Missing Cloudinary configuration');
+            console.error('Missing Cloudinary configuration:', {
+                cloudName: !!process.env.CLOUDINARY_CLOUD_NAME,
+                uploadPreset: !!process.env.CLOUDINARY_UPLOAD_PRESET
+            });
             return {
                 statusCode: 500,
                 headers,
-                body: JSON.stringify({ error: 'Server configuration error' }),
+                body: JSON.stringify({ 
+                    error: 'Server configuration error',
+                    message: 'Cloudinary configuration is missing'
+                }),
             };
         }
 
-        const { graduationId } = JSON.parse(event.body);
-
-        // Input validation
-        if (!graduationId || typeof graduationId !== 'string') {
+        // Parse request body with better error handling
+        let requestData;
+        try {
+            if (!event.body) {
+                console.error('Empty request body received');
+                return {
+                    statusCode: 400,
+                    headers,
+                    body: JSON.stringify({ 
+                        error: 'Request body is required',
+                        message: 'No data received in request'
+                    }),
+                };
+            }
+            requestData = JSON.parse(event.body);
+        } catch (parseError) {
+            console.error('JSON parse error:', parseError.message, 'Body:', event.body);
             return {
                 statusCode: 400,
                 headers,
-                body: JSON.stringify({ error: 'Valid graduationId is required' }),
+                body: JSON.stringify({ 
+                    error: 'Invalid JSON in request body',
+                    message: 'Could not parse request data'
+                }),
+            };
+        }
+
+        const { graduationId } = requestData;
+        console.log('Processing request for graduation ID:', graduationId);
+
+        // Input validation
+        if (!graduationId || typeof graduationId !== 'string') {
+            console.error('Invalid graduationId:', { graduationId, type: typeof graduationId });
+            return {
+                statusCode: 400,
+                headers,
+                body: JSON.stringify({ 
+                    error: 'Valid graduationId is required',
+                    message: 'graduationId must be a non-empty string'
+                }),
             };
         }
 
@@ -111,9 +149,15 @@ exports.handler = async (event, context) => {
         // Fetch students with PDFs
         const studentsSnapshot = await db.collection('graduations').doc(graduationId).collection('students').get();
         const studentsWithPdfs = [];
+        const allStudents = [];
 
         studentsSnapshot.forEach(doc => {
             const student = doc.data();
+            allStudents.push({
+                name: student.name || 'Unnamed',
+                hasPdf: !!student.profilePdfUrl
+            });
+            
             if (student.profilePdfUrl) {
                 studentsWithPdfs.push({
                     name: student.name,
@@ -122,11 +166,19 @@ exports.handler = async (event, context) => {
             }
         });
 
+        console.log(`Found ${allStudents.length} total students, ${studentsWithPdfs.length} with PDFs`);
+
         if (studentsWithPdfs.length === 0) {
+            console.error('No student PDFs available:', allStudents);
             return {
                 statusCode: 400,
                 headers,
-                body: JSON.stringify({ error: 'No student PDFs found to merge' }),
+                body: JSON.stringify({ 
+                    error: 'No student PDFs found to merge',
+                    message: `Found ${allStudents.length} students total, but none have uploaded PDFs yet`,
+                    totalStudents: allStudents.length,
+                    studentsWithPdfs: 0
+                }),
             };
         }
 

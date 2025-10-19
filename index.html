@@ -458,8 +458,17 @@
                 });
 
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.message || `Server error: ${response.status}`);
+                    let errorData;
+                    try {
+                        errorData = await response.json();
+                    } catch (parseError) {
+                        console.error('Could not parse error response:', parseError);
+                        throw new Error(`Server error: ${response.status} - ${response.statusText}`);
+                    }
+                    
+                    console.error('Server error response:', errorData);
+                    const errorMsg = errorData.message || errorData.error || `Server error: ${response.status}`;
+                    throw new Error(errorMsg);
                 }
 
                 const result = await response.json();
@@ -487,14 +496,20 @@
                 
                 let errorMessage = 'Could not generate PDF booklet. ';
                 
-                if (error.message.includes('No student PDFs found')) {
-                    errorMessage += 'Make sure students have uploaded their PDF profiles first.';
-                } else if (error.message.includes('Network')) {
-                    errorMessage += 'Please check your internet connection and try again.';
+                if (error.message.includes('No student PDFs found') || error.message.includes('none have uploaded PDFs')) {
+                    errorMessage = 'No Student PDFs Available. Students need to upload their PDF profiles before you can generate a class booklet. Check the Students tab to see who still needs to upload.';
+                } else if (error.message.includes('Server configuration error')) {
+                    errorMessage = 'Server Configuration Issue. The PDF generation service is not properly configured. Please contact support.';
+                } else if (error.message.includes('Invalid JSON') || error.message.includes('Request body')) {
+                    errorMessage = 'Request Error. There was a problem sending the request. Please try again.';
+                } else if (error.message.includes('Network') || error.message.includes('fetch')) {
+                    errorMessage = 'Network Error. Please check your internet connection and try again.';
                 } else if (error.message.includes('Server error: 5')) {
-                    errorMessage += 'The server is experiencing issues. Please try again in a few minutes.';
+                    errorMessage = 'Server Error. The server is experiencing issues. Please try again in a few minutes.';
+                } else if (error.message.includes('Server error: 4')) {
+                    errorMessage = `Request Error: ${error.message}. Please check that all data is correct and try again.`;
                 } else {
-                    errorMessage += 'This might be due to a server issue or network problem.';
+                    errorMessage = `Unexpected Error: ${error.message}. Please try again or contact support if the issue persists.`;
                 }
                 
                 showModal('Error', errorMessage);
