@@ -146,6 +146,22 @@ exports.handler = async (event, context) => {
         const configDoc = await db.collection('graduations').doc(graduationId).collection('config').doc('settings').get();
         const config = configDoc.exists ? configDoc.data() : {};
 
+        // Fetch content pages (messages, speeches, etc.)
+        const contentPagesSnapshot = await db.collection('graduations').doc(graduationId).collection('contentPages').get();
+        const contentPages = [];
+        contentPagesSnapshot.forEach(doc => {
+            contentPages.push({ id: doc.id, ...doc.data() });
+        });
+        
+        // Sort content pages by creation date
+        contentPages.sort((a, b) => {
+            const dateA = a.createdAt ? new Date(a.createdAt) : new Date(0);
+            const dateB = b.createdAt ? new Date(b.createdAt) : new Date(0);
+            return dateA - dateB;
+        });
+        
+        console.log(`Found ${contentPages.length} content pages`);
+
         // Fetch students with PDFs
         const studentsSnapshot = await db.collection('graduations').doc(graduationId).collection('students').get();
         const studentsWithPdfs = [];
@@ -214,11 +230,126 @@ exports.handler = async (event, context) => {
             size: 16,
             color: rgb(0.5, 0.5, 0.5),
         });
-
-        // Add student PDFs
+        
+        // Helper function to add text content pages
+        const addContentPage = (title, content, author = null) => {
+            const contentPage = mergedPdf.addPage([612, 792]);
+            const { width, height } = contentPage.getSize();
+            
+            // Title
+            contentPage.drawText(title, {
+                x: 50,
+                y: height - 80,
+                size: 20,
+                color: rgb(0, 0, 0),
+                maxWidth: width - 100,
+            });
+            
+            // Author (if provided)
+            if (author) {
+                contentPage.drawText(`By: ${author}`, {
+                    x: 50,
+                    y: height - 110,
+                    size: 12,
+                    color: rgb(0.4, 0.4, 0.4),
+                });
+            }
+            
+            // Content - wrap text manually
+            const contentLines = [];
+            const words = content.replace(/\n/g, ' \n ').split(' ');
+            let currentLine = '';
+            const maxWidth = width - 100;
+            const fontSize = 11;
+            
+            for (const word of words) {
+                if (word === '\n') {
+                    contentLines.push(currentLine.trim());
+                    currentLine = '';
+                    continue;
+                }
+                
+                const testLine = currentLine + (currentLine ? ' ' : '') + word;
+                const testWidth = testLine.length * (fontSize * 0.5); // Rough estimate
+                
+                if (testWidth > maxWidth && currentLine) {
+                    contentLines.push(currentLine.trim());
+                    currentLine = word;
+                } else {
+                    currentLine = testLine;
+                }
+            }
+            if (currentLine) {
+                contentLines.push(currentLine.trim());
+            }
+            
+            // Draw content lines
+            let yPosition = height - (author ? 140 : 120);
+            const lineHeight = fontSize * 1.5;
+            
+            for (const line of contentLines) {
+                if (yPosition < 50) break; // Avoid writing off page
+                
+                contentPage.drawText(line, {
+                    x: 50,
+                    y: yPosition,
+                    size: fontSize,
+                    color: rgb(0.2, 0.2, 0.2),
+                });
+                
+                yPosition -= lineHeight;
+            }
+        };
+        
+        // Process sections based on page order
+        const pageOrder = config.pageOrder || ['students', 'messages', 'speeches'];
         let processedCount = 0;
-        for (let i = 0; i < studentsWithPdfs.length; i++) {
-            const student = studentsWithPdfs[i];
+        
+        for (const section of pageOrder) {
+            if (section === 'messages' && config.showMessages !== false) {
+                const messagePages = contentPages.filter(p => p.type === 'thanks' || p.type === 'memory');
+                if (messagePages.length > 0) {
+                    // Add section title page
+                    const sectionPage = mergedPdf.addPage([612, 792]);
+                    sectionPage.drawText('Messages & Memories', {
+                        x: 50,
+                        y: sectionPage.getHeight() - 100,
+                        size: 24,
+                        color: rgb(0, 0, 0),
+                    });
+                    
+                    // Add each message page
+                    for (const page of messagePages) {
+                        addContentPage(page.title, page.content, page.author);
+                    }
+                    
+                    console.log(`Added ${messagePages.length} message pages to booklet`);
+                }
+            } else if (section === 'speeches' && config.showSpeeches !== false) {
+                const speechPages = contentPages.filter(p => p.type === 'speech' || p.type === 'text');
+                if (speechPages.length > 0) {
+                    // Add section title page
+                    const sectionPage = mergedPdf.addPage([612, 792]);
+                    sectionPage.drawText('Speeches & Presentations', {
+                        x: 50,
+                        y: sectionPage.getHeight() - 100,
+                        size: 24,
+                        color: rgb(0, 0, 0),
+                    });
+                    
+                    // Add each speech page
+                    for (const page of speechPages) {
+                        addContentPage(page.title, page.content, page.author);
+                    }
+                    
+                    console.log(`Added ${speechPages.length} speech pages to booklet`);
+                }
+            } else if (section === 'students') {
+                // Add student PDFs section
+                console.log(`Processing ${studentsWithPdfs.length} student PDFs`);
+                
+                for (let i = 0; i < studentsWithPdfs.length; i++) {
+                    const student = studentsWithPdfs[i];
             console.log(`Processing PDF ${i + 1}/${studentsWithPdfs.length} for student: ${student.name}`);
 
             try {
@@ -287,14 +418,18 @@ exports.handler = async (event, context) => {
                 processedCount++;
                 console.log(`Successfully processed PDF for ${student.name} (${pageCount} pages)`);
 
-            } catch (error) {
-                console.error(`Error processing PDF for ${student.name}:`, error.message);
-                console.error(`Stack trace:`, error.stack);
-                // Continue with other students even if one fails
+                } catch (error) {
+                    console.error(`Error processing PDF for ${student.name}:`, error.message);
+                    console.error(`Stack trace:`, error.stack);
+                    // Continue with other students even if one fails
+                }
+            }
+            
+            console.log(`Added ${processedCount} student PDFs to booklet`);
             }
         }
 
-        if (processedCount === 0) {
+        if (processedCount === 0 && studentsWithPdfs.length > 0) {
             console.error(`CRITICAL: No PDFs processed. Students with PDFs: ${studentsWithPdfs.length}`);
             studentsWithPdfs.forEach(s => {
                 console.error(`  - ${s.name}: ${s.pdfUrl}`);
@@ -351,6 +486,8 @@ exports.handler = async (event, context) => {
         formData.append('resource_type', 'raw');
         formData.append('public_id', safePublicId);
         formData.append('folder', 'graduation-booklets'); // Use folder parameter instead of slashes in public_id
+        formData.append('overwrite', 'true'); // Replace existing file with same public_id
+        formData.append('invalidate', 'true'); // Invalidate CDN cache to serve fresh file
 
         const uploadResponse = await fetch(cloudinaryUrl, {
             method: 'POST',
