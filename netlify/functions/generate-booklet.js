@@ -414,27 +414,63 @@ exports.handler = async (event, context) => {
         }
         
         // Helper function to add text content pages
-        const addContentPage = (title, content, author = null) => {
+        const addContentPage = async (title, content, author = null, authorPhotoUrl = null, bodyImageUrls = []) => {
             const contentPage = mergedPdf.addPage([612, 792]);
             const { width, height } = contentPage.getSize();
+            
+            let yPosition = height - 80;
             
             // Title with primary color
             contentPage.drawText(title, {
                 x: 50,
-                y: height - 80,
+                y: yPosition,
                 size: 22,
                 color: rgb(primaryColor.r, primaryColor.g, primaryColor.b),
                 maxWidth: width - 100,
             });
+            yPosition -= 40;
             
-            // Author (if provided) with secondary color
+            // Author section with photo (if provided)
             if (author) {
+                let authorX = 50;
+                
+                // Embed and draw author photo if URL provided
+                if (authorPhotoUrl) {
+                    try {
+                        const photoResponse = await fetch(authorPhotoUrl);
+                        const photoBuffer = await photoResponse.arrayBuffer();
+                        const photoBytes = new Uint8Array(photoBuffer);
+                        
+                        let authorImage;
+                        if (authorPhotoUrl.toLowerCase().endsWith('.png')) {
+                            authorImage = await mergedPdf.embedPng(photoBytes);
+                        } else {
+                            authorImage = await mergedPdf.embedJpg(photoBytes);
+                        }
+                        
+                        // Draw circular-ish photo (50x50)
+                        const photoSize = 50;
+                        contentPage.drawImage(authorImage, {
+                            x: authorX,
+                            y: yPosition - photoSize,
+                            width: photoSize,
+                            height: photoSize,
+                        });
+                        
+                        authorX += photoSize + 10; // Move text to right of photo
+                    } catch (error) {
+                        console.error('Error embedding author photo:', error);
+                    }
+                }
+                
                 contentPage.drawText(`By: ${author}`, {
-                    x: 50,
-                    y: height - 110,
+                    x: authorX,
+                    y: yPosition - 15,
                     size: 12,
                     color: rgb(secondaryColor.r, secondaryColor.g, secondaryColor.b),
                 });
+                
+                yPosition -= 70;
             }
             
             // Content - wrap text manually with text color
@@ -466,11 +502,10 @@ exports.handler = async (event, context) => {
             }
             
             // Draw content lines with text color
-            let yPosition = height - (author ? 140 : 120);
             const lineHeight = fontSize * 1.5;
             
             for (const line of contentLines) {
-                if (yPosition < 50) break; // Avoid writing off page
+                if (yPosition < 150) break; // Reserve space for body images
                 
                 contentPage.drawText(line, {
                     x: 50,
@@ -480,6 +515,52 @@ exports.handler = async (event, context) => {
                 });
                 
                 yPosition -= lineHeight;
+            }
+            
+            // Add body images if provided
+            if (bodyImageUrls && bodyImageUrls.length > 0) {
+                yPosition -= 20; // Add space before images
+                const imageWidth = (width - 120) / Math.min(bodyImageUrls.length, 2); // Max 2 per row
+                const imageHeight = imageWidth * 0.75; // Maintain aspect ratio
+                
+                let imageX = 50;
+                let imageY = Math.max(yPosition - imageHeight, 60); // Ensure we don't go off page
+                let imagesInRow = 0;
+                
+                for (let i = 0; i < Math.min(bodyImageUrls.length, 4); i++) { // Max 4 images
+                    try {
+                        const imgResponse = await fetch(bodyImageUrls[i]);
+                        const imgBuffer = await imgResponse.arrayBuffer();
+                        const imgBytes = new Uint8Array(imgBuffer);
+                        
+                        let bodyImage;
+                        const url = bodyImageUrls[i].toLowerCase();
+                        if (url.endsWith('.png') || url.includes('/png/')) {
+                            bodyImage = await mergedPdf.embedPng(imgBytes);
+                        } else {
+                            bodyImage = await mergedPdf.embedJpg(imgBytes);
+                        }
+                        
+                        contentPage.drawImage(bodyImage, {
+                            x: imageX,
+                            y: imageY,
+                            width: imageWidth - 10,
+                            height: imageHeight,
+                        });
+                        
+                        imagesInRow++;
+                        imageX += imageWidth;
+                        
+                        // Move to next row after 2 images
+                        if (imagesInRow >= 2) {
+                            imagesInRow = 0;
+                            imageX = 50;
+                            imageY -= imageHeight + 10;
+                        }
+                    } catch (error) {
+                        console.error('Error embedding body image:', error);
+                    }
+                }
             }
         };
         
@@ -511,7 +592,7 @@ exports.handler = async (event, context) => {
                     
                     // Add each message page
                     for (const page of messagePages) {
-                        addContentPage(page.title, page.content, page.author);
+                        await addContentPage(page.title, page.content, page.author, page.authorPhotoUrl, page.bodyImageUrls);
                         currentPageNumber++; // Content page
                     }
                     
@@ -538,7 +619,7 @@ exports.handler = async (event, context) => {
                     
                     // Add each speech page
                     for (const page of speechPages) {
-                        addContentPage(page.title, page.content, page.author);
+                        await addContentPage(page.title, page.content, page.author, page.authorPhotoUrl, page.bodyImageUrls);
                         currentPageNumber++; // Content page
                     }
                     
