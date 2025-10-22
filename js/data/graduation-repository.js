@@ -84,9 +84,8 @@ export const GraduationRepository = {
      */
     async updateConfig(graduationId, config) {
         try {
-            // Save config as nested document
-            const configRef = doc(db, "graduations", graduationId, "config", "settings");
-            await setDoc(configRef, config);
+            // Save config directly in the main graduation document
+            await this.update(graduationId, { config });
         } catch (error) {
             console.error('Error updating graduation config:', error);
             throw error;

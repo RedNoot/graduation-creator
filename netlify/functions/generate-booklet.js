@@ -142,9 +142,8 @@ exports.handler = async (event, context) => {
 
         const graduationData = graduationDoc.data();
 
-        // Fetch configuration
-        const configDoc = await db.collection('graduations').doc(graduationId).collection('config').doc('settings').get();
-        const config = configDoc.exists ? configDoc.data() : {};
+        // Configuration is now stored in the main graduation document
+        const config = graduationData.config || {};
 
         // Fetch content pages (messages, speeches, etc.)
         const contentPagesSnapshot = await db.collection('graduations').doc(graduationId).collection('contentPages').get();

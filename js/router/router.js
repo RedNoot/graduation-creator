@@ -64,9 +64,8 @@ export const createRouter = ({
                                 return;
                             }
 
-                            // Fetch config subcollection
-                            const config = await GraduationRepository.getConfig(gradId);
-                            gradData.config = config || {};
+                            // Ensure config exists (fallback to empty object if not set)
+                            gradData.config = gradData.config || {};
                             
                             renderEditor(gradData, gradId);
                         } else {
@@ -130,9 +129,8 @@ export const createPublicRouter = ({
                     const gradData = await GraduationRepository.getById(gradId);
                     
                     if (gradData) {
-                        // Fetch config
-                        const config = await GraduationRepository.getConfig(gradId);
-                        gradData.config = config || {};
+                        // Ensure config exists (fallback to empty object if not set)
+                        gradData.config = gradData.config || {};
 
                         // Fetch students
                         const students = await StudentRepository.getAll(gradId);
