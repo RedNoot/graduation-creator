@@ -528,8 +528,8 @@
                     html += `
                         <li class="py-4 flex items-start justify-between" data-student-id="${studentId}">
                             <div class="flex items-start gap-3 flex-1">
-                                <div class="drag-handle cursor-move text-gray-400 hover:text-gray-600 pt-1" style="touch-action: none;">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div class="drag-handle cursor-move text-gray-400 hover:text-gray-600 pt-1" style="touch-action: none;" title="Drag to reorder">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path>
                                     </svg>
                                 </div>
@@ -561,8 +561,12 @@
                 
                 // Initialize SortableJS for drag-and-drop reordering
                 const sortableList = document.getElementById('sortable-student-list');
+                console.log('[Drag&Drop Debug] sortableList element:', sortableList);
+                console.log('[Drag&Drop Debug] window.Sortable available:', !!window.Sortable);
+                console.log('[Drag&Drop Debug] Number of drag handles found:', document.querySelectorAll('.drag-handle').length);
+                
                 if (sortableList && window.Sortable) {
-                    Sortable.create(sortableList, {
+                    const sortableInstance = Sortable.create(sortableList, {
                         handle: '.drag-handle',
                         animation: 150,
                         ghostClass: 'bg-blue-50',
@@ -586,6 +590,12 @@
                                 router();
                             }
                         }
+                    });
+                    console.log('[Drag&Drop Debug] Sortable initialized successfully:', sortableInstance);
+                } else {
+                    console.error('[Drag&Drop Debug] Failed to initialize Sortable!', {
+                        sortableList: !!sortableList,
+                        windowSortable: !!window.Sortable
                     });
                 }
             });
