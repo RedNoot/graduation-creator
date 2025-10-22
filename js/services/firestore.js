@@ -17,6 +17,10 @@ import {
     onSnapshot,
     query,
     where,
+    orderBy,
+    writeBatch,
+    arrayUnion,
+    arrayRemove,
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
@@ -137,6 +141,61 @@ export const onGraduationUpdate = (graduationId, callback) => {
     });
 };
 
+/**
+ * Add an editor to a graduation project
+ * @param {string} graduationId - The graduation ID
+ * @param {string} editorUid - User ID to add as editor
+ * @returns {Promise<void>}
+ */
+export const addEditorToGraduation = async (graduationId, editorUid) => {
+    try {
+        await updateDoc(doc(db, 'graduations', graduationId), {
+            editors: arrayUnion(editorUid),
+            updatedAt: serverTimestamp()
+        });
+        logger.info('Editor added to graduation', { gradId: graduationId, editorUid });
+    } catch (error) {
+        logger.error('Error adding editor', error, {
+            gradId: graduationId,
+            editorUid,
+            action: 'addEditorToGraduation'
+        });
+        throw new Error(`Failed to add editor: ${error.message}`);
+    }
+};
+
+/**
+ * Remove an editor from a graduation project
+ * @param {string} graduationId - The graduation ID
+ * @param {string} editorUid - User ID to remove
+ * @returns {Promise<void>}
+ */
+export const removeEditorFromGraduation = async (graduationId, editorUid) => {
+    try {
+        // First, check if this is the last editor
+        const gradDoc = await getDoc(doc(db, 'graduations', graduationId));
+        if (gradDoc.exists()) {
+            const editors = gradDoc.data().editors || [];
+            if (editors.length <= 1) {
+                throw new Error('Cannot remove the last editor from the project');
+            }
+        }
+        
+        await updateDoc(doc(db, 'graduations', graduationId), {
+            editors: arrayRemove(editorUid),
+            updatedAt: serverTimestamp()
+        });
+        logger.info('Editor removed from graduation', { gradId: graduationId, editorUid });
+    } catch (error) {
+        logger.error('Error removing editor', error, {
+            gradId: graduationId,
+            editorUid,
+            action: 'removeEditorFromGraduation'
+        });
+        throw error; // Re-throw to preserve custom error message
+    }
+};
+
 // ===== STUDENT OPERATIONS =====
 
 /**
@@ -148,8 +207,14 @@ export const onGraduationUpdate = (graduationId, callback) => {
 export const createStudent = async (graduationId, studentData) => {
     try {
         logger.studentAction('add', graduationId, null, studentData.name);
+        
+        // Get current student count to determine order
+        const studentsSnapshot = await getDocs(collection(db, 'graduations', graduationId, 'students'));
+        const order = studentsSnapshot.size; // Use count as the order (0-indexed)
+        
         const docRef = await addDoc(collection(db, 'graduations', graduationId, 'students'), {
             ...studentData,
+            order: order,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
         });
@@ -191,11 +256,15 @@ export const getStudent = async (graduationId, studentId) => {
 /**
  * Get all students for a graduation
  * @param {string} graduationId - The graduation ID
- * @returns {Promise<Array>} Array of student objects with IDs
+ * @returns {Promise<Array>} Array of student objects with IDs, ordered by custom order field
  */
 export const getAllStudents = async (graduationId) => {
     try {
-        const snapshot = await getDocs(collection(db, 'graduations', graduationId, 'students'));
+        const q = query(
+            collection(db, 'graduations', graduationId, 'students'),
+            orderBy('order', 'asc')
+        );
+        const snapshot = await getDocs(q);
         return snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
@@ -247,19 +316,54 @@ export const deleteStudent = async (graduationId, studentId) => {
 };
 
 /**
+ * Batch update student order after drag-and-drop reordering
+ * @param {string} graduationId - The graduation ID
+ * @param {Array<Object>} updates - Array of {id, newOrder} objects
+ * @returns {Promise<void>}
+ */
+export const updateStudentOrder = async (graduationId, updates) => {
+    try {
+        const batch = writeBatch(db);
+        
+        updates.forEach(({ id, newOrder }) => {
+            const studentRef = doc(db, 'graduations', graduationId, 'students', id);
+            batch.update(studentRef, {
+                order: newOrder,
+                updatedAt: serverTimestamp()
+            });
+        });
+        
+        await batch.commit();
+        logger.info('Student order updated', {
+            gradId: graduationId,
+            updatedCount: updates.length
+        });
+    } catch (error) {
+        logger.error('Error updating student order', error, {
+            gradId: graduationId,
+            updateCount: updates.length
+        });
+        throw new Error(`Failed to update student order: ${error.message}`);
+    }
+};
+
+/**
  * Set up real-time listener for students
  * @param {string} graduationId - The graduation ID
  * @param {Function} callback - Called with array of students when data changes
  * @returns {Function} Unsubscribe function
  */
 export const onStudentsUpdate = (graduationId, callback) => {
-    return onSnapshot(collection(db, 'graduations', graduationId, 'students'), (snapshot) => {
+    const q = query(
+        collection(db, 'graduations', graduationId, 'students'),
+        orderBy('order', 'asc')
+    );
+    return onSnapshot(q, (snapshot) => {
         const students = snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
         }));
-        // Sort alphabetically by name
-        students.sort((a, b) => a.name.localeCompare(b.name));
+        // Students are already ordered by the 'order' field from query
         callback(students);
     }, (error) => {
         console.error('Error listening to students:', error);
@@ -387,6 +491,8 @@ export default {
     getGraduation,
     updateGraduation,
     onGraduationUpdate,
+    addEditorToGraduation,
+    removeEditorFromGraduation,
     
     // Student operations
     createStudent,
@@ -394,6 +500,7 @@ export default {
     getAllStudents,
     updateStudent,
     deleteStudent,
+    updateStudentOrder,
     onStudentsUpdate,
     
     // Content operations

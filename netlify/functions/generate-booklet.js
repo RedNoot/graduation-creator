@@ -418,11 +418,10 @@ exports.handler = async (event, context) => {
                     console.log(`Added ${speechPages.length} speech pages to booklet`);
                 }
             } else if (section === 'students') {
-                // Sort students alphabetically by name
-                studentsWithPdfs.sort((a, b) => a.name.localeCompare(b.name));
+                // Students are already in custom order from Firestore (order field)
                 
                 // Add student PDFs section
-                console.log(`Processing ${studentsWithPdfs.length} student PDFs in alphabetical order`);
+                console.log(`Processing ${studentsWithPdfs.length} student PDFs in custom order`);
                 
                 for (let i = 0; i < studentsWithPdfs.length; i++) {
                     const student = studentsWithPdfs[i];

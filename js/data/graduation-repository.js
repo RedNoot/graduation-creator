@@ -53,12 +53,13 @@ export const GraduationRepository = {
     },
 
     /**
-     * Query graduations by owner
-     * @param {string} ownerUid - User ID
-     * @returns {Promise<Array>} Array of graduations
+     * Query graduations where user is an editor
+     * @param {string} userUid - User ID
+     * @returns {Promise<Array>} Array of graduations where user has edit access
      */
-    async getByOwner(ownerUid) {
-        return firestoreService.queryGraduations('ownerUid', '==', ownerUid);
+    async getByOwner(userUid) {
+        // Query for graduations where user is in editors array
+        return firestoreService.queryGraduations('editors', 'array-contains', userUid);
     },
 
     /**
@@ -103,6 +104,36 @@ export const GraduationRepository = {
             generatedBookletUrl: bookletUrl,
             bookletGeneratedAt: new Date()
         });
+    },
+
+    /**
+     * Add an editor to a graduation project
+     * @param {string} graduationId - The graduation ID
+     * @param {string} editorUid - User ID to add as editor
+     * @returns {Promise<void>}
+     */
+    async addEditor(graduationId, editorUid) {
+        return firestoreService.addEditorToGraduation(graduationId, editorUid);
+    },
+
+    /**
+     * Remove an editor from a graduation project
+     * @param {string} graduationId - The graduation ID
+     * @param {string} editorUid - User ID to remove
+     * @returns {Promise<void>}
+     */
+    async removeEditor(graduationId, editorUid) {
+        return firestoreService.removeEditorFromGraduation(graduationId, editorUid);
+    },
+
+    /**
+     * Get list of editors for a graduation (returns UIDs)
+     * @param {string} graduationId - The graduation ID
+     * @returns {Promise<Array<string>>} Array of editor UIDs
+     */
+    async getEditors(graduationId) {
+        const grad = await this.getById(graduationId);
+        return grad.editors || (grad.ownerUid ? [grad.ownerUid] : []); // Handle migration
     }
 };
 

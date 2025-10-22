@@ -58,8 +58,11 @@ export const createRouter = ({
                     // Attach a new realtime listener using repository
                     currentGraduationListener.current = GraduationRepository.onUpdate(gradId, async (gradData) => {
                         if (gradData) {
-                            // Check ownership
-                            if (gradData.ownerUid !== currentUser.uid) {
+                            // Check if user is an editor (handle migration: check both editors array and ownerUid)
+                            const editors = gradData.editors || (gradData.ownerUid ? [gradData.ownerUid] : []);
+                            const isEditor = editors.includes(currentUser.uid);
+                            
+                            if (!isEditor) {
                                 goToDashboard();
                                 return;
                             }
@@ -103,6 +106,7 @@ export const createRouter = ({
  * @param {Function} renderStudentUploadPortal - Function to show upload portal
  * @param {Function} renderDirectUpload - Function to show direct student upload
  * @param {Function} showModal - Function to show modal
+ * @param {Function} showPasswordModal - Function to show password input modal
  * @param {Function} getCurrentUser - Function to get current authenticated user (may be null)
  * @returns {Function} Public router function
  */
@@ -113,6 +117,7 @@ export const createPublicRouter = ({
     renderStudentUploadPortal,
     renderDirectUpload,
     showModal,
+    showPasswordModal,
     getCurrentUser,
     router
 }) => {
@@ -132,10 +137,78 @@ export const createPublicRouter = ({
                         // Ensure config exists (fallback to empty object if not set)
                         gradData.config = gradData.config || {};
 
-                        // Fetch students
-                        const students = await StudentRepository.getAll(gradId);
+                        // Check if site password protection is enabled
+                        const sitePasswordHash = gradData.config.sitePasswordHash;
+                        const sessionKey = `sitePasswordVerified_${gradId}`;
+                        const isVerified = sessionStorage.getItem(sessionKey) === 'true';
                         
-                        renderPublicView(gradData, students, gradId);
+                        if (sitePasswordHash && !isVerified) {
+                            // Site is password protected and user hasn't verified yet
+                            // Show password modal instead of rendering the site
+                            const attemptPassword = async (password, attemptCount = 0) => {
+                                // Rate limiting: max 5 attempts before temporary lockout
+                                if (attemptCount >= 5) {
+                                    showModal('Too Many Attempts', 'Too many failed attempts. Please wait a moment before trying again.');
+                                    setTimeout(() => {
+                                        attemptPassword(null, 0); // Reset and show modal again
+                                    }, 10000); // 10 second lockout
+                                    return;
+                                }
+                                
+                                if (password === null) {
+                                    // Initial call or after lockout - show modal
+                                    showPasswordModal(
+                                        '🔒 Password Protected',
+                                        'This graduation site is password protected. Please enter the password to continue.',
+                                        (enteredPassword) => attemptPassword(enteredPassword, attemptCount),
+                                        attemptCount > 0 ? 'Incorrect password. Please try again.' : ''
+                                    );
+                                    return;
+                                }
+                                
+                                // Verify password with serverless function
+                                try {
+                                    const response = await fetch('/.netlify/functions/secure-operations', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                            action: 'verifySitePassword',
+                                            graduationId: gradId,
+                                            passwordToVerifySite: password
+                                        })
+                                    });
+                                    
+                                    const result = await response.json();
+                                    
+                                    if (response.ok && result.isValid) {
+                                        // Password correct! Save to session and render the site
+                                        sessionStorage.setItem(sessionKey, 'true');
+                                        const students = await StudentRepository.getAll(gradId);
+                                        renderPublicView(gradData, students, gradId);
+                                    } else {
+                                        // Password incorrect, show modal again with error
+                                        showPasswordModal(
+                                            '🔒 Password Protected',
+                                            'This graduation site is password protected. Please enter the password to continue.',
+                                            (enteredPassword) => attemptPassword(enteredPassword, attemptCount + 1),
+                                            'Incorrect password. Please try again.'
+                                        );
+                                    }
+                                } catch (error) {
+                                    console.error('Password verification error:', error);
+                                    showModal('Error', 'An error occurred while verifying the password. Please try again.');
+                                }
+                            };
+                            
+                            // Start password verification flow
+                            attemptPassword(null, 0);
+                        } else {
+                            // No password protection or already verified
+                            // Fetch students
+                            const students = await StudentRepository.getAll(gradId);
+                            
+                            renderPublicView(gradData, students, gradId);
+                        }
                     } else {
                         showModal('Not Found', 'Graduation not found.');
                     }

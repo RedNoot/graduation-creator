@@ -162,11 +162,80 @@ export const showLoadingModal = (title, message) => {
     };
 };
 
+/**
+ * Show a password input modal (for site access)
+ * @param {string} title - Modal title
+ * @param {string} message - Modal message
+ * @param {Function} onSubmit - Callback function that receives the password value
+ * @param {string} errorMessage - Optional error message to display (e.g., for incorrect attempts)
+ * @returns {void}
+ */
+export const showPasswordModal = (title, message, onSubmit, errorMessage = '') => {
+    const modalId = `modal-${Date.now()}`;
+    const modal = document.createElement('div');
+    modal.id = modalId;
+    modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center';
+    
+    modal.innerHTML = `
+        <div class="relative mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <div class="text-center mb-4">
+                    <svg class="w-16 h-16 mx-auto text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg leading-6 font-medium text-gray-900 text-center">${title}</h3>
+                <div class="mt-2 px-4 py-3">
+                    <p class="text-sm text-gray-500 text-center mb-4">${message}</p>
+                    ${errorMessage ? `<p class="text-sm text-red-600 text-center mb-2">${errorMessage}</p>` : ''}
+                    <input 
+                        type="password" 
+                        id="password-input-${modalId}" 
+                        placeholder="Enter password"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-4"
+                    />
+                </div>
+                <div class="px-4 py-3">
+                    <button id="submit-password-btn-${modalId}" class="w-full px-4 py-2 bg-indigo-600 text-white text-base font-medium rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        Submit
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    const passwordInput = document.getElementById(`password-input-${modalId}`);
+    const submitBtn = document.getElementById(`submit-password-btn-${modalId}`);
+    
+    const handleSubmit = () => {
+        const password = passwordInput.value.trim();
+        if (password) {
+            modal.remove();
+            onSubmit(password);
+        } else {
+            passwordInput.classList.add('border-red-500');
+            setTimeout(() => passwordInput.classList.remove('border-red-500'), 2000);
+        }
+    };
+    
+    submitBtn.addEventListener('click', handleSubmit);
+    passwordInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            handleSubmit();
+        }
+    });
+    
+    // Focus the input
+    setTimeout(() => passwordInput.focus(), 100);
+};
+
 export default {
     showModal,
     closeModal,
     showErrorModal,
     showSuccessModal,
     showConfirmModal,
-    showLoadingModal
+    showLoadingModal,
+    showPasswordModal
 };

@@ -229,6 +229,92 @@ exports.handler = async (event, context) => {
                     }),
                 };
 
+            case 'setSitePassword':
+                const { plainPassword } = JSON.parse(event.body);
+                
+                if (!plainPassword) {
+                    return {
+                        statusCode: 400,
+                        headers,
+                        body: JSON.stringify({ error: 'Missing password' }),
+                    };
+                }
+                
+                if (plainPassword.length < 6) {
+                    return {
+                        statusCode: 400,
+                        headers,
+                        body: JSON.stringify({ error: 'Password must be at least 6 characters' }),
+                    };
+                }
+                
+                // Generate secure hash for site password
+                const sitePasswordHash = hashPassword(plainPassword);
+                
+                // Update graduation config with the hash
+                await db.collection('graduations').doc(graduationId).update({
+                    'config.sitePasswordHash': sitePasswordHash,
+                    'config.updatedAt': admin.firestore.FieldValue.serverTimestamp(),
+                });
+                
+                console.log(`Site password set for graduation ${graduationId}`);
+                
+                return {
+                    statusCode: 200,
+                    headers,
+                    body: JSON.stringify({
+                        success: true,
+                        message: 'Site password set successfully',
+                    }),
+                };
+
+            case 'verifySitePassword':
+                const { passwordToVerifySite } = JSON.parse(event.body);
+                
+                if (!passwordToVerifySite) {
+                    return {
+                        statusCode: 400,
+                        headers,
+                        body: JSON.stringify({ error: 'Missing password' }),
+                    };
+                }
+                
+                // Fetch graduation config
+                const gradDoc = await db.collection('graduations').doc(graduationId).get();
+                
+                if (!gradDoc.exists) {
+                    return {
+                        statusCode: 404,
+                        headers,
+                        body: JSON.stringify({ error: 'Graduation not found' }),
+                    };
+                }
+                
+                const gradData = gradDoc.data();
+                const storedHash = gradData?.config?.sitePasswordHash;
+                
+                if (!storedHash) {
+                    return {
+                        statusCode: 400,
+                        headers,
+                        body: JSON.stringify({ error: 'No site password is set' }),
+                    };
+                }
+                
+                // Verify the password
+                const isValidSitePassword = verifyPassword(passwordToVerifySite, storedHash);
+                
+                console.log(`Site password verification for graduation ${graduationId}: ${isValidSitePassword ? 'success' : 'failed'}`);
+                
+                return {
+                    statusCode: 200,
+                    headers,
+                    body: JSON.stringify({
+                        success: true,
+                        isValid: isValidSitePassword,
+                    }),
+                };
+
             default:
                 return {
                     statusCode: 400,

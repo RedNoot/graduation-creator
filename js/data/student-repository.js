@@ -37,12 +37,11 @@ export const StudentRepository = {
     /**
      * Get all students for a graduation
      * @param {string} graduationId - The graduation ID
-     * @returns {Promise<Array>} Array of students sorted alphabetically by name
+     * @returns {Promise<Array>} Array of students ordered by custom order field
      */
     async getAll(graduationId) {
         const students = await firestoreService.getAllStudents(graduationId);
-        // Sort alphabetically by name
-        students.sort((a, b) => a.name.localeCompare(b.name));
+        // Students are already sorted by 'order' field from Firestore query
         return students;
     },
 
@@ -65,6 +64,16 @@ export const StudentRepository = {
      */
     async delete(graduationId, studentId) {
         return firestoreService.deleteStudent(graduationId, studentId);
+    },
+
+    /**
+     * Update student order after drag-and-drop reordering
+     * @param {string} graduationId - The graduation ID
+     * @param {Array<Object>} updates - Array of {id, newOrder} objects
+     * @returns {Promise<void>}
+     */
+    async updateOrder(graduationId, updates) {
+        return firestoreService.updateStudentOrder(graduationId, updates);
     },
 
     /**
