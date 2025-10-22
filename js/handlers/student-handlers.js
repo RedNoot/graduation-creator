@@ -4,10 +4,13 @@
  */
 
 /**
- * Setup add student form handler
+ * Setup add student form handler (supports bulk add via textarea)
  * @param {HTMLElement} formElement - The add student form
  * @param {Object} handlers - Required handlers and functions
  *   - showModal: Function to show modal
+ *   - showLoadingModal: Function to show loading modal
+ *   - showSuccessModal: Function to show success modal
+ *   - showErrorModal: Function to show error modal
  *   - sanitizeInput: Function to sanitize input
  *   - rateLimiter: Rate limiter object with isAllowed method
  *   - currentUser: Current authenticated user
@@ -15,95 +18,155 @@
  *   - router: Router function to refresh
  */
 export function setupAddStudentFormHandler(formElement, handlers) {
-    const { showModal, sanitizeInput, rateLimiter, currentUser, gradId, router } = handlers;
+    const { showModal, showLoadingModal, showSuccessModal, showErrorModal, sanitizeInput, rateLimiter, currentUser, gradId, router } = handlers;
     
     formElement.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const nameInput = document.getElementById('student-name').value;
+        const namesInput = document.getElementById('student-names').value;
         const accessType = document.getElementById('access-type').value;
 
-        // Client-side input sanitization
-        const sanitizedName = sanitizeInput(nameInput, 'name');
+        // Parse and validate names from textarea
+        const lines = namesInput.split('\n');
+        const validNames = [];
         
-        if (!sanitizedName) {
-            showModal('Error', 'Please enter a valid student name.');
+        for (const line of lines) {
+            const trimmedLine = line.trim();
+            if (!trimmedLine) continue; // Skip empty lines
+            
+            const sanitizedName = sanitizeInput(trimmedLine, 'name');
+            if (sanitizedName) {
+                validNames.push(sanitizedName);
+            }
+        }
+        
+        if (validNames.length === 0) {
+            showErrorModal('No Valid Names', 'Please enter at least one valid student name.');
             return;
         }
 
-        // Rate limiting check
-        const rateLimitKey = `add-student-${currentUser.uid}`;
-        if (!rateLimiter.isAllowed(rateLimitKey, 10, 60000)) {
-            showModal('Rate Limit', 'Too many requests. Please wait a minute before adding more students.');
+        // Rate limiting check - allow up to 100 students per minute for bulk operations
+        const rateLimitKey = `add-students-bulk-${currentUser.uid}`;
+        if (!rateLimiter.isAllowed(rateLimitKey, 100, 60000)) {
+            showErrorModal('Rate Limit', 'Too many requests. Please wait a minute before adding more students.');
             return;
         }
 
         try {
-            showModal('Creating...', 'Adding student to the class.', false);
+            // Show loading modal with count
+            const closeLoading = showLoadingModal('Adding Students...', `Adding ${validNames.length} student${validNames.length > 1 ? 's' : ''}. Please wait...`);
 
-            let response;
-            if (accessType === 'password') {
-                // Generate memorable password
+            const results = {
+                successful: [],
+                failed: []
+            };
+
+            // Helper function to generate memorable password
+            const generatePassword = () => {
                 const adjectives = ['Blue', 'Red', 'Green', 'Gold', 'Silver', 'Bright', 'Smart', 'Cool', 'Star', 'Epic'];
                 const nouns = ['Tiger', 'Eagle', 'Lion', 'Bear', 'Wolf', 'Shark', 'Falcon', 'Phoenix', 'Dragon', 'Hawk'];
                 const randomAdj = adjectives[Math.floor(Math.random() * adjectives.length)];
                 const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
                 const randomNum = Math.floor(10 + Math.random() * 90);
-                const generatedPassword = `${randomAdj}${randomNoun}${randomNum}`;
+                return `${randomAdj}${randomNoun}${randomNum}`;
+            };
+
+            // Add students sequentially to avoid overwhelming backend
+            for (let i = 0; i < validNames.length; i++) {
+                const studentName = validNames[i];
                 
-                response = await fetch('/.netlify/functions/secure-operations', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
+                try {
+                    const requestBody = {
                         action: 'createStudent',
                         graduationId: gradId,
-                        studentName: sanitizedName,
+                        studentName: studentName,
                         accessType: accessType,
-                        password: generatedPassword,
-                    }),
-                });
-            } else {
-                // For public and link access types
-                response = await fetch('/.netlify/functions/secure-operations', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        action: 'createStudent',
-                        graduationId: gradId,
-                        studentName: sanitizedName,
-                        accessType: accessType,
-                    }),
-                });
+                    };
+
+                    // Add password for password-protected students
+                    if (accessType === 'password') {
+                        requestBody.password = generatePassword();
+                    }
+
+                    const response = await fetch('/.netlify/functions/secure-operations', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(requestBody),
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Failed to create student');
+                    }
+
+                    const result = await response.json();
+                    results.successful.push({
+                        name: studentName,
+                        password: result.generatedPassword
+                    });
+
+                } catch (error) {
+                    console.error(`Error adding student ${studentName}:`, error);
+                    results.failed.push({
+                        name: studentName,
+                        error: error.message
+                    });
+                }
+
+                // Small delay to avoid rate limits (50ms between requests)
+                if (i < validNames.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                }
             }
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to create student');
-            }
+            // Close loading modal
+            closeLoading();
 
-            const result = await response.json();
-            
-            // The student is already created server-side, no need to add again
+            // Clear the form
             document.getElementById('add-student-form').reset();
-            
-            // Show success message with password if it's a password student
-            if (accessType === 'password' && result.generatedPassword) {
-                showModal('Success', `Student added successfully! Password: ${result.generatedPassword}`);
+
+            // Show results
+            if (results.failed.length === 0) {
+                // All succeeded
+                let message = `Successfully added ${results.successful.length} student${results.successful.length > 1 ? 's' : ''}!`;
+                
+                // Show passwords if any
+                if (accessType === 'password') {
+                    message += '\n\n📋 Generated Passwords:\n';
+                    results.successful.forEach(s => {
+                        message += `${s.name}: ${s.password}\n`;
+                    });
+                    message += '\n⚠️ Make sure to save these passwords!';
+                }
+                
+                showSuccessModal('Success!', message);
+            } else if (results.successful.length === 0) {
+                // All failed
+                showErrorModal('Failed', `Failed to add all students. Errors: ${results.failed.map(f => `${f.name} (${f.error})`).join(', ')}`);
             } else {
-                showModal('Success', 'Student added successfully!');
+                // Partial success
+                let message = `Added ${results.successful.length} student${results.successful.length > 1 ? 's' : ''} successfully.\n\n`;
+                message += `Failed to add ${results.failed.length}: ${results.failed.map(f => f.name).join(', ')}`;
+                
+                if (accessType === 'password') {
+                    message += '\n\n📋 Generated Passwords (for successful additions):\n';
+                    results.successful.forEach(s => {
+                        message += `${s.name}: ${s.password}\n`;
+                    });
+                }
+                
+                showModal('Partial Success', message, true);
             }
             
-            // Refresh the current page to show the new student
+            // Refresh the current page to show the new students
             setTimeout(() => {
-                router(); // Reload the current route
-            }, 1000);
+                router();
+            }, 2000);
             
         } catch (error) {
-            console.error('Student creation error:', error);
-            showModal('Error', error.message || 'Failed to add student. Please try again.');
+            console.error('Bulk student creation error:', error);
+            showErrorModal('Error', error.message || 'Failed to add students. Please try again.');
         }
     });
 }
