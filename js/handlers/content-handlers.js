@@ -46,6 +46,7 @@ export function setupContentFormHandler(formElement, gradId, handlers) {
         const author = sanitizeInput(document.getElementById('content-author').value, 'name');
         const type = document.getElementById('content-type').value;
         const content = sanitizeInput(document.getElementById('content-body').value, 'text');
+        const imageSize = document.getElementById('image-size').value;
         
         // Get image files
         const authorPhotoInput = document.getElementById('content-author-photo');
@@ -97,6 +98,7 @@ export function setupContentFormHandler(formElement, gradId, handlers) {
                 type,
                 content,
                 bodyImageUrls: bodyImageUrls,
+                imageSize: imageSize || 'medium',
                 createdAt: new Date(),
                 updatedAt: new Date()
             };
@@ -165,13 +167,15 @@ async function uploadImageToCloudinary(file, folder) {
  * @param {string} content - Content body
  * @param {string} authorPhotoUrl - Author photo URL (optional)
  * @param {Array<string>} bodyImageUrls - Body image URLs (optional)
+ * @param {string} imageSize - Image size setting (optional)
  */
-export function editContentPage(docId, title, author, type, content, authorPhotoUrl = null, bodyImageUrls = []) {
+export function editContentPage(docId, title, author, type, content, authorPhotoUrl = null, bodyImageUrls = [], imageSize = 'medium') {
     // Populate form with existing data
     document.getElementById('content-title').value = title;
     document.getElementById('content-author').value = author;
     document.getElementById('content-type').value = type;
     document.getElementById('content-body').value = content;
+    document.getElementById('image-size').value = imageSize || 'medium';
     
     // Show author photo if exists
     if (authorPhotoUrl) {

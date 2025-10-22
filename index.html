@@ -757,6 +757,16 @@
                             </div>
                             
                             <div>
+                                <label for="image-size" class="block text-sm font-medium text-gray-700">Image Display Size</label>
+                                <select id="image-size" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                                    <option value="small">Small (320px)</option>
+                                    <option value="medium" selected>Medium (512px)</option>
+                                    <option value="large">Large (Full Width)</option>
+                                </select>
+                                <p class="mt-1 text-xs text-gray-500">Choose how large images appear in the website view</p>
+                            </div>
+                            
+                            <div>
                                 <label for="content-type" class="block text-sm font-medium text-gray-700">Content Type</label>
                                 <select id="content-type" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
                                     <option value="text">Text Content</option>
@@ -835,6 +845,7 @@
                         const escapedContent = content.content.replace(/`/g, '\\`').replace(/\$/g, '\\$');
                         const authorPhotoParam = content.authorPhotoUrl ? `'${content.authorPhotoUrl}'` : 'null';
                         const bodyImagesParam = content.bodyImageUrls ? JSON.stringify(content.bodyImageUrls) : '[]';
+                        const imageSizeParam = content.imageSize ? `'${content.imageSize}'` : "'medium'";
                         
                         html += `
                             <div class="border border-gray-200 rounded-lg p-4">
@@ -857,7 +868,7 @@
                                         ` : ''}
                                     </div>
                                     <div class="flex gap-2 ml-4">
-                                        <button onclick="window.editContentPage('${content.id}', '${escapedTitle}', '${escapedAuthor}', '${content.type}', \`${escapedContent}\`, ${authorPhotoParam}, ${bodyImagesParam})" class="text-indigo-600 hover:text-indigo-800 text-sm">Edit</button>
+                                        <button onclick="window.editContentPage('${content.id}', '${escapedTitle}', '${escapedAuthor}', '${content.type}', \`${escapedContent}\`, ${authorPhotoParam}, ${bodyImagesParam}, ${imageSizeParam})" class="text-indigo-600 hover:text-indigo-800 text-sm">Edit</button>
                                         <button onclick="deleteContentPageWrapper('${content.id}')" class="text-red-600 hover:text-red-800 text-sm">Delete</button>
                                     </div>
                                 </div>
@@ -2269,13 +2280,33 @@ Are you absolutely sure you want to continue?`,
                                             <h2 class="text-3xl font-bold text-center mb-8" style="color: ${config.primaryColor};">Messages & Memories</h2>
                                             ${messagePages.length > 0 ? `
                                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                    ${messagePages.map(page => `
+                                                    ${messagePages.map(page => {
+                                                        const imageSizeClass = {
+                                                            small: 'max-w-xs',
+                                                            medium: 'max-w-md',
+                                                            large: 'max-w-full'
+                                                        }[page.imageSize || 'medium'];
+                                                        
+                                                        return `
                                                         <div class="bg-white ${cardStyleClass} ${borderRadiusClass} p-6">
-                                                            <h3 class="text-xl font-semibold mb-2" style="color: ${config.primaryColor};">${page.title}</h3>
-                                                            ${page.author ? `<p class="text-sm text-gray-600 mb-4">By: ${page.author}</p>` : ''}
-                                                            <div class="prose prose-sm">${page.content.replace(/\n/g, '<br>')}</div>
+                                                            <div class="flex items-center gap-3 mb-4">
+                                                                ${page.authorPhotoUrl ? `<img src="${page.authorPhotoUrl}" class="h-12 w-12 rounded-full object-cover border-2 border-gray-300" alt="Author photo">` : ''}
+                                                                <div>
+                                                                    <h3 class="text-xl font-semibold" style="color: ${config.primaryColor};">${page.title}</h3>
+                                                                    ${page.author ? `<p class="text-sm text-gray-600">By: ${page.author}</p>` : ''}
+                                                                </div>
+                                                            </div>
+                                                            <div class="prose prose-sm mb-4">${page.content.replace(/\n/g, '<br>')}</div>
+                                                            ${page.bodyImageUrls && page.bodyImageUrls.length > 0 ? `
+                                                                <div class="grid grid-cols-2 gap-2 mt-4">
+                                                                    ${page.bodyImageUrls.map(url => `
+                                                                        <img src="${url}" class="${imageSizeClass} rounded object-cover" alt="Content image">
+                                                                    `).join('')}
+                                                                </div>
+                                                            ` : ''}
                                                         </div>
-                                                    `).join('')}
+                                                    `;
+                                                    }).join('')}
                                                 </div>
                                             ` : `
                                                 <div class="bg-white ${cardStyleClass} ${borderRadiusClass} p-8 text-center">
@@ -2291,13 +2322,33 @@ Are you absolutely sure you want to continue?`,
                                             <h2 class="text-3xl font-bold text-center mb-8" style="color: ${config.primaryColor};">Speeches & Presentations</h2>
                                             ${speechPages.length > 0 ? `
                                                 <div class="space-y-6">
-                                                    ${speechPages.map(page => `
+                                                    ${speechPages.map(page => {
+                                                        const imageSizeClass = {
+                                                            small: 'max-w-xs',
+                                                            medium: 'max-w-md',
+                                                            large: 'max-w-full'
+                                                        }[page.imageSize || 'medium'];
+                                                        
+                                                        return `
                                                         <div class="bg-white ${cardStyleClass} ${borderRadiusClass} p-8">
-                                                            <h3 class="text-2xl font-bold mb-4" style="color: ${config.primaryColor};">${page.title}</h3>
-                                                            ${page.author ? `<p class="text-gray-600 mb-6 italic">By: ${page.author}</p>` : ''}
-                                                            <div class="prose prose-lg max-w-none">${page.content.replace(/\n/g, '<br>')}</div>
+                                                            <div class="flex items-center gap-4 mb-6">
+                                                                ${page.authorPhotoUrl ? `<img src="${page.authorPhotoUrl}" class="h-16 w-16 rounded-full object-cover border-2 border-gray-300" alt="Author photo">` : ''}
+                                                                <div>
+                                                                    <h3 class="text-2xl font-bold" style="color: ${config.primaryColor};">${page.title}</h3>
+                                                                    ${page.author ? `<p class="text-gray-600 italic">By: ${page.author}</p>` : ''}
+                                                                </div>
+                                                            </div>
+                                                            <div class="prose prose-lg max-w-none mb-6">${page.content.replace(/\n/g, '<br>')}</div>
+                                                            ${page.bodyImageUrls && page.bodyImageUrls.length > 0 ? `
+                                                                <div class="grid grid-cols-2 gap-4 mt-6">
+                                                                    ${page.bodyImageUrls.map(url => `
+                                                                        <img src="${url}" class="${imageSizeClass} rounded-lg object-cover shadow-md" alt="Content image">
+                                                                    `).join('')}
+                                                                </div>
+                                                            ` : ''}
                                                         </div>
-                                                    `).join('')}
+                                                    `;
+                                                    }).join('')}
                                                 </div>
                                             ` : `
                                                 <div class="bg-white ${cardStyleClass} ${borderRadiusClass} p-8 text-center">
