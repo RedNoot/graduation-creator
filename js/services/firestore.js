@@ -354,19 +354,56 @@ export const updateStudentOrder = async (graduationId, updates) => {
  * @returns {Function} Unsubscribe function
  */
 export const onStudentsUpdate = (graduationId, callback) => {
+    console.log('[Firestore] Setting up student listener for:', graduationId);
+    
     const q = query(
         collection(db, 'graduations', graduationId, 'students'),
         orderBy('order', 'asc')
     );
+    
     return onSnapshot(q, (snapshot) => {
-        const students = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
-        // Students are already ordered by the 'order' field from query
+        console.log('[Firestore] Student snapshot received, size:', snapshot.size);
+        console.log('[Firestore] Snapshot metadata:', {
+            fromCache: snapshot.metadata.fromCache,
+            hasPendingWrites: snapshot.metadata.hasPendingWrites
+        });
+        
+        const students = snapshot.docs.map(doc => {
+            const data = doc.data();
+            console.log('[Firestore] Student doc:', doc.id, 'has order:', data.order);
+            return {
+                id: doc.id,
+                ...data
+            };
+        });
+        
+        console.log('[Firestore] Calling callback with', students.length, 'students');
         callback(students);
     }, (error) => {
-        console.error('Error listening to students:', error);
+        console.error('[Firestore] Error listening to students:', error);
+        console.error('[Firestore] Error code:', error.code);
+        console.error('[Firestore] Error message:', error.message);
+        
+        // If orderBy fails due to missing index or field, try without orderBy
+        if (error.code === 'failed-precondition' || error.message.includes('index')) {
+            console.warn('[Firestore] Falling back to unordered query');
+            const fallbackQuery = collection(db, 'graduations', graduationId, 'students');
+            return onSnapshot(fallbackQuery, (snapshot) => {
+                console.log('[Firestore] Fallback query - students found:', snapshot.size);
+                const students = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                // Sort by order field if it exists, otherwise by name
+                students.sort((a, b) => {
+                    if (typeof a.order === 'number' && typeof b.order === 'number') {
+                        return a.order - b.order;
+                    }
+                    return (a.name || '').localeCompare(b.name || '');
+                });
+                callback(students);
+            });
+        }
     });
 };
 
