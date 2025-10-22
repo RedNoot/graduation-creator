@@ -258,6 +258,8 @@ export const onStudentsUpdate = (graduationId, callback) => {
             id: doc.id,
             ...doc.data()
         }));
+        // Sort alphabetically by name
+        students.sort((a, b) => a.name.localeCompare(b.name));
         callback(students);
     }, (error) => {
         console.error('Error listening to students:', error);

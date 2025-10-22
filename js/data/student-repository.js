@@ -37,10 +37,13 @@ export const StudentRepository = {
     /**
      * Get all students for a graduation
      * @param {string} graduationId - The graduation ID
-     * @returns {Promise<Array>} Array of students
+     * @returns {Promise<Array>} Array of students sorted alphabetically by name
      */
     async getAll(graduationId) {
-        return firestoreService.getAllStudents(graduationId);
+        const students = await firestoreService.getAllStudents(graduationId);
+        // Sort alphabetically by name
+        students.sort((a, b) => a.name.localeCompare(b.name));
+        return students;
     },
 
     /**
