@@ -20,6 +20,18 @@ export const generateBooklet = async (graduationId, onSuccess, onError) => {
         
         const config = getConfig();
         
+        // Fetch latest graduation data to get customCoverUrl
+        const { GraduationRepository } = await import('../data/graduation-repository.js');
+        const gradData = await GraduationRepository.getById(graduationId);
+        const customCoverUrl = gradData?.customCoverUrl || null;
+        
+        if (customCoverUrl) {
+            logger.info('Using custom cover page for booklet', {
+                gradId: graduationId,
+                customCoverUrl: customCoverUrl.substring(0, 50)
+            });
+        }
+        
         // Call the Netlify serverless function
         const functionUrl = config.isDevelopment 
             ? '/.netlify/functions/generate-booklet'  // Local development
@@ -31,7 +43,8 @@ export const generateBooklet = async (graduationId, onSuccess, onError) => {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                graduationId: graduationId
+                graduationId: graduationId,
+                customCoverUrl: customCoverUrl
             })
         });
 

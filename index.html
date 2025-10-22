@@ -1105,6 +1105,35 @@
                     <h3 class="text-lg font-medium leading-6 text-gray-900 mb-2">Graduation Booklet</h3>
                     ${bookletInfo}
                     
+                    <!-- Custom Cover Page Section -->
+                    <div class="mt-6 pt-6 border-t border-gray-200">
+                        <h4 class="text-md font-medium text-gray-900 mb-2">Custom Cover Page</h4>
+                        <p class="text-sm text-gray-600 mb-4">Upload your own PDF to use as the cover page instead of the default generated cover.</p>
+                        
+                        ${gradData.customCoverUrl ? `
+                            <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center">
+                                        <svg class="h-5 w-5 text-blue-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                        </svg>
+                                        <div>
+                                            <p class="text-sm font-medium text-blue-800">Custom cover uploaded</p>
+                                            <a href="${gradData.customCoverUrl}" target="_blank" class="text-xs text-blue-600 hover:underline">View current cover</a>
+                                        </div>
+                                    </div>
+                                    <button id="remove-custom-cover-btn" class="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700">Remove</button>
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        <div class="flex items-center gap-4">
+                            <input type="file" id="custom-cover-upload" accept=".pdf" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                            <button id="upload-custom-cover-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 whitespace-nowrap">Upload Cover</button>
+                        </div>
+                        <p class="mt-2 text-xs text-gray-500">Only PDF files are accepted. Maximum size: 10MB.</p>
+                    </div>
+                    
                     ${isScheduled ? `
                         <div class="mt-6 pt-6 border-t border-gray-200">
                             <h4 class="text-md font-medium text-gray-900 mb-2">Download Settings</h4>
@@ -1120,6 +1149,71 @@
 
             if (document.getElementById('generate-booklet-btn')) {
                 document.getElementById('generate-booklet-btn').addEventListener('click', () => generateBookletWithUI(gradId));
+            }
+            
+            // Handle custom cover upload
+            if (document.getElementById('upload-custom-cover-btn')) {
+                document.getElementById('upload-custom-cover-btn').addEventListener('click', async () => {
+                    const fileInput = document.getElementById('custom-cover-upload');
+                    const file = fileInput.files[0];
+                    
+                    if (!file) {
+                        showModal('Error', 'Please select a PDF file to upload.');
+                        return;
+                    }
+                    
+                    // Validate file type
+                    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+                        showModal('Error', 'Only PDF files are allowed for the cover page.');
+                        return;
+                    }
+                    
+                    // Validate file size (10MB max)
+                    const maxSize = 10 * 1024 * 1024;
+                    if (file.size > maxSize) {
+                        showModal('Error', 'File size must be under 10MB.');
+                        return;
+                    }
+                    
+                    try {
+                        showModal('Uploading...', 'Uploading your custom cover page...', false);
+                        const coverUrl = await uploadFile(file);
+                        
+                        // Save to graduation document
+                        await GraduationRepository.update(gradId, { customCoverUrl: coverUrl });
+                        
+                        showModal('Success', 'Custom cover page uploaded successfully!');
+                        
+                        // Refresh the tab
+                        setTimeout(() => {
+                            router();
+                        }, 1000);
+                    } catch (error) {
+                        console.error('Cover upload error:', error);
+                        showModal('Error', `Failed to upload cover: ${error.message}`);
+                    }
+                });
+            }
+            
+            // Handle remove custom cover
+            if (document.getElementById('remove-custom-cover-btn')) {
+                document.getElementById('remove-custom-cover-btn').addEventListener('click', async () => {
+                    showModal('Confirm', 'Remove custom cover and use default cover instead?', true, async () => {
+                        try {
+                            showModal('Removing...', 'Removing custom cover...', false);
+                            await GraduationRepository.update(gradId, { customCoverUrl: null });
+                            showModal('Success', 'Custom cover removed. Default cover will be used.');
+                            
+                            // Refresh the tab
+                            setTimeout(() => {
+                                router();
+                            }, 1000);
+                        } catch (error) {
+                            console.error('Error removing cover:', error);
+                            showModal('Error', 'Failed to remove custom cover.');
+                        }
+                    });
+                });
             }
         };
         

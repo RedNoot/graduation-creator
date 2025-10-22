@@ -103,8 +103,12 @@ exports.handler = async (event, context) => {
             };
         }
 
-        const { graduationId } = requestData;
+        const { graduationId, customCoverUrl } = requestData;
         console.log('Processing request for graduation ID:', graduationId);
+        
+        if (customCoverUrl) {
+            console.log('Custom cover URL provided:', customCoverUrl.substring(0, 50));
+        }
 
         // Input validation
         if (!graduationId || typeof graduationId !== 'string') {
@@ -220,31 +224,81 @@ exports.handler = async (event, context) => {
         const secondaryColor = hexToRgb(config.secondaryColor || '#6B7280'); // gray-500
         const textColor = hexToRgb(config.textColor || '#1F2937'); // gray-800
 
-        // Add title page
-        const titlePage = mergedPdf.addPage([612, 792]); // Letter size
-        const { width, height } = titlePage.getSize();
+        // Add custom cover page if provided, otherwise use default
+        if (customCoverUrl) {
+            try {
+                console.log('Downloading custom cover PDF from:', customCoverUrl.substring(0, 50));
+                const coverResponse = await fetch(customCoverUrl);
+                
+                if (!coverResponse.ok) {
+                    console.error('Failed to download custom cover:', coverResponse.status);
+                    throw new Error(`Failed to download custom cover: ${coverResponse.status}`);
+                }
+                
+                const coverArrayBuffer = await coverResponse.arrayBuffer();
+                const coverPdf = await PDFDocument.load(coverArrayBuffer);
+                
+                // Copy all pages from custom cover
+                const coverPages = await mergedPdf.copyPages(coverPdf, coverPdf.getPageIndices());
+                coverPages.forEach(page => {
+                    mergedPdf.addPage(page);
+                });
+                
+                console.log(`Added ${coverPages.length} page(s) from custom cover`);
+            } catch (error) {
+                console.error('Error loading custom cover, falling back to default:', error.message);
+                // Fall back to default cover if custom cover fails
+                const titlePage = mergedPdf.addPage([612, 792]);
+                const { width, height } = titlePage.getSize();
 
-        // Add title text with primary color
-        titlePage.drawText(`${graduationData.schoolName}`, {
-            x: 50,
-            y: height - 100,
-            size: 28,
-            color: rgb(primaryColor.r, primaryColor.g, primaryColor.b),
-        });
+                titlePage.drawText(`${graduationData.schoolName}`, {
+                    x: 50,
+                    y: height - 100,
+                    size: 28,
+                    color: rgb(primaryColor.r, primaryColor.g, primaryColor.b),
+                });
 
-        titlePage.drawText(`Class of ${graduationData.graduationYear}`, {
-            x: 50,
-            y: height - 140,
-            size: 20,
-            color: rgb(secondaryColor.r, secondaryColor.g, secondaryColor.b),
-        });
+                titlePage.drawText(`Class of ${graduationData.graduationYear}`, {
+                    x: 50,
+                    y: height - 140,
+                    size: 20,
+                    color: rgb(secondaryColor.r, secondaryColor.g, secondaryColor.b),
+                });
 
-        titlePage.drawText(`Student Profiles`, {
-            x: 50,
-            y: height - 180,
-            size: 16,
-            color: rgb(secondaryColor.r, secondaryColor.g, secondaryColor.b),
-        });
+                titlePage.drawText(`Student Profiles`, {
+                    x: 50,
+                    y: height - 180,
+                    size: 16,
+                    color: rgb(secondaryColor.r, secondaryColor.g, secondaryColor.b),
+                });
+            }
+        } else {
+            // Use default generated cover page
+            const titlePage = mergedPdf.addPage([612, 792]); // Letter size
+            const { width, height } = titlePage.getSize();
+
+            // Add title text with primary color
+            titlePage.drawText(`${graduationData.schoolName}`, {
+                x: 50,
+                y: height - 100,
+                size: 28,
+                color: rgb(primaryColor.r, primaryColor.g, primaryColor.b),
+            });
+
+            titlePage.drawText(`Class of ${graduationData.graduationYear}`, {
+                x: 50,
+                y: height - 140,
+                size: 20,
+                color: rgb(secondaryColor.r, secondaryColor.g, secondaryColor.b),
+            });
+
+            titlePage.drawText(`Student Profiles`, {
+                x: 50,
+                y: height - 180,
+                size: 16,
+                color: rgb(secondaryColor.r, secondaryColor.g, secondaryColor.b),
+            });
+        }
         
         // Helper function to add text content pages
         const addContentPage = (title, content, author = null) => {
