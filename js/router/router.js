@@ -18,7 +18,7 @@ import { logger } from '../utils/logger.js';
  * @param {Function} renderDashboard - Function to show dashboard
  * @param {Function} renderNewGraduationForm - Function to show new graduation form
  * @param {Function} renderEditor - Function to show editor
- * @param {Object} currentUser - Current authenticated user
+ * @param {Function} getCurrentUser - Function to get current authenticated user
  * @param {Ref} currentGraduationListener - Ref object to store listener unsubscribe
  * @returns {Function} Router function
  */
@@ -28,11 +28,12 @@ export const createRouter = ({
     renderDashboard,
     renderNewGraduationForm,
     renderEditor,
-    currentUser,
+    getCurrentUser,
     currentGraduationListener
 }) => {
     return async () => {
         const hash = window.location.hash;
+        const currentUser = getCurrentUser(); // Get current user dynamically
         
         // Redirect to login if not authenticated
         if (!currentUser) {
@@ -103,7 +104,7 @@ export const createRouter = ({
  * @param {Function} renderStudentUploadPortal - Function to show upload portal
  * @param {Function} renderDirectUpload - Function to show direct student upload
  * @param {Function} showModal - Function to show modal
- * @param {Object} currentUser - Current authenticated user (may be null)
+ * @param {Function} getCurrentUser - Function to get current authenticated user (may be null)
  * @returns {Function} Public router function
  */
 export const createPublicRouter = ({
@@ -113,7 +114,7 @@ export const createPublicRouter = ({
     renderStudentUploadPortal,
     renderDirectUpload,
     showModal,
-    currentUser,
+    getCurrentUser,
     router
 }) => {
     return async () => {
@@ -211,6 +212,7 @@ export const createPublicRouter = ({
 
                 case 'LOGIN':
                 default: {
+                    const currentUser = getCurrentUser();
                     if (!currentUser) {
                         renderLoginPage();
                     } else {

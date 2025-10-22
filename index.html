@@ -1448,7 +1448,7 @@
             renderDashboard,
             renderNewGraduationForm,
             renderEditor,
-            currentUser,
+            getCurrentUser: () => currentUser, // Pass function instead of value
             currentGraduationListener
         });
         
@@ -1459,7 +1459,7 @@
             renderStudentUploadPortal,
             renderDirectUpload,
             showModal,
-            currentUser,
+            getCurrentUser: () => currentUser, // Pass function instead of value
             router
         });
 
