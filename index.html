@@ -155,7 +155,7 @@
         
         const renderDashboard = async () => {
             console.log('renderDashboard called');
-            const header = renderHeader("Your Graduations");
+            const header = renderHeader("Your Graduations", currentUser);
             let mainContent = `
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     <div class="flex justify-between items-center mb-6">
@@ -205,7 +205,7 @@
         };
 
         const renderNewGraduationForm = () => {
-             const header = renderHeader("Create New Graduation");
+             const header = renderHeader("Create New Graduation", currentUser);
              let mainContent = `
                 <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     <div class="bg-white p-8 rounded-lg shadow">
@@ -309,7 +309,7 @@
         };
 
         const renderEditor = (gradData, gradId) => {
-            const header = renderHeader(gradData.schoolName);
+            const header = renderHeader(gradData.schoolName, currentUser);
             const publicUrl = `${window.location.origin}${window.location.pathname}#/view/${gradId}`;
             
             const mainContent = `
