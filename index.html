@@ -2011,11 +2011,21 @@ Are you absolutely sure you want to continue?`,
             // Add fl_attachment flag to force download instead of viewing in browser
             const getDownloadUrl = (url) => {
                 if (!url) return url;
+                
+                // Add cache-busting parameter to prevent browsers from serving old cached versions
+                const cacheBuster = `t=${Date.now()}`;
+                const separator = url.includes('?') ? '&' : '?';
+                let finalUrl = url;
+                
                 // If URL doesn't already have fl_attachment, add it
-                if (!url.includes('fl_attachment')) {
-                    return url.replace('/upload/', '/upload/fl_attachment/');
+                if (!finalUrl.includes('fl_attachment')) {
+                    finalUrl = finalUrl.replace('/upload/', '/upload/fl_attachment/');
                 }
-                return url;
+                
+                // Add cache buster
+                finalUrl = `${finalUrl}${separator}${cacheBuster}`;
+                
+                return finalUrl;
             };
             
             const downloadUrl = getDownloadUrl(gradData.generatedBookletUrl);

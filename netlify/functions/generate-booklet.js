@@ -287,17 +287,23 @@ exports.handler = async (event, context) => {
             const student = doc.data();
             allStudents.push({
                 name: student.name || 'Unnamed',
-                hasPdf: !!student.profilePdfUrl
+                hasPdf: !!student.profilePdfUrl,
+                order: student.order !== undefined ? student.order : 999999 // Default to end if no order
             });
             
             if (student.profilePdfUrl) {
                 studentsWithPdfs.push({
                     name: student.name,
-                    pdfUrl: student.profilePdfUrl
+                    pdfUrl: student.profilePdfUrl,
+                    order: student.order !== undefined ? student.order : 999999 // Include order field
                 });
-                console.log(`[Student PDF Found] ${student.name}: ${student.profilePdfUrl}`);
+                console.log(`[Student PDF Found] ${student.name}: ${student.profilePdfUrl} (order: ${student.order})`);
             }
         });
+
+        // Sort students by their order field to maintain drag-and-drop order
+        studentsWithPdfs.sort((a, b) => a.order - b.order);
+        console.log(`[Student Order] Sorted students:`, studentsWithPdfs.map(s => ({ name: s.name, order: s.order })));
 
         console.log(`Found ${allStudents.length} total students, ${studentsWithPdfs.length} with PDFs`);
         console.log(`[Students Summary]`, allStudents);
@@ -823,8 +829,10 @@ exports.handler = async (event, context) => {
         const FormData = require('form-data');
         const formData = new FormData();
         
-        // Use safe public_id without slashes (replace with underscores)
-        const safePublicId = `graduation_booklet_${graduationId}`;
+        // Use unique public_id with timestamp to prevent caching of old booklets
+        // This ensures each re-generation creates a completely new file with a new URL
+        const timestamp = Date.now();
+        const safePublicId = `graduation_booklet_${graduationId}_${timestamp}`;
         
         formData.append('file', Buffer.from(pdfBytes), {
             filename: `${safePublicId}.pdf`,
@@ -834,8 +842,7 @@ exports.handler = async (event, context) => {
         formData.append('resource_type', 'raw');
         formData.append('public_id', safePublicId);
         formData.append('folder', 'graduation-booklets'); // Use folder parameter instead of slashes in public_id
-        // Note: overwrite and invalidate are only allowed with signed uploads
-        // Cloudinary will automatically version files and serve the latest version
+        // Each generation creates a new file with unique timestamp, preventing caching issues
 
         const uploadResponse = await fetch(cloudinaryUrl, {
             method: 'POST',
