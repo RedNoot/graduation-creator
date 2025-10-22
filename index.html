@@ -396,15 +396,14 @@
             const studentListContainer = document.getElementById('student-list-container');
             
             // Use repository to get real-time updates
-            StudentRepository.onUpdate(gradId, (snapshot) => {
-                if (snapshot.empty) {
+            StudentRepository.onUpdate(gradId, (students) => {
+                if (students.length === 0) {
                     studentListContainer.innerHTML = `<p class="text-gray-500">No students added yet.</p>`;
                     return;
                 }
                 let html = `<ul class="divide-y divide-gray-200">`;
-                snapshot.forEach(doc => {
-                    const student = doc.data();
-                    const studentId = doc.id;
+                students.forEach(student => {
+                    const studentId = student.id;
                     let accessInfo = '';
                     
                     if (student.accessType === 'link') {
@@ -553,10 +552,10 @@
 
             // Load existing content pages
             const loadContentPages = () => {
-                ContentRepository.onUpdate(gradId, (snapshot) => {
+                ContentRepository.onUpdate(gradId, (contentPages) => {
                     const listContainer = document.getElementById('content-pages-list');
                     
-                    if (snapshot.empty) {
+                    if (contentPages.length === 0) {
                         listContainer.innerHTML = `
                             <div class="flex items-center justify-center p-8 text-gray-500">
                                 <div class="text-center">
@@ -572,8 +571,7 @@
                     }
 
                     let html = '<div class="space-y-4">';
-                    snapshot.forEach(doc => {
-                        const content = doc.data();
+                    contentPages.forEach(content => {
                         const preview = content.content.length > 100 ? content.content.substring(0, 100) + '...' : content.content;
                         
                         html += `
@@ -586,8 +584,8 @@
                                         <p class="mt-3 text-gray-700">${preview}</p>
                                     </div>
                                     <div class="flex gap-2 ml-4">
-                                        <button onclick="editContentPage('${doc.id}', '${content.title}', '${content.author || ''}', '${content.type}', \`${content.content.replace(/`/g, '\\`')}\`)" class="text-indigo-600 hover:text-indigo-800 text-sm">Edit</button>
-                                        <button onclick="deleteContentPage('${doc.id}')" class="text-red-600 hover:text-red-800 text-sm">Delete</button>
+                                        <button onclick="editContentPage('${content.id}', '${content.title}', '${content.author || ''}', '${content.type}', \`${content.content.replace(/`/g, '\\`')}\`)" class="text-indigo-600 hover:text-indigo-800 text-sm">Edit</button>
+                                        <button onclick="deleteContentPage('${content.id}')" class="text-red-600 hover:text-red-800 text-sm">Delete</button>
                                     </div>
                                 </div>
                             </div>
