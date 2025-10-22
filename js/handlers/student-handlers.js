@@ -306,3 +306,178 @@ export async function removePdfForStudent(studentId, studentName, gradId, handle
         }
     }, 'Remove');
 }
+
+/**
+ * Import students from CSV file
+ * @param {File} file - CSV file to import
+ * @param {string} accessType - Access method for all students
+ * @param {string} gradId - Graduation ID
+ * @param {Object} handlers - Required handlers
+ *   - showModal: Function to show modal
+ *   - showLoadingModal: Function to show loading modal
+ *   - showSuccessModal: Function to show success modal
+ *   - showErrorModal: Function to show error modal
+ *   - sanitizeInput: Function to sanitize input
+ *   - rateLimiter: Rate limiter object
+ *   - currentUser: Current authenticated user
+ *   - router: Router function to refresh
+ */
+export async function importStudentsFromCSV(file, accessType, gradId, handlers) {
+    const { showModal, showLoadingModal, showSuccessModal, showErrorModal, sanitizeInput, rateLimiter, currentUser, router } = handlers;
+    
+    try {
+        // Read file contents
+        const text = await file.text();
+        
+        // Parse CSV - split by newlines
+        const lines = text.split(/\r?\n/);
+        const validNames = [];
+        
+        // Check if first line is a header (contains "Name" or "name")
+        let startIndex = 0;
+        if (lines.length > 0 && lines[0].toLowerCase().trim() === 'name') {
+            startIndex = 1; // Skip header row
+        }
+        
+        // Process each line
+        for (let i = startIndex; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (!line) continue; // Skip empty lines
+            
+            // Handle CSV with commas (take first column only)
+            const name = line.split(',')[0].trim();
+            
+            if (name) {
+                const sanitizedName = sanitizeInput(name, 'name');
+                if (sanitizedName) {
+                    validNames.push(sanitizedName);
+                }
+            }
+        }
+        
+        if (validNames.length === 0) {
+            showErrorModal('No Valid Names', 'No valid student names found in the CSV file. Please check the file format.');
+            return;
+        }
+        
+        // Rate limiting check - allow up to 100 students per minute for bulk operations
+        const rateLimitKey = `import-csv-${currentUser.uid}`;
+        if (!rateLimiter.isAllowed(rateLimitKey, 100, 60000)) {
+            showErrorModal('Rate Limit', 'Too many import requests. Please wait a minute before importing more students.');
+            return;
+        }
+        
+        // Show loading modal
+        const closeLoading = showLoadingModal('Importing Students...', `Importing ${validNames.length} student${validNames.length > 1 ? 's' : ''} from CSV. Please wait...`);
+        
+        const results = {
+            successful: [],
+            failed: []
+        };
+        
+        // Helper function to generate memorable password
+        const generatePassword = () => {
+            const adjectives = ['Blue', 'Red', 'Green', 'Gold', 'Silver', 'Bright', 'Smart', 'Cool', 'Star', 'Epic'];
+            const nouns = ['Tiger', 'Eagle', 'Lion', 'Bear', 'Wolf', 'Shark', 'Falcon', 'Phoenix', 'Dragon', 'Hawk'];
+            const randomAdj = adjectives[Math.floor(Math.random() * adjectives.length)];
+            const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
+            const randomNum = Math.floor(10 + Math.random() * 90);
+            return `${randomAdj}${randomNoun}${randomNum}`;
+        };
+        
+        // Add students sequentially
+        for (let i = 0; i < validNames.length; i++) {
+            const studentName = validNames[i];
+            
+            try {
+                const requestBody = {
+                    action: 'createStudent',
+                    graduationId: gradId,
+                    studentName: studentName,
+                    accessType: accessType,
+                };
+                
+                // Add password for password-protected students
+                if (accessType === 'password') {
+                    requestBody.password = generatePassword();
+                }
+                
+                const response = await fetch('/.netlify/functions/secure-operations', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody),
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to create student');
+                }
+                
+                const result = await response.json();
+                results.successful.push({
+                    name: studentName,
+                    password: result.generatedPassword
+                });
+                
+            } catch (error) {
+                console.error(`Error adding student ${studentName}:`, error);
+                results.failed.push({
+                    name: studentName,
+                    error: error.message
+                });
+            }
+            
+            // Small delay between requests (50ms)
+            if (i < validNames.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+        }
+        
+        // Close loading modal
+        closeLoading();
+        
+        // Show results
+        if (results.failed.length === 0) {
+            // All succeeded
+            let message = `Successfully imported ${results.successful.length} student${results.successful.length > 1 ? 's' : ''} from CSV!`;
+            
+            // Show passwords if any
+            if (accessType === 'password') {
+                message += '\n\n📋 Generated Passwords:\n';
+                results.successful.forEach(s => {
+                    message += `${s.name}: ${s.password}\n`;
+                });
+                message += '\n⚠️ Make sure to save these passwords!';
+            }
+            
+            showSuccessModal('Import Successful!', message);
+        } else if (results.successful.length === 0) {
+            // All failed
+            showErrorModal('Import Failed', `Failed to import all students. Errors: ${results.failed.map(f => `${f.name} (${f.error})`).join(', ')}`);
+        } else {
+            // Partial success
+            let message = `Imported ${results.successful.length} student${results.successful.length > 1 ? 's' : ''} successfully.\n\n`;
+            message += `Failed to import ${results.failed.length}: ${results.failed.map(f => f.name).join(', ')}`;
+            
+            if (accessType === 'password') {
+                message += '\n\n📋 Generated Passwords (for successful imports):\n';
+                results.successful.forEach(s => {
+                    message += `${s.name}: ${s.password}\n`;
+                });
+            }
+            
+            showModal('Partial Success', message, true);
+        }
+        
+        // Refresh the page
+        setTimeout(() => {
+            router();
+        }, 2000);
+        
+    } catch (error) {
+        console.error('CSV import error:', error);
+        showErrorModal('Import Error', `Failed to import CSV: ${error.message}`);
+    }
+}

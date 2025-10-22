@@ -46,7 +46,7 @@ export function setupTabHandlers(tabs, renderFunctions, handlers) {
                     renderContentPagesTab(gradId);
                     break;
                 case 'settings':
-                    renderSettingsTab(gradId, gradData.config);
+                    renderSettingsTab(gradId, gradData.config, gradData.customCoverUrl);
                     break;
                 case 'share':
                     renderShareTab(publicUrl);
