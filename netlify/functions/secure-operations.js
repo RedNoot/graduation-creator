@@ -125,10 +125,16 @@ exports.handler = async (event, context) => {
                     };
                 }
 
+                // Get current student count to determine order
+                const studentsSnapshot = await db.collection('graduations').doc(graduationId).collection('students').get();
+                const currentCount = studentsSnapshot.size;
+                console.log(`[createStudent] Current student count: ${currentCount}, new student will have order: ${currentCount}`);
+
                 const studentData = {
                     name: validation.sanitizedData.studentName,
                     accessType: accessType,
                     profilePdfUrl: null,
+                    order: currentCount, // Add order field for drag-and-drop sorting
                     createdAt: admin.firestore.FieldValue.serverTimestamp(),
                 };
 
@@ -148,6 +154,7 @@ exports.handler = async (event, context) => {
                 }
 
                 const studentRef = await db.collection('graduations').doc(graduationId).collection('students').add(studentData);
+                console.log(`[createStudent] Successfully created student ${studentRef.id} with name: ${studentName}, order: ${studentData.order}`);
                 
                 return {
                     statusCode: 200,
