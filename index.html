@@ -31,38 +31,28 @@
         import { rateLimiter } from './js/utils/rate-limiter.js';
         import { ensurePublicPdfUrl, getCurrentGradId } from './js/utils/url-helpers.js';
         
-        // Import Firebase modules
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { 
-            getAuth, 
-            onAuthStateChanged, 
-            createUserWithEmailAndPassword, 
-            signInWithEmailAndPassword, 
-            signOut 
-        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { 
-            getFirestore, 
-            collection, 
-            addDoc, 
-            doc, 
-            getDoc, 
+        // Import services
+        import { app, auth, db } from './js/firebase-init.js';
+        import { verifyStudentPassword, signUp, signIn, signOut as authSignOut } from './js/services/auth.js';
+        import { uploadFile, getDownloadUrl, showUploadModal } from './js/services/cloudinary.js';
+        import { generateBooklet, viewStudentPdf, closeStudentPdfModal } from './js/services/pdf-service.js';
+        import * as firestoreService from './js/services/firestore.js';
+        
+        // Import Firebase auth state listener
+        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        
+        // Import Firestore utilities used directly in index.html
+        import {
+            collection,
+            doc,
             setDoc,
-            query, 
-            where, 
-            getDocs,
-            onSnapshot,
-            updateDoc,
-            deleteDoc,
+            query,
+            where,
             serverTimestamp
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- CONFIGURATION ---
         const config = getConfig();
-        
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
 
         const appContainer = document.getElementById('app');
         let currentUser = null;
@@ -72,487 +62,54 @@
         
         // Secure password operations are now handled server-side
         // This function calls the serverless function for password verification
-        const verifyStudentPassword = async (graduationId, studentId, password) => {
-            try {
-                const response = await fetch('/.netlify/functions/secure-operations', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        action: 'verifyPassword',
-                        graduationId,
-                        studentId,
-                        passwordToVerify: password,
-                    }),
-                });
-
-                if (!response.ok) {
-                    throw new Error(`Server error: ${response.status}`);
-                }
-
-                const result = await response.json();
-                return result.isValid;
-            } catch (error) {
-                console.error('Password verification error:', error);
-                throw new Error('Failed to verify password. Please try again.');
-            }
-        };
+        // Password verification is now imported from js/services/auth.js
 
         // Input sanitization is now imported from js/utils/sanitize.js
 
-        // Copy to clipboard utility is now imported from js/utils/clipboard.js
+        // PDF upload for teachers and PDF management functions are now imported from services
 
-        // Upload PDF for student function (for teachers) - Global function with modal
-        function uploadPdfForStudent(studentId, studentName, gradId) {
-            // Create modal HTML
-            const modalHtml = `
-                <div id="upload-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-                    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-                        <div class="mt-3">
-                            <h3 class="text-lg font-medium text-gray-900 text-center">Upload PDF for ${studentName}</h3>
-                            <div class="mt-4 px-7 py-3">
-                                <div class="mb-4">
-                                    <label for="teacher-pdf-upload" class="block text-sm font-medium text-gray-700 mb-2">
-                                        Select PDF file (max 10MB)
-                                    </label>
-                                    <input type="file" id="teacher-pdf-upload" accept=".pdf" 
-                                           class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
-                                </div>
-                                <div class="flex gap-3">
-                                    <button id="upload-confirm-btn" class="flex-1 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">
-                                        Upload PDF
-                                    </button>
-                                    <button id="upload-cancel-btn" class="flex-1 px-4 py-2 bg-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-400">
-                                        Cancel
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            // Add modal to document
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
-            
-            // Get modal elements
-            const modal = document.getElementById('upload-modal');
-            const uploadBtn = document.getElementById('upload-confirm-btn');
-            const cancelBtn = document.getElementById('upload-cancel-btn');
-            const fileInput = document.getElementById('teacher-pdf-upload');
-            
-            // Cancel button functionality
-            cancelBtn.onclick = () => {
-                document.body.removeChild(modal);
-            };
-            
-            // Close modal on outside click
-            modal.onclick = (e) => {
-                if (e.target === modal) {
-                    document.body.removeChild(modal);
-                }
-            };
-            
-            // Upload button functionality
-            uploadBtn.onclick = async () => {
-                const file = fileInput.files[0];
-                if (!file) {
-                    showModal('Error', 'Please select a PDF file.');
-                    return;
-                }
-                
-                if (file.type !== 'application/pdf') {
-                    showModal('Error', 'Please select a PDF file.');
-                    return;
-                }
-                
-                if (file.size > 10 * 1024 * 1024) { // 10MB limit
-                    showModal('Error', 'File size must be less than 10MB.');
-                    return;
-                }
-                
-                try {
-                    // Remove the modal first
-                    document.body.removeChild(modal);
-                    
-                    showModal('Uploading...', `Uploading PDF for ${studentName}...`, false);
-                    
-                    // Use the SAME uploadFile function as students - no signatures, just unsigned preset
-                    // This ensures both paths create the exact same type of resource
-                    const pdfUrl = await uploadFile(file);
-                    
-                    // Update student document with PDF URL
-                    const studentRef = doc(db, "graduations", gradId, "students", studentId);
-                    await updateDoc(studentRef, {
-                        profilePdfUrl: pdfUrl,
-                        updatedAt: serverTimestamp()
-                    });
-                    
-                    showModal('Success', `PDF uploaded successfully for ${studentName}!`);
-                    
-                } catch (error) {
-                    console.error('Upload error:', error);
-                    showModal('Error', `Failed to upload PDF: ${error.message}`);
-                }
-            };
-        }
+        // Make PDF service functions available globally for onclick handlers
+        window.viewStudentPdf = viewStudentPdf;
+        window.closeStudentPdfModal = closeStudentPdfModal;
 
-        // Ensure function is available globally
-        window.uploadPdfForStudent = uploadPdfForStudent;
+        // File upload is now imported from js/services/cloudinary.js
 
-        // Remove PDF for student function (for teachers)
-        function removePdfForStudent(studentId, studentName, gradId) {
-            showModal(
-                'Confirm Delete',
-                `Are you sure you want to remove the PDF for ${studentName}?`,
-                true,
-                [
-                    {
-                        text: 'Cancel',
-                        onclick: () => closeModal(),
-                        style: 'bg-gray-300 text-gray-700 hover:bg-gray-400'
-                    },
-                    {
-                        text: 'Delete PDF',
-                        onclick: async () => {
-                            try {
-                                closeModal();
-                                showModal('Deleting...', `Removing PDF for ${studentName}...`, false);
-                                
-                                const studentRef = doc(db, "graduations", gradId, "students", studentId);
-                                await updateDoc(studentRef, {
-                                    profilePdfUrl: null,
-                                    updatedAt: serverTimestamp()
-                                });
-                                
-                                showModal('Success', `PDF removed successfully for ${studentName}!`);
-                            } catch (error) {
-                                console.error('Delete error:', error);
-                                showModal('Error', 'Failed to remove PDF. Please try again.');
-                            }
-                        },
-                        style: 'bg-red-600 text-white hover:bg-red-700'
-                    }
-                ]
-            );
-        }
-
-        // Delete entire student function (for teachers)
-        function deleteStudent(studentId, studentName, gradId) {
-            showModal(
-                'Confirm Delete',
-                `Are you sure you want to delete ${studentName}? This cannot be undone.`,
-                true,
-                [
-                    {
-                        text: 'Cancel',
-                        onclick: () => closeModal(),
-                        style: 'bg-gray-300 text-gray-700 hover:bg-gray-400'
-                    },
-                    {
-                        text: 'Delete Student',
-                        onclick: async () => {
-                            try {
-                                closeModal();
-                                showModal('Deleting...', `Removing ${studentName} from the class...`, false);
-                                
-                                await deleteDoc(doc(db, "graduations", gradId, "students", studentId));
-                                
-                                showModal('Success', `${studentName} has been deleted from the class!`);
-                            } catch (error) {
-                                console.error('Delete error:', error);
-                                showModal('Error', 'Failed to delete student. Please try again.');
-                            }
-                        },
-                        style: 'bg-red-600 text-white hover:bg-red-700'
-                    }
-                ]
-            );
-        }
-
-        // Make functions available globally
-        window.removePdfForStudent = removePdfForStudent;
-        window.deleteStudent = deleteStudent;
-        
-        // Function to view student PDF in modal (for public view)
-        window.viewStudentPdf = async function(pdfUrl, studentName) {
-            // Create modal with loading state
-            const modal = document.createElement('div');
-            modal.id = 'pdf-viewer-modal';
-            modal.className = 'fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4';
-            modal.innerHTML = `
-                <div class="bg-white rounded-lg w-full max-w-6xl h-5/6 flex flex-col">
-                    <div class="flex justify-between items-center p-4 border-b">
-                        <h3 class="text-xl font-bold text-gray-900">${studentName}'s Profile</h3>
-                        <button onclick="closeStudentPdfModal()" class="text-gray-500 hover:text-gray-700 text-2xl font-bold">&times;</button>
-                    </div>
-                    <div id="pdf-content" class="flex-1 overflow-hidden flex items-center justify-center">
-                        <div class="text-center">
-                            <div class="spinner w-12 h-12 border-4 border-indigo-600 rounded-full mx-auto mb-4"></div>
-                            <p class="text-gray-600">Loading PDF...</p>
-                        </div>
-                    </div>
-                    <div class="p-4 border-t flex justify-end gap-3">
-                        <a href="${pdfUrl}" target="_blank" class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">
-                            Open in New Tab
-                        </a>
-                        <button onclick="closeStudentPdfModal()" class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">
-                            Close
-                        </button>
-                    </div>
-                </div>
-            `;
-            
-            document.body.appendChild(modal);
-            
-            // Close on outside click
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    closeStudentPdfModal();
-                }
-            });
-            
-            // Fetch PDF and create blob URL to bypass CSP
-            try {
-                const response = await fetch(pdfUrl);
-                if (!response.ok) throw new Error('Failed to load PDF');
-                
-                const blob = await response.blob();
-                const blobUrl = URL.createObjectURL(blob);
-                
-                // Replace loading state with PDF viewer (no toolbar)
-                const pdfContent = document.getElementById('pdf-content');
-                pdfContent.innerHTML = `
-                    <iframe src="${blobUrl}#toolbar=0&navpanes=0&scrollbar=0" class="w-full h-full border-0"></iframe>
-                `;
-                
-                // Store blob URL for cleanup
-                modal.dataset.blobUrl = blobUrl;
-            } catch (error) {
-                console.error('Error loading PDF:', error);
-                const pdfContent = document.getElementById('pdf-content');
-                pdfContent.innerHTML = `
-                    <div class="text-center">
-                        <p class="text-red-600 mb-4">Unable to load PDF preview</p>
-                        <a href="${pdfUrl}" target="_blank" class="text-indigo-600 hover:underline">
-                            Click here to open PDF in new tab
-                        </a>
-                    </div>
-                `;
-            }
-        };
-        
-        // Function to close PDF viewer modal
-        window.closeStudentPdfModal = function() {
-            const modal = document.getElementById('pdf-viewer-modal');
-            if (modal) {
-                // Clean up blob URL if it exists
-                if (modal.dataset.blobUrl) {
-                    URL.revokeObjectURL(modal.dataset.blobUrl);
-                }
-                document.body.removeChild(modal);
-            }
-        };
-
-        // URL helpers are now imported from js/utils/url-helpers.js
-
-        // Rate limiting is now imported from js/utils/rate-limiter.js
-        
-        const uploadFile = async (file) => {
-            // Comprehensive file validation
-            if (!file) {
-                throw new Error('No file provided for upload');
-            }
-
-            // Check file size (limit to 10MB)
-            const maxSize = 10 * 1024 * 1024; // 10MB
-            if (file.size > maxSize) {
-                throw new Error('File size too large. Please keep files under 10MB.');
-            }
-
-            // Check file type and validate file extension
-            const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
-            const allowedExtensions = ['.pdf', '.jpg', '.jpeg', '.png'];
-            
-            if (!allowedTypes.includes(file.type)) {
-                throw new Error('Invalid file type. Please upload PDF, JPEG, or PNG files only.');
-            }
-
-            // Additional security: check file extension
-            const fileName = file.name.toLowerCase();
-            const hasValidExtension = allowedExtensions.some(ext => fileName.endsWith(ext));
-            if (!hasValidExtension) {
-                throw new Error('Invalid file extension. Please use .pdf, .jpg, .jpeg, or .png files.');
-            }
-
-            // Security: Validate file name
-            const sanitizedFileName = fileName.replace(/[^a-z0-9._-]/g, '');
-            if (sanitizedFileName.length === 0) {
-                throw new Error('Invalid file name. Please use alphanumeric characters only.');
-            }
-
-            // Check for potentially malicious file patterns
-            if (fileName.includes('..') || fileName.includes('/') || fileName.includes('\\')) {
-                throw new Error('Invalid file name pattern detected.');
-            }
-
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-            
-            // Determine the correct Cloudinary endpoint based on file type
-            // PDFs must use /raw/upload, not /image/upload
-            const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-            const uploadUrl = isPdf 
-                ? `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/raw/upload`
-                : CLOUDINARY_URL; // Use default for images
-
-            try {
-                const response = await fetch(uploadUrl, {
-                    method: 'POST',
-                    body: formData,
-                });
-
-                if (!response.ok) {
-                    // Get detailed error response from Cloudinary
-                    let errorDetail = '';
-                    try {
-                        const errorData = await response.json();
-                        errorDetail = errorData.error?.message || JSON.stringify(errorData);
-                    } catch (e) {
-                        errorDetail = await response.text();
-                    }
-                    
-                    console.error('Cloudinary error response:', errorDetail);
-                    
-                    if (response.status === 400) {
-                        throw new Error(`Upload failed: ${errorDetail || 'Invalid file or configuration'}`);
-                    } else if (response.status === 413) {
-                        throw new Error('File too large for upload');
-                    } else if (response.status === 429) {
-                        throw new Error('Too many upload requests. Please wait and try again.');
-                    } else if (response.status >= 500) {
-                        throw new Error('Upload service temporarily unavailable');
-                    } else {
-                        throw new Error(`Upload failed with status: ${response.status} - ${errorDetail}`);
-                    }
-                }
-
-                const data = await response.json();
-                
-                if (data.error) {
-                    throw new Error(`Upload error: ${data.error.message}`);
-                }
-
-                if (data.secure_url) {
-                    // Additional security: validate returned URL
-                    if (!data.secure_url.startsWith('https://')) {
-                        throw new Error('Invalid upload response - insecure URL');
-                    }
-                    return data.secure_url;
-                } else {
-                    throw new Error('File upload failed - no URL returned');
-                }
-                
-            } catch (error) {
-                console.error("Cloudinary upload error:", error);
-                
-                // Re-throw with user-friendly message
-                if (error.name === 'TypeError' && error.message.includes('fetch')) {
-                    throw new Error('Network error during upload. Please check your connection.');
-                } else if (error.message.includes('Upload failed') || error.message.includes('File')) {
-                    throw error; // Already user-friendly
-                } else {
-                    throw new Error('Upload failed. Please try again.');
-                }
-            }
-        };
-
-        // --- PDF GENERATION (SERVER-SIDE) ---
-        // Updated implementation that calls the Netlify serverless function
-        // This replaces the problematic client-side PDF merging
-        const generateBooklet = async (graduationId) => {
+        // PDF booklet generation is now handled by js/services/pdf-service.js
+        // This wrapper calls the service and handles the UI updates specific to this app
+        const generateBookletWithUI = async (graduationId) => {
             showModal('Processing...', 'Generating PDF booklet. This may take a moment...', false);
             
             try {
-                // Call the Netlify serverless function
-                const functionUrl = config.isDevelopment 
-                    ? '/.netlify/functions/generate-booklet'  // Local development
-                    : '/.netlify/functions/generate-booklet'; // Production
-                
-                const response = await fetch(functionUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        graduationId: graduationId
-                    })
-                });
-
-                if (!response.ok) {
-                    let errorData;
-                    try {
-                        errorData = await response.json();
-                    } catch (parseError) {
-                        console.error('Could not parse error response:', parseError);
-                        throw new Error(`Server error: ${response.status} - ${response.statusText}`);
-                    }
-                    
-                    console.error('Server error response:', errorData);
-                    const errorMsg = errorData.message || errorData.error || `Server error: ${response.status}`;
-                    throw new Error(errorMsg);
-                }
-
-                const result = await response.json();
-                
-                if (result.success) {
-                    console.log('Booklet generated successfully, returned URL:', result.bookletUrl);
-                    
-                    // Fetch fresh graduation data with the new booklet URL
-                    const graduationDoc = await getDoc(doc(db, "graduations", graduationId));
-                    if (graduationDoc.exists()) {
-                        const freshGradData = graduationDoc.data();
-                        console.log('Fresh URL from Firestore after generation:', freshGradData.generatedBookletUrl);
-                        
-                        // Update the local state with the new booklet URL
-                        showModal(
-                            'Success!', 
-                            `PDF booklet generated successfully! Contains ${result.pageCount} pages from ${result.studentCount} students. You can download it from the Booklet tab.`
-                        );
-                        
-                        // Reload the booklet tab to show the new download link
-                        if (document.querySelector('[data-tab="booklet"]')) {
-                            renderBookletTab(graduationId, freshGradData);
+                // Call the imported service function
+                await generateBooklet(graduationId, 
+                    // Success callback
+                    async (result) => {
+                        // Fetch fresh graduation data with the new booklet URL
+                        const graduationDoc = await getDoc(doc(db, "graduations", graduationId));
+                        if (graduationDoc.exists()) {
+                            const freshGradData = graduationDoc.data();
+                            console.log('Fresh URL from Firestore after generation:', freshGradData.generatedBookletUrl);
+                            
+                            // Update the local state with the new booklet URL
+                            showModal(
+                                'Success!', 
+                                `PDF booklet generated successfully! Contains ${result.pageCount} pages from ${result.studentCount} students. You can download it from the Booklet tab.`
+                            );
+                            
+                            // Reload the booklet tab to show the new download link
+                            if (document.querySelector('[data-tab="booklet"]')) {
+                                renderBookletTab(graduationId, freshGradData);
+                            }
                         }
+                    },
+                    // Error callback
+                    (errorMessage) => {
+                        showModal('Error', errorMessage);
                     }
-                } else {
-                    throw new Error(result.message || 'PDF generation failed');
-                }
-
+                );
             } catch (error) {
                 console.error("PDF Generation Error:", error);
-                
-                let errorMessage = 'Could not generate PDF booklet. ';
-                
-                if (error.message.includes('No student PDFs found') || error.message.includes('none have uploaded PDFs')) {
-                    errorMessage = 'No Student PDFs Available. Students need to upload their PDF profiles before you can generate a class booklet. Check the Students tab to see who still needs to upload.';
-                } else if (error.message.includes('Server configuration error')) {
-                    errorMessage = 'Server Configuration Issue. The PDF generation service is not properly configured. Please contact support.';
-                } else if (error.message.includes('Invalid JSON') || error.message.includes('Request body')) {
-                    errorMessage = 'Request Error. There was a problem sending the request. Please try again.';
-                } else if (error.message.includes('Network') || error.message.includes('fetch')) {
-                    errorMessage = 'Network Error. Please check your internet connection and try again.';
-                } else if (error.message.includes('Server error: 5')) {
-                    errorMessage = 'Server Error. The server is experiencing issues. Please try again in a few minutes.';
-                } else if (error.message.includes('Server error: 4')) {
-                    errorMessage = `Request Error: ${error.message}. Please check that all data is correct and try again.`;
-                } else {
-                    errorMessage = `Unexpected Error: ${error.message}. Please try again or contact support if the issue persists.`;
-                }
-                
-                showModal('Error', errorMessage);
+                showModal('Error', 'Failed to generate booklet. Please try again.');
             }
         };
 
@@ -1794,7 +1351,7 @@
             `;
 
             if (document.getElementById('generate-booklet-btn')) {
-                document.getElementById('generate-booklet-btn').addEventListener('click', () => generateBooklet(gradId));
+                document.getElementById('generate-booklet-btn').addEventListener('click', () => generateBookletWithUI(gradId));
             }
         };
         
