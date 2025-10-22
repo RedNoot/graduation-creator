@@ -36,6 +36,17 @@ export const rateLimiter = {
     },
     
     /**
+     * Alias for check() - backwards compatibility
+     * @param {string} key - Identifier for the rate limit
+     * @param {number} maxAttempts - Maximum attempts allowed in window
+     * @param {number} windowMs - Time window in milliseconds
+     * @returns {boolean} True if request should be allowed
+     */
+    isAllowed(key, maxAttempts = 5, windowMs = 60000) {
+        return this.check(key, maxAttempts, windowMs);
+    },
+    
+    /**
      * Get remaining attempts for a key
      * @param {string} key - Identifier
      * @param {number} maxAttempts - Maximum attempts
