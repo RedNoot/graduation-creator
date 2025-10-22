@@ -125,25 +125,37 @@ export function setupCopyGeneralUrlHandler(copyBtn, copyToClipboard) {
  * @param {string} studentId - ID of student to delete
  * @param {string} studentName - Name of student
  * @param {string} gradId - Graduation ID
- * @param {Object} showModal - Function to show modal
+ * @param {Object} modals - Modal functions object with showModal, showSuccessModal, showConfirmModal
  * @param {Function} router - Router function to refresh
  */
-export async function deleteStudent(studentId, studentName, gradId, showModal, router) {
-    showModal('Confirm', `Are you sure you want to delete ${studentName}?`, true, async () => {
+export async function deleteStudent(studentId, studentName, gradId, modals, router) {
+    // Import showConfirmModal if not provided
+    let showConfirm = modals?.showConfirmModal;
+    let showSuccess = modals?.showSuccessModal;
+    let showError = modals?.showErrorModal;
+    
+    if (!showConfirm || !showSuccess || !showError) {
+        const modalModule = await import('../components/modal.js');
+        showConfirm = showConfirm || modalModule.showConfirmModal;
+        showSuccess = showSuccess || modalModule.showSuccessModal;
+        showError = showError || modalModule.showErrorModal;
+    }
+    
+    showConfirm('Confirm Delete', `Are you sure you want to delete ${studentName}?`, async () => {
         try {
             // Import repository (if not already available)
             const { StudentRepository } = await import('../data/student-repository.js');
             await StudentRepository.delete(gradId, studentId);
-            showModal('Success', `${studentName} has been removed from the student list.`);
+            showSuccess('Success', `${studentName} has been removed from the student list.`);
             
             setTimeout(() => {
                 router();
             }, 1000);
         } catch (error) {
             console.error('Error deleting student:', error);
-            showModal('Error', 'Failed to delete student. Please try again.');
+            showError('Error', 'Failed to delete student. Please try again.');
         }
-    });
+    }, 'Delete');
 }
 
 /**
@@ -194,25 +206,40 @@ export async function uploadPdfForStudent(studentId, studentName, gradId, handle
  * @param {string} studentName - Name of student
  * @param {string} gradId - Graduation ID
  * @param {Object} handlers - Required handlers
- *   - showModal: Function to show modal
+ *   - modals: Object with showConfirmModal, showSuccessModal, showErrorModal, showLoadingModal
  *   - router: Router function to refresh
  */
 export async function removePdfForStudent(studentId, studentName, gradId, handlers) {
-    const { showModal, router } = handlers;
+    const { modals, router } = handlers;
     
-    showModal('Confirm', `Remove PDF for ${studentName}?`, true, async () => {
+    // Import modal functions if not provided
+    let showConfirm = modals?.showConfirmModal;
+    let showSuccess = modals?.showSuccessModal;
+    let showError = modals?.showErrorModal;
+    let showLoading = modals?.showLoadingModal;
+    
+    if (!showConfirm || !showSuccess || !showError || !showLoading) {
+        const modalModule = await import('../components/modal.js');
+        showConfirm = showConfirm || modalModule.showConfirmModal;
+        showSuccess = showSuccess || modalModule.showSuccessModal;
+        showError = showError || modalModule.showErrorModal;
+        showLoading = showLoading || modalModule.showLoadingModal;
+    }
+    
+    showConfirm('Confirm Remove', `Remove PDF for ${studentName}?`, async () => {
         try {
-            showModal('Removing...', 'Removing PDF...', false);
+            const closeLoading = showLoading('Removing...', 'Removing PDF...');
             const { StudentRepository } = await import('../data/student-repository.js');
             await StudentRepository.update(gradId, studentId, { profilePdfUrl: null });
+            closeLoading();
             
-            showModal('Success', `PDF removed for ${studentName}!`);
+            showSuccess('Success', `PDF removed for ${studentName}!`);
             setTimeout(() => {
                 router();
             }, 1000);
         } catch (error) {
             console.error('Error removing PDF:', error);
-            showModal('Error', 'Failed to remove PDF. Please try again.');
+            showError('Error', 'Failed to remove PDF. Please try again.');
         }
-    });
+    }, 'Remove');
 }

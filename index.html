@@ -415,9 +415,13 @@
 
             const studentListContainer = document.getElementById('student-list-container');
             
-            // Create wrapper functions with access to showModal and router
+            // Create wrapper functions with access to modal functions and router
             window.deleteStudentWrapper = (studentId, studentName) => {
-                deleteStudent(studentId, studentName, gradId, showModal, router);
+                deleteStudent(studentId, studentName, gradId, { 
+                    showConfirmModal, 
+                    showSuccessModal, 
+                    showErrorModal 
+                }, router);
             };
             
             window.uploadPdfForStudentWrapper = (studentId, studentName) => {
@@ -430,7 +434,12 @@
             
             window.removePdfForStudentWrapper = (studentId, studentName) => {
                 removePdfForStudent(studentId, studentName, gradId, { 
-                    showModal, 
+                    modals: {
+                        showConfirmModal,
+                        showSuccessModal,
+                        showErrorModal,
+                        showLoadingModal
+                    },
                     router 
                 });
             };
