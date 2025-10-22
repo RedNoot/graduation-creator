@@ -7,6 +7,7 @@ import { parseRoute, ROUTE_METADATA } from './routes.js';
 import { goToDashboard } from './navigation.js';
 import { GraduationRepository } from '../data/graduation-repository.js';
 import { StudentRepository } from '../data/student-repository.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * Main router for authenticated users
@@ -144,22 +145,66 @@ export const createPublicRouter = ({
 
                 case 'UPLOAD_PORTAL': {
                     const { gradId } = route.params;
-                    const students = await StudentRepository.getAll(gradId);
-                    renderStudentUploadPortal(gradId, students);
+                    const gradData = await GraduationRepository.getById(gradId);
+                    
+                    // Check if project is locked
+                    if (gradData && gradData.isLocked === true) {
+                        logger.warn('Student attempted upload on locked project', {
+                            gradId,
+                            schoolName: gradData.schoolName,
+                            isLocked: gradData.isLocked
+                        });
+                        showModal('Submissions Closed', 'The teacher has closed submissions for this project. No more PDFs can be uploaded at this time.');
+                    } else if (gradData) {
+                        logger.info('Student access to upload portal', {
+                            gradId,
+                            schoolName: gradData.schoolName
+                        });
+                        const students = await StudentRepository.getAll(gradId);
+                        renderStudentUploadPortal(gradId, students);
+                    } else {
+                        logger.warn('Upload portal requested for non-existent project', { gradId });
+                        showModal('Not Found', 'Graduation project not found.');
+                    }
                     break;
                 }
 
                 case 'DIRECT_UPLOAD': {
                     const { gradId, linkId } = route.params;
-                    const students = await StudentRepository.getAll(gradId);
+                    const gradData = await GraduationRepository.getById(gradId);
                     
-                    // Find student with matching unique link ID
-                    const student = students.find(s => s.uniqueLinkId === linkId);
-                    
-                    if (student) {
-                        renderDirectUpload(gradId, student);
+                    // Check if project is locked
+                    if (gradData && gradData.isLocked === true) {
+                        logger.warn('Student attempted direct upload on locked project', {
+                            gradId,
+                            schoolName: gradData.schoolName,
+                            linkId,
+                            isLocked: gradData.isLocked
+                        });
+                        showModal('Submissions Closed', 'The teacher has closed submissions for this project. No more PDFs can be uploaded at this time.');
+                    } else if (gradData) {
+                        const students = await StudentRepository.getAll(gradId);
+                        
+                        // Find student with matching unique link ID
+                        const student = students.find(s => s.uniqueLinkId === linkId);
+                        
+                        if (student) {
+                            logger.info('Student accessing direct upload link', {
+                                gradId,
+                                studentId: student.id,
+                                studentName: student.name
+                            });
+                            renderDirectUpload(gradId, student);
+                        } else {
+                            logger.warn('Invalid or expired upload link', {
+                                gradId,
+                                linkId
+                            });
+                            showModal('Invalid Link', 'This upload link is not valid or has expired.');
+                        }
                     } else {
-                        showModal('Invalid Link', 'This upload link is not valid or has expired.');
+                        logger.warn('Direct upload requested for non-existent project', { gradId, linkId });
+                        showModal('Not Found', 'Graduation project not found.');
                     }
                     break;
                 }
