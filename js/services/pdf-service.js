@@ -20,10 +20,11 @@ export const generateBooklet = async (graduationId, onSuccess, onError) => {
         
         const config = getConfig();
         
-        // Fetch latest graduation data to get customCoverUrl
+        // Fetch latest graduation data to get customCoverUrl and pageOrder
         const { GraduationRepository } = await import('../data/graduation-repository.js');
         const gradData = await GraduationRepository.getById(graduationId);
         const customCoverUrl = gradData?.customCoverUrl || null;
+        const pageOrder = gradData?.config?.pageOrder || ['students', 'messages', 'speeches'];
         
         if (customCoverUrl) {
             logger.info('Using custom cover page for booklet', {
@@ -31,6 +32,11 @@ export const generateBooklet = async (graduationId, onSuccess, onError) => {
                 customCoverUrl: customCoverUrl.substring(0, 50)
             });
         }
+        
+        logger.info('Using page order for booklet', {
+            gradId: graduationId,
+            pageOrder: pageOrder
+        });
         
         // Call the Netlify serverless function
         const functionUrl = config.isDevelopment 
@@ -44,7 +50,8 @@ export const generateBooklet = async (graduationId, onSuccess, onError) => {
             },
             body: JSON.stringify({
                 graduationId: graduationId,
-                customCoverUrl: customCoverUrl
+                customCoverUrl: customCoverUrl,
+                pageOrder: pageOrder
             })
         });
 

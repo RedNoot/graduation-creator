@@ -103,12 +103,16 @@ exports.handler = async (event, context) => {
             };
         }
 
-        const { graduationId, customCoverUrl } = requestData;
+        const { graduationId, customCoverUrl, pageOrder } = requestData;
         console.log('Processing request for graduation ID:', graduationId);
         
         if (customCoverUrl) {
             console.log('Custom cover URL provided:', customCoverUrl.substring(0, 50));
         }
+        
+        // Use provided page order or default
+        const sectionsOrder = pageOrder || ['students', 'messages', 'speeches'];
+        console.log('Page order:', sectionsOrder);
 
         // Input validation
         if (!graduationId || typeof graduationId !== 'string') {
@@ -370,11 +374,10 @@ exports.handler = async (event, context) => {
             }
         };
         
-        // Process sections based on page order
-        const pageOrder = config.pageOrder || ['students', 'messages', 'speeches'];
+        // Process sections based on page order from request
         let processedCount = 0;
         
-        for (const section of pageOrder) {
+        for (const section of sectionsOrder) {
             if (section === 'messages' && config.showMessages !== false) {
                 const messagePages = contentPages.filter(p => p.type === 'thanks' || p.type === 'memory');
                 if (messagePages.length > 0) {
@@ -414,8 +417,11 @@ exports.handler = async (event, context) => {
                     console.log(`Added ${speechPages.length} speech pages to booklet`);
                 }
             } else if (section === 'students') {
+                // Sort students alphabetically by name
+                studentsWithPdfs.sort((a, b) => a.name.localeCompare(b.name));
+                
                 // Add student PDFs section
-                console.log(`Processing ${studentsWithPdfs.length} student PDFs`);
+                console.log(`Processing ${studentsWithPdfs.length} student PDFs in alphabetical order`);
                 
                 for (let i = 0; i < studentsWithPdfs.length; i++) {
                     const student = studentsWithPdfs[i];
