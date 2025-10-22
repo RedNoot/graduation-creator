@@ -58,8 +58,28 @@ export const GraduationRepository = {
      * @returns {Promise<Array>} Array of graduations where user has edit access
      */
     async getByOwner(userUid) {
-        // Query for graduations where user is in editors array
-        return firestoreService.queryGraduations('editors', 'array-contains', userUid);
+        console.log('[GraduationRepo] Querying graduations for user:', userUid);
+        
+        // Query for graduations where user is in editors array (new multi-editor system)
+        const editorsResults = await firestoreService.queryGraduations('editors', 'array-contains', userUid);
+        console.log('[GraduationRepo] Found via editors array:', editorsResults.length);
+        
+        // Also query for old graduations with ownerUid field (backward compatibility)
+        const ownerResults = await firestoreService.queryGraduations('ownerUid', '==', userUid);
+        console.log('[GraduationRepo] Found via ownerUid:', ownerResults.length);
+        
+        // Merge results, removing duplicates by ID
+        const allResults = [...editorsResults];
+        const existingIds = new Set(editorsResults.map(g => g.id));
+        
+        for (const grad of ownerResults) {
+            if (!existingIds.has(grad.id)) {
+                allResults.push(grad);
+            }
+        }
+        
+        console.log('[GraduationRepo] Total graduations after merge:', allResults.length);
+        return allResults;
     },
 
     /**
