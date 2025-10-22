@@ -4,7 +4,7 @@
   X-Content-Type-Options: nosniff
   X-XSS-Protection: 1; mode=block
   Referrer-Policy: strict-origin-when-cross-origin
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://res.cloudinary.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://api.cloudinary.com https://*.cloudinary.com https://www.gstatic.com https://cdn.jsdelivr.net /.netlify/functions/; media-src 'self' blob: data:; frame-src 'self' blob: https://res.cloudinary.com; object-src 'self' blob:
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://res.cloudinary.com; connect-src 'self' https://*.googleapis.com https://*.gstatic.com https://api.cloudinary.com https://*.cloudinary.com https://*.netlify.app https://*.firebaseapp.com https://cdn.jsdelivr.net; media-src 'self' blob: data:; frame-src 'self' blob: https://res.cloudinary.com; object-src 'self' blob:; worker-src 'self' blob:
   Permissions-Policy: geolocation=(), microphone=(), camera=()
 
 # Cache static assets

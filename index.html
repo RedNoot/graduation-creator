@@ -61,8 +61,8 @@
         import { StudentRepository } from './js/data/student-repository.js';
         import { ContentRepository } from './js/data/content-repository.js';
         
-        // Import Firebase auth state listener
-        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        // Import Firebase auth state listener and functions
+        import { onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
         // --- CONFIGURATION ---
         const config = getConfig();
@@ -143,10 +143,7 @@
             // State object for auth mode
             const authState = { isSignUpMode: false, auth };
             
-            // Import Firebase auth functions
-            const { createUserWithEmailAndPassword, signInWithEmailAndPassword } = auth.constructor;
-            
-            // Setup auth handlers
+            // Setup auth handlers with Firebase auth functions
             setupAuthToggleHandler(toggleAuthBtn, authSubmitBtn, toggleText, authSubtitle, passwordHint, authState);
             setupAuthSubmitHandler(authSubmitBtn, { 
                 createUserWithEmailAndPassword, 
