@@ -30,6 +30,7 @@
         import { copyToClipboard } from './js/utils/clipboard.js';
         import { rateLimiter } from './js/utils/rate-limiter.js';
         import { ensurePublicPdfUrl } from './js/utils/url-helpers.js';
+        import { captureError } from './js/utils/sentry-config.js';
         
         // Import services
         import { app, auth, db } from './js/firebase-init.js';
@@ -178,8 +179,19 @@
             // Test Sentry error tracking button
             document.getElementById('test-sentry-btn').addEventListener('click', () => {
                 console.log('🔥 Testing Sentry error tracking...');
-                // This will trigger an error that Sentry should catch
-                myUndefinedFunction();
+                try {
+                    // This will trigger an error that Sentry should catch
+                    myUndefinedFunction();
+                } catch (error) {
+                    console.error('Caught error:', error);
+                    // Manually send to Sentry
+                    captureError(error, {
+                        action: 'test-error-button',
+                        userId: currentUser?.uid,
+                        severity: 'test'
+                    });
+                    alert('✅ Error triggered and sent to Sentry!\n\nCheck your Sentry dashboard at:\nhttps://sentry.io\n\nError: ' + error.message);
+                }
             });
             
             document.getElementById('create-new-btn').addEventListener('click', () => {

@@ -28,7 +28,7 @@ export const getConfig = () => {
             },
             sentry: {
                 // Production Sentry DSN
-                dsn: 'https://93d779626b30e8101d5512445d3719c1@o4507568980172800.ingest.sentry.io/4507568983678976'
+                dsn: 'https://93d779626b30e8101d5512445d3719c1@o4510231404281856.ingest.us.sentry.io/4510231413522432'
             },
             isDevelopment: false
         };
@@ -49,7 +49,7 @@ export const getConfig = () => {
             },
             sentry: {
                 // Development Sentry DSN (uses same project, development environment)
-                dsn: 'https://93d779626b30e8101d5512445d3719c1@o4507568980172800.ingest.sentry.io/4507568983678976'
+                dsn: 'https://93d779626b30e8101d5512445d3719c1@o4510231404281856.ingest.us.sentry.io/4510231413522432'
             },
             isDevelopment: true
         };
