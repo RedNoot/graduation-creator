@@ -13,17 +13,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-        .spinner {
-            border-top-color: transparent;
-            border-right-color: transparent;
-            animation: spin 0.6s linear infinite;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-    </style>
+    <!-- Custom styles -->
+    <link rel="stylesheet" href="css/styles.css">
 </head>
 <body class="bg-gray-50 text-gray-800">
 
@@ -33,6 +24,13 @@
 
     <!-- Firebase SDKs -->
     <script type="module">
+        // Import extracted modules
+        import { getConfig, firebaseConfig, CLOUDINARY_CLOUD_NAME, CLOUDINARY_UPLOAD_PRESET, CLOUDINARY_URL } from './js/config.js';
+        import { sanitizeInput } from './js/utils/sanitize.js';
+        import { copyToClipboard } from './js/utils/clipboard.js';
+        import { rateLimiter } from './js/utils/rate-limiter.js';
+        import { ensurePublicPdfUrl, getCurrentGradId } from './js/utils/url-helpers.js';
+        
         // Import Firebase modules
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { 
@@ -59,77 +57,8 @@
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- CONFIGURATION ---
-        // Environment-based configuration
-        const getConfig = () => {
-            const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
-            
-            if (isProduction) {
-                // In production, these values should be injected during build or fetched from a secure endpoint
-                // For now, using the same values but you can modify this to fetch from environment
-                return {
-                    firebase: {
-                        apiKey: "AIzaSyDH7bp9-HnNefk27NLaOq1gx5VF4Onenqg",
-                        authDomain: "graduation-creator.firebaseapp.com",
-                        projectId: "graduation-creator",
-                        storageBucket: "graduation-creator.firebasestorage.app",
-                        messagingSenderId: "215273409051",
-                        appId: "1:215273409051:web:73e80f9c6057fd7d6686be"
-                    },
-                    cloudinary: {
-                        cloudName: "dkm3avvjl",
-                        uploadPreset: "Graduation-Uploads"
-                    },
-                    isDevelopment: false
-                };
-            } else {
-                // Development configuration
-                return {
-                    firebase: {
-                        apiKey: "AIzaSyDH7bp9-HnNefk27NLaOq1gx5VF4Onenqg",
-                        authDomain: "graduation-creator.firebaseapp.com",
-                        projectId: "graduation-creator",
-                        storageBucket: "graduation-creator.firebasestorage.app",
-                        messagingSenderId: "215273409051",
-                        appId: "1:215273409051:web:73e80f9c6057fd7d6686be"
-                    },
-                    cloudinary: {
-                        cloudName: "dkm3avvjl", // Replace with your Cloudinary cloud name
-                        uploadPreset: "Graduation-Uploads" // Replace with your upload preset
-                    },
-                    isDevelopment: true
-                };
-            }
-        };
-
         const config = getConfig();
-        const firebaseConfig = config.firebase;
         
-        // --- CLOUDINARY CONFIGURATION ---
-        const CLOUDINARY_CLOUD_NAME = config.cloudinary.cloudName;
-        const CLOUDINARY_UPLOAD_PRESET = config.cloudinary.uploadPreset;
-        const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/upload`;
-        
-        // Function to ensure PDF URL is publicly accessible
-        const ensurePublicPdfUrl = (url) => {
-            if (!url || !url.includes('cloudinary.com')) {
-                return url; // Not a Cloudinary URL, return as-is
-            }
-            
-            // Check if URL already has fl_attachment or is already public
-            if (url.includes('/v1_1/') && !url.includes('/upload/')) {
-                return url; // Already processed URL
-            }
-            
-            // Convert to public URL format by adding fl_attachment for PDFs
-            // This allows public viewing even for files uploaded as private
-            if (url.includes('.pdf')) {
-                // Insert fl_attachment flag to make PDF publicly viewable
-                return url.replace('/upload/', '/upload/fl_attachment/');
-            }
-            
-            return url;
-        };
-
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -170,56 +99,9 @@
             }
         };
 
-        // Input sanitization function
-        const sanitizeInput = (input, type = 'text') => {
-            if (!input || typeof input !== 'string') return '';
-            
-            switch (type) {
-                case 'name':
-                    // Allow letters, spaces, hyphens, apostrophes, and periods
-                    return input.replace(/[^a-zA-Z\s\-'\.]/g, '').trim().substring(0, 100);
-                case 'text':
-                    // Remove HTML tags and limit length
-                    return input.replace(/<[^>]*>/g, '').trim().substring(0, 1000);
-                case 'email':
-                    // Basic email sanitization
-                    return input.toLowerCase().trim().substring(0, 254);
-                default:
-                    return input.replace(/<[^>]*>/g, '').trim();
-            }
-        };
+        // Input sanitization is now imported from js/utils/sanitize.js
 
-        // Copy to clipboard utility function - Global function
-        function copyToClipboard(text, buttonElement = null) {
-            const targetButton = buttonElement || event.target;
-            navigator.clipboard.writeText(text).then(() => {
-                // Show brief feedback
-                const originalText = targetButton.textContent;
-                targetButton.textContent = 'Copied!';
-                targetButton.style.backgroundColor = '#10b981';
-                targetButton.style.color = 'white';
-                setTimeout(() => {
-                    targetButton.textContent = originalText;
-                    targetButton.style.backgroundColor = '';
-                    targetButton.style.color = '';
-                }, 1000);
-            }).catch(() => {
-                // Fallback for older browsers
-                const textArea = document.createElement('textarea');
-                textArea.value = text;
-                document.body.appendChild(textArea);
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
-                
-                // Show feedback
-                const originalText = targetButton.textContent;
-                targetButton.textContent = 'Copied!';
-                setTimeout(() => {
-                    targetButton.textContent = originalText;
-                }, 1000);
-            });
-        }
+        // Copy to clipboard utility is now imported from js/utils/clipboard.js
 
         // Upload PDF for student function (for teachers) - Global function with modal
         function uploadPdfForStudent(studentId, studentName, gradId) {
@@ -473,37 +355,9 @@
             }
         };
 
-        // Helper function to get current graduation ID - Global function
-        function getCurrentGradId() {
-            const path = window.location.hash;
-            const match = path.match(/#\/graduation\/([^\/]+)/);
-            return match ? match[1] : null;
-        }
+        // URL helpers are now imported from js/utils/url-helpers.js
 
-        // Rate limiting helper (client-side basic implementation)
-        const rateLimiter = {
-            attempts: new Map(),
-            
-            isAllowed(key, maxAttempts = 5, windowMs = 60000) {
-                const now = Date.now();
-                const attempts = this.attempts.get(key) || [];
-                
-                // Remove old attempts outside the window
-                const validAttempts = attempts.filter(time => now - time < windowMs);
-                
-                if (validAttempts.length >= maxAttempts) {
-                    return false;
-                }
-                
-                validAttempts.push(now);
-                this.attempts.set(key, validAttempts);
-                return true;
-            },
-            
-            reset(key) {
-                this.attempts.delete(key);
-            }
-        };
+        // Rate limiting is now imported from js/utils/rate-limiter.js
         
         const uploadFile = async (file) => {
             // Comprehensive file validation
