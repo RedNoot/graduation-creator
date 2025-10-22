@@ -33,7 +33,7 @@
   node_bundler = "esbuild"
 
 # Scheduled function for auto-delete cleanup
-[[functions]]
+[[schedules]]
   path = "netlify/functions/scheduled-cleanup.js"
   schedule = "@daily"
 
