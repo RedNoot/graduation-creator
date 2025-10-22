@@ -1111,6 +1111,40 @@
                             </div>
                         </div>
                         
+                        <!-- Data Retention Policy -->
+                        <div class="border-t pt-6">
+                            <h4 class="text-lg font-medium text-gray-900 mb-4">Data Retention & Privacy 🗑️</h4>
+                            <div class="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+                                <div class="flex items-start">
+                                    <div class="flex items-center h-5">
+                                        <input 
+                                            id="autoDeleteEnabled" 
+                                            name="autoDeleteEnabled" 
+                                            type="checkbox" 
+                                            ${config.autoDeleteEnabled ? 'checked' : ''}
+                                            class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                                        >
+                                    </div>
+                                    <div class="ml-3">
+                                        <label for="autoDeleteEnabled" class="font-medium text-gray-900 text-sm">
+                                            Automatically delete this project after 12 months
+                                        </label>
+                                        <p class="text-sm text-gray-600 mt-1">
+                                            When enabled, this graduation project and all associated data (students, PDFs, images) will be permanently deleted 12 months after creation date.
+                                        </p>
+                                        <p class="text-xs text-yellow-700 mt-2">
+                                            ⚠️ <strong>Warning:</strong> This action cannot be undone. All data including student profiles, uploaded PDFs, and generated booklets will be permanently removed from our servers and cloud storage.
+                                        </p>
+                                        ${config.autoDeleteEnabled ? `
+                                            <p class="text-xs text-indigo-700 mt-2 font-medium">
+                                                📅 Scheduled deletion date: ${new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toLocaleDateString()}
+                                            </p>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <div class="flex justify-end">
                             <button type="submit" class="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Save Settings</button>
                         </div>
@@ -1488,6 +1522,9 @@
                 const downloadAvailableDate = document.getElementById('downloadAvailableDate').value;
                 const downloadMessage = document.getElementById('downloadMessage').value;
                 
+                // Data retention settings
+                const autoDeleteEnabled = document.getElementById('autoDeleteEnabled').checked;
+                
                 // Get current page order
                 const orderElements = document.querySelectorAll('#page-order > div');
                 const pageOrder = Array.from(orderElements).map(el => el.querySelector('span').textContent);
@@ -1530,6 +1567,9 @@
                     enableDownloadScheduling: enableDownloadScheduling,
                     downloadableAfterDate: enableDownloadScheduling && downloadAvailableDate ? new Date(downloadAvailableDate) : null,
                     downloadMessage: enableDownloadScheduling ? downloadMessage : null,
+                    
+                    // Data retention policy
+                    autoDeleteEnabled: autoDeleteEnabled,
                     
                     // Metadata
                     updatedAt: new Date()

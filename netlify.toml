@@ -32,6 +32,11 @@
 [functions]
   node_bundler = "esbuild"
 
+# Scheduled function for auto-delete cleanup
+[[functions]]
+  path = "netlify/functions/scheduled-cleanup.js"
+  schedule = "@daily"
+
 # Netlify plugins
 [[plugins]]
   package = "@netlify/plugin-functions-install-core"
@@ -80,6 +85,8 @@
 # Cloudinary Config:
 # CLOUDINARY_CLOUD_NAME
 # CLOUDINARY_UPLOAD_PRESET
+# CLOUDINARY_API_KEY (for scheduled cleanup function)
+# CLOUDINARY_API_SECRET (for scheduled cleanup function)
 #
 # Security Config:
 # SECRETS_SCAN_ENABLED = false

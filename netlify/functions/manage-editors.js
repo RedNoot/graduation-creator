@@ -8,9 +8,17 @@ const admin = require('firebase-admin');
 
 // Initialize Firebase Admin (reuse existing app if already initialized)
 if (!admin.apps.length) {
-    const serviceAccount = require('../../graduation-creator-firebase-adminsdk-fbsvc-229cf25366.json');
+    // Decode the Base64 private key
+    const privateKey = process.env.FIREBASE_PRIVATE_BASE_64_KEY 
+        ? Buffer.from(process.env.FIREBASE_PRIVATE_BASE_64_KEY, 'base64').toString('utf8')
+        : process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'); // Fallback for old format
+        
     admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
+        credential: admin.credential.cert({
+            projectId: process.env.FIREBASE_PROJECT_ID,
+            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+            privateKey: privateKey,
+        }),
     });
 }
 
