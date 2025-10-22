@@ -3,6 +3,8 @@
  * Manages adding, editing, and deleting content pages
  */
 
+import { CLOUDINARY_CLOUD_NAME, CLOUDINARY_UPLOAD_PRESET } from '../config.js';
+
 /**
  * Setup add content button handler
  * @param {HTMLElement} addBtn - Add content button
@@ -136,16 +138,18 @@ export function setupContentFormHandler(formElement, gradId, handlers) {
 async function uploadImageToCloudinary(file, folder) {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('upload_preset', 'graduation_creator');
+    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
     formData.append('folder', folder);
     
-    const response = await fetch('https://api.cloudinary.com/v1_1/dqhtyzvbj/image/upload', {
+    const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
         method: 'POST',
         body: formData
     });
     
     if (!response.ok) {
-        throw new Error('Failed to upload image to Cloudinary');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Cloudinary upload error:', errorData);
+        throw new Error(`Failed to upload image to Cloudinary: ${errorData.error?.message || response.statusText}`);
     }
     
     const data = await response.json();
@@ -217,7 +221,8 @@ export function editContentPage(docId, title, author, type, content, authorPhoto
 export async function deleteContentPage(docId, gradId, handlers) {
     const { showModal, db, doc, deleteDoc } = handlers;
     
-    showModal('Confirm', 'Are you sure you want to delete this content page?', true, async () => {
+    // Create confirmation buttons
+    const confirmDelete = async () => {
         try {
             const contentRef = doc(db, "graduations", gradId, "contentPages", docId);
             await deleteDoc(contentRef);
@@ -226,7 +231,21 @@ export async function deleteContentPage(docId, gradId, handlers) {
             console.error('Error deleting content:', error);
             showModal('Error', 'Failed to delete content page.');
         }
-    });
+    };
+    
+    // Show confirmation modal with custom buttons
+    showModal('Confirm', 'Are you sure you want to delete this content page?', true, [
+        {
+            text: 'Cancel',
+            onclick: () => {}, // Just close the modal
+            style: 'bg-gray-300 text-gray-700 hover:bg-gray-400'
+        },
+        {
+            text: 'Delete',
+            onclick: confirmDelete,
+            style: 'bg-red-600 text-white hover:bg-red-700'
+        }
+    ]);
 }
 
 /**
