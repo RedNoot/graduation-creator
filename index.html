@@ -377,6 +377,7 @@
         };
 
         const renderStudentsTab = async (gradId) => {
+            console.log('[Students Tab] renderStudentsTab called with gradId:', gradId);
             const contentContainer = document.getElementById('tab-content');
             contentContainer.innerHTML = `
                 <div class="bg-white p-6 rounded-lg shadow">
@@ -449,6 +450,12 @@
             `;
 
             const studentListContainer = document.getElementById('student-list-container');
+            console.log('[Students Tab] studentListContainer element:', studentListContainer);
+            
+            if (!studentListContainer) {
+                console.error('[Students Tab] ERROR: student-list-container element not found!');
+                return;
+            }
             
             // Create wrapper functions with access to modal functions and router
             window.deleteStudentWrapper = (studentId, studentName) => {
@@ -481,12 +488,14 @@
             
             // Use repository to get real-time updates
             StudentRepository.onUpdate(gradId, (students) => {
-                if (students.length === 0) {
-                    studentListContainer.innerHTML = `<p class="text-gray-500">No students added yet.</p>`;
-                    return;
-                }
-                let html = `<ul id="sortable-student-list" class="divide-y divide-gray-200">`;
-                students.forEach(student => {
+                console.log('[Students Tab] Update received, student count:', students.length);
+                try {
+                    if (students.length === 0) {
+                        studentListContainer.innerHTML = `<p class="text-gray-500">No students added yet.</p>`;
+                        return;
+                    }
+                    let html = `<ul id="sortable-student-list" class="divide-y divide-gray-200">`;
+                    students.forEach(student => {
                     const studentId = student.id;
                     let accessInfo = '';
                     
@@ -597,6 +606,10 @@
                         sortableList: !!sortableList,
                         windowSortable: !!window.Sortable
                     });
+                }
+                } catch (error) {
+                    console.error('[Students Tab] Error rendering student list:', error);
+                    studentListContainer.innerHTML = `<p class="text-red-500">Error loading students. Please refresh the page.</p>`;
                 }
             });
             
