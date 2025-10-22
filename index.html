@@ -38,6 +38,13 @@
         import { generateBooklet, viewStudentPdf, closeStudentPdfModal } from './js/services/pdf-service.js';
         import * as firestoreService from './js/services/firestore.js';
         
+        // Import components
+        import { showModal, closeModal, showErrorModal, showSuccessModal, showConfirmModal, showLoadingModal } from './js/components/modal.js';
+        import { renderHeader, renderLoading, renderPageLayout } from './js/components/layout.js';
+        import { renderLoginPage as renderLoginPageComponent, renderNewGraduationForm as renderNewGraduationFormComponent, renderInputField, renderTextareaField, renderCheckboxField } from './js/components/forms.js';
+        import { renderTabNav, renderTabContent, setupTabListeners, renderButtonGroup } from './js/components/tabs.js';
+        import { renderStudentCard, renderStudentGrid, renderContentCard, renderContentList, renderList } from './js/components/cards.js';
+        
         // Import Firebase auth state listener
         import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         
@@ -116,79 +123,18 @@
 
         // --- UI RENDERING FUNCTIONS ---
         
-        const renderHeader = (pageTitle = "Dashboard") => {
-            return `
-                <header class="bg-white shadow-sm">
-                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-                        <h1 class="text-2xl font-bold text-gray-900">${pageTitle}</h1>
-                        ${currentUser ? `<button id="logout-btn" class="text-sm font-medium text-indigo-600 hover:text-indigo-500">Logout</button>` : ''}
-                    </div>
-                </header>
-            `;
-        };
-        
-        const renderLoading = () => {
-             appContainer.innerHTML = `
-                <div class="min-h-screen flex items-center justify-center">
-                    <div class="spinner w-12 h-12 border-4 border-indigo-600 rounded-full"></div>
-                </div>
-            `;
-        };
+        // Layout rendering functions are now imported from js/components/layout.js
 
-        const renderLoginPage = () => {
-            appContainer.innerHTML = `
-                <div class="min-h-screen bg-gray-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-                    <div class="sm:mx-auto sm:w-full sm:max-w-md">
-                        <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                            Graduation Creator
-                        </h2>
-                        <p id="auth-subtitle" class="mt-2 text-center text-sm text-gray-600">
-                            Sign in to continue
-                        </p>
-                    </div>
-
-                    <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-                        <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-                            <form id="auth-form" class="space-y-6">
-                                <div>
-                                    <label for="email" class="block text-sm font-medium text-gray-700">Email address</label>
-                                    <div class="mt-1">
-                                        <input id="email" name="email" type="email" autocomplete="email" required class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                                    </div>
-                                </div>
-                                <div>
-                                    <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-                                    <div class="mt-1">
-                                        <input id="password" name="password" type="password" autocomplete="current-password" required class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                                    </div>
-                                    <div id="password-hint" class="mt-1 text-xs text-gray-500 hidden">Password must be at least 6 characters long</div>
-                                </div>
-                                <div id="auth-error" class="text-red-500 text-sm hidden"></div>
-                                <div class="flex items-center justify-between">
-                                    <button id="auth-submit-btn" type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                                        Sign in
-                                    </button>
-                                </div>
-                                 <p class="mt-2 text-center text-sm text-gray-600">
-                                    <span id="toggle-text">Don't have an account?</span> <button type="button" id="toggle-auth-btn" class="font-medium text-indigo-600 hover:text-indigo-500">Create an account</button>
-                                </p>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            `;
-            // Event Listeners
-            console.log('Setting up event listeners...'); // Debug log
+        const renderLoginPageWithListeners = () => {
+            appContainer.innerHTML = renderLoginPageComponent();
             
+            // Event Listeners
             const authSubmitBtn = document.getElementById('auth-submit-btn');
             const toggleAuthBtn = document.getElementById('toggle-auth-btn');
             const authSubtitle = document.getElementById('auth-subtitle');
             const toggleText = document.getElementById('toggle-text');
             const passwordHint = document.getElementById('password-hint');
             let isSignUpMode = false;
-
-            console.log('Auth submit button found:', !!authSubmitBtn); // Debug log
-            console.log('Toggle auth button found:', !!toggleAuthBtn); // Debug log
             
             // Toggle between sign in and sign up modes
             toggleAuthBtn.addEventListener('click', (e) => {
@@ -213,12 +159,10 @@
                 document.getElementById('auth-error').classList.add('hidden');
             });
 
-            document.getElementById('auth-submit-btn').addEventListener('click', async (e) => {
-                console.log('Auth submit button clicked! Mode:', isSignUpMode ? 'Sign Up' : 'Sign In'); // Debug log
+            authSubmitBtn.addEventListener('click', async (e) => {
                 e.preventDefault();
                 const email = document.getElementById('email').value.trim();
                 const password = document.getElementById('password').value;
-                console.log('Email:', email, 'Password length:', password.length); // Debug log
                 
                 // Basic validation
                 if (!email || !password) {
@@ -1709,71 +1653,14 @@
             });
         };
         
-        const showModal = (title, message, showClose = true, buttons = null) => {
-            const modalId = `modal-${Date.now()}`;
-            const modal = document.createElement('div');
-            modal.id = modalId;
-            modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center';
-            
-            let buttonsHtml = '';
-            if (buttons && Array.isArray(buttons)) {
-                // Custom buttons provided
-                buttonsHtml = buttons.map((btn, idx) => 
-                    `<button id="modal-btn-${idx}" class="px-4 py-2 ${btn.style} text-base font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 flex-1 ${idx > 0 ? 'ml-2' : ''}">${btn.text}</button>`
-                ).join('');
-            } else if (showClose) {
-                buttonsHtml = `<button id="close-modal-btn" class="px-4 py-2 bg-indigo-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-300">Close</button>`;
-            }
-            
-            modal.innerHTML = `
-                <div class="relative mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-                    <div class="mt-3 text-center">
-                        <h3 class="text-lg leading-6 font-medium text-gray-900">${title}</h3>
-                        <div class="mt-2 px-7 py-3">
-                            <p class="text-sm text-gray-500">${message}</p>
-                        </div>
-                        <div class="items-center px-4 py-3 flex gap-2">
-                            ${buttonsHtml}
-                        </div>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(modal);
-
-            if (buttons && Array.isArray(buttons)) {
-                // Attach click handlers to custom buttons
-                buttons.forEach((btn, idx) => {
-                    const btnElement = document.getElementById(`modal-btn-${idx}`);
-                    if (btnElement) {
-                        btnElement.addEventListener('click', () => {
-                            modal.remove();
-                            if (btn.onclick) btn.onclick();
-                        });
-                    }
-                });
-            } else if (showClose) {
-                document.getElementById('close-modal-btn').addEventListener('click', () => {
-                    modal.remove();
-                });
-            } else {
-                 // Auto-close informational modals
-                 setTimeout(() => {
-                     if(document.getElementById(modalId)) modal.remove();
-                 }, 3000);
-            }
-        };
-
-        const closeModal = () => {
-            const modals = document.querySelectorAll('[id^="modal-"]');
-            modals.forEach(m => m.remove());
-        };
+        // Modal functions are now imported from js/components/modal.js
 
         // --- ROUTING ---
         const router = async () => {
             const hash = window.location.hash;
             
             if (!currentUser) {
-                renderLoginPage();
+                renderLoginPageWithListeners();
                 return;
             }
 
@@ -1865,7 +1752,7 @@
                      renderStudentUploadPortal(gradId, students);
                  }
              } else if (!currentUser) {
-                 renderLoginPage();
+                 renderLoginPageWithListeners();
              } else {
                  router(); // User is logged in, but not on a public page, go to their dashboard
              }
@@ -1885,7 +1772,7 @@
                     }
                     router();
                 } else {
-                    renderLoginPage();
+                    renderLoginPageWithListeners();
                 }
             }
         });
