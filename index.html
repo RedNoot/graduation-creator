@@ -331,7 +331,7 @@
         };
 
         const renderEditor = (gradData, gradId) => {
-            const header = renderHeader(gradData.schoolName, currentUser);
+            const header = renderHeader(gradData.schoolName, currentUser, true); // Show "Change Project" button
             const publicUrl = `${window.location.origin}${window.location.pathname}#/view/${gradId}`;
             
             const mainContent = `
@@ -358,7 +358,15 @@
             // Initial tab load
             renderStudentsTab(gradId);
 
+            // Event listeners
             document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
+            
+            const changeProjectBtn = document.getElementById('change-project-btn');
+            if (changeProjectBtn) {
+                changeProjectBtn.addEventListener('click', () => {
+                    window.location.hash = '#/dashboard';
+                });
+            }
 
             // Tab switching logic
             const tabs = document.querySelectorAll('.tab-link');
