@@ -154,6 +154,7 @@
         };
         
         const renderDashboard = async () => {
+            console.log('renderDashboard called');
             const header = renderHeader("Your Graduations");
             let mainContent = `
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -167,6 +168,7 @@
                 </div>
             `;
             appContainer.innerHTML = header + `<main>${mainContent}</main>`;
+            console.log('Dashboard HTML rendered');
 
             document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
             document.getElementById('create-new-btn').addEventListener('click', () => {
@@ -174,7 +176,9 @@
             });
 
             // Fetch and display graduations using repository
+            console.log('Fetching graduations for user:', currentUser.uid);
             const graduations = await GraduationRepository.getByOwner(currentUser.uid);
+            console.log('Graduations fetched:', graduations.length);
             const listContainer = document.getElementById('graduations-list');
             if (graduations.length === 0) {
                 listContainer.innerHTML = `<div class="p-8 text-center text-gray-500">You haven't created any graduation websites yet.</div>`;
@@ -197,6 +201,7 @@
                 html += '</ul>';
                 listContainer.innerHTML = html;
             }
+            console.log('Dashboard fully rendered');
         };
 
         const renderNewGraduationForm = () => {
@@ -1435,7 +1440,10 @@
         const currentGraduationListener = { current: null };
         
         const router = createRouter({
-            renderLoading: () => renderLoading(appContainer),
+            renderLoading: () => {
+                console.log('Rendering loading...');
+                renderLoading(appContainer);
+            },
             renderLoginPage: renderLoginPageWithListeners,
             renderDashboard,
             renderNewGraduationForm,
@@ -1457,27 +1465,36 @@
 
         // --- INITIALIZATION ---
         onAuthStateChanged(auth, user => {
+            console.log('Auth state changed, user:', user ? user.email : 'null');
             currentUser = user;
 
             if (isPublicRoute()) {
+                console.log('Public route detected');
                 publicRouter();
             } else {
                 if (user) {
+                    console.log('User authenticated, hash:', window.location.hash);
                     if(!window.location.hash || window.location.hash === '#/') {
+                        console.log('No hash, navigating to dashboard');
                         goToDashboard();
                     } else {
+                        console.log('Hash present, calling router');
                         router();
                     }
                 } else {
+                    console.log('User not authenticated, showing login');
                     renderLoginPageWithListeners();
                 }
             }
         });
 
         window.addEventListener('hashchange', () => {
+            console.log('Hash changed to:', window.location.hash);
             if (isPublicRoute()) {
+                console.log('Public route detected after hash change');
                 publicRouter();
             } else {
+                console.log('Private route, calling router');
                 router();
             }
         });
