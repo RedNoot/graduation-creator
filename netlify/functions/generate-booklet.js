@@ -1,4 +1,4 @@
-const { PDFDocument, rgb } = require('pdf-lib');
+const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
 const fetch = require('node-fetch');
 
 // Initialize Firebase Admin (server-side)
@@ -21,6 +21,115 @@ if (!admin.apps.length) {
 }
 
 const db = admin.firestore();
+
+/**
+ * Helper function to optimize Cloudinary PDF URLs for size reduction
+ * Adds q_auto:eco transformation parameter
+ * @param {string} url - Original Cloudinary URL
+ * @returns {string} - Optimized URL with compression parameters
+ */
+const optimizeCloudinaryPdfUrl = (url) => {
+    // Only optimize Cloudinary URLs
+    if (!url.includes('res.cloudinary.com')) {
+        return url;
+    }
+    
+    // Insert q_auto:eco transformation before the version number
+    // Example: .../upload/v123/file.pdf -> .../upload/q_auto:eco/v123/file.pdf
+    const uploadIndex = url.indexOf('/upload/');
+    if (uploadIndex === -1) {
+        return url;
+    }
+    
+    const beforeUpload = url.substring(0, uploadIndex + 8); // include '/upload/'
+    const afterUpload = url.substring(uploadIndex + 8);
+    
+    // Check if transformation already exists
+    if (afterUpload.startsWith('q_auto')) {
+        return url;
+    }
+    
+    return `${beforeUpload}q_auto:eco/${afterUpload}`;
+};
+
+/**
+ * Helper function to create a Table of Contents page
+ * @param {PDFDocument} pdfDoc - The PDF document
+ * @param {Array} tocEntries - Array of {title, page} objects
+ * @param {Object} colors - Color scheme {primaryColor, secondaryColor, textColor}
+ */
+const createTocPage = async (pdfDoc, tocEntries, colors) => {
+    const tocPage = pdfDoc.addPage([612, 792]); // Letter size
+    const { width, height } = tocPage.getSize();
+    
+    // Embed standard fonts
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    
+    // Draw title
+    tocPage.drawText('Table of Contents', {
+        x: 50,
+        y: height - 80,
+        size: 26,
+        font: boldFont,
+        color: rgb(colors.primaryColor.r, colors.primaryColor.g, colors.primaryColor.b),
+    });
+    
+    // Draw a decorative line under the title
+    tocPage.drawLine({
+        start: { x: 50, y: height - 95 },
+        end: { x: width - 50, y: height - 95 },
+        thickness: 2,
+        color: rgb(colors.primaryColor.r, colors.primaryColor.g, colors.primaryColor.b),
+    });
+    
+    // Draw ToC entries
+    let yPosition = height - 130;
+    const lineHeight = 30;
+    
+    for (const entry of tocEntries) {
+        if (yPosition < 60) break; // Avoid writing off page
+        
+        // Draw section title
+        const titleWidth = font.widthOfTextAtSize(entry.title, 14);
+        tocPage.drawText(entry.title, {
+            x: 60,
+            y: yPosition,
+            size: 14,
+            font: font,
+            color: rgb(colors.textColor.r, colors.textColor.g, colors.textColor.b),
+        });
+        
+        // Draw dotted line (leader dots)
+        const dotsStartX = 60 + titleWidth + 10;
+        const dotsEndX = width - 100;
+        const dotSpacing = 8;
+        
+        for (let dotX = dotsStartX; dotX < dotsEndX; dotX += dotSpacing) {
+            tocPage.drawText('.', {
+                x: dotX,
+                y: yPosition,
+                size: 14,
+                font: font,
+                color: rgb(colors.secondaryColor.r, colors.secondaryColor.g, colors.secondaryColor.b),
+            });
+        }
+        
+        // Draw page number
+        const pageNumText = entry.page.toString();
+        tocPage.drawText(pageNumText, {
+            x: width - 80,
+            y: yPosition,
+            size: 14,
+            font: boldFont,
+            color: rgb(colors.textColor.r, colors.textColor.g, colors.textColor.b),
+        });
+        
+        yPosition -= lineHeight;
+    }
+    
+    return tocPage;
+};
 
 exports.handler = async (event, context) => {
     // Enhanced security headers
@@ -377,11 +486,19 @@ exports.handler = async (event, context) => {
         // Process sections based on page order from request
         let processedCount = 0;
         let skippedStudents = []; // Track students whose PDFs could not be processed
+        const tocEntries = []; // Track sections for Table of Contents
+        let currentPageNumber = mergedPdf.getPageCount() + 1; // Start after cover (ToC will be inserted later at page 2)
         
         for (const section of sectionsOrder) {
             if (section === 'messages' && config.showMessages !== false) {
                 const messagePages = contentPages.filter(p => p.type === 'thanks' || p.type === 'memory');
                 if (messagePages.length > 0) {
+                    // Record ToC entry
+                    tocEntries.push({
+                        title: 'Messages & Memories',
+                        page: currentPageNumber
+                    });
+                    
                     // Add section title page with primary color
                     const sectionPage = mergedPdf.addPage([612, 792]);
                     sectionPage.drawText('Messages & Memories', {
@@ -390,10 +507,12 @@ exports.handler = async (event, context) => {
                         size: 26,
                         color: rgb(primaryColor.r, primaryColor.g, primaryColor.b),
                     });
+                    currentPageNumber++; // Section title page
                     
                     // Add each message page
                     for (const page of messagePages) {
                         addContentPage(page.title, page.content, page.author);
+                        currentPageNumber++; // Content page
                     }
                     
                     console.log(`Added ${messagePages.length} message pages to booklet`);
@@ -401,6 +520,12 @@ exports.handler = async (event, context) => {
             } else if (section === 'speeches' && config.showSpeeches !== false) {
                 const speechPages = contentPages.filter(p => p.type === 'speech' || p.type === 'text');
                 if (speechPages.length > 0) {
+                    // Record ToC entry
+                    tocEntries.push({
+                        title: 'Speeches & Presentations',
+                        page: currentPageNumber
+                    });
+                    
                     // Add section title page with primary color
                     const sectionPage = mergedPdf.addPage([612, 792]);
                     sectionPage.drawText('Speeches & Presentations', {
@@ -409,15 +534,23 @@ exports.handler = async (event, context) => {
                         size: 26,
                         color: rgb(primaryColor.r, primaryColor.g, primaryColor.b),
                     });
+                    currentPageNumber++; // Section title page
                     
                     // Add each speech page
                     for (const page of speechPages) {
                         addContentPage(page.title, page.content, page.author);
+                        currentPageNumber++; // Content page
                     }
                     
                     console.log(`Added ${speechPages.length} speech pages to booklet`);
                 }
             } else if (section === 'students') {
+                // Record ToC entry for students section
+                tocEntries.push({
+                    title: 'Student Profiles',
+                    page: currentPageNumber
+                });
+                
                 // Students are already in custom order from Firestore (order field)
                 
                 // Add student PDFs section
@@ -430,22 +563,52 @@ exports.handler = async (event, context) => {
             try {
                 // Use the PDF URL directly - files are uploaded as public type for easier access
                 const pdfUrl = student.pdfUrl;
+                const optimizedUrl = optimizeCloudinaryPdfUrl(pdfUrl);
                 
                 console.log(`[PDF Processing] Student: ${student.name}`);
-                console.log(`[PDF Processing] PDF URL: ${pdfUrl}`);
+                console.log(`[PDF Processing] Original PDF URL: ${pdfUrl}`);
+                console.log(`[PDF Processing] Optimized PDF URL: ${optimizedUrl}`);
 
+                // Try optimized URL first, fallback to original if it fails
+                let response = null;
+                let usedOptimized = false;
+                
                 // Download the PDF with timeout
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
                 
-                console.log(`[PDF Processing] Fetching PDF from Cloudinary`);
-                
-                const response = await fetch(pdfUrl, {
-                    signal: controller.signal,
-                    headers: {
-                        'User-Agent': 'Graduation-Creator-Bot/1.0'
+                try {
+                    console.log(`[PDF Processing] Attempting optimized fetch`);
+                    response = await fetch(optimizedUrl, {
+                        signal: controller.signal,
+                        headers: {
+                            'User-Agent': 'Graduation-Creator-Bot/1.0'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        usedOptimized = true;
+                        console.log(`[PDF Processing] Successfully fetched optimized PDF`);
+                    } else {
+                        console.log(`[PDF Processing] Optimized fetch failed (${response.status}), falling back to original`);
+                        response = null;
                     }
-                });
+                } catch (optimizedError) {
+                    console.log(`[PDF Processing] Optimized fetch error: ${optimizedError.message}, falling back to original`);
+                    response = null;
+                }
+                
+                // Fallback to original URL if optimized failed
+                if (!response) {
+                    console.log(`[PDF Processing] Fetching original PDF from Cloudinary`);
+                    response = await fetch(pdfUrl, {
+                        signal: controller.signal,
+                        headers: {
+                            'User-Agent': 'Graduation-Creator-Bot/1.0'
+                        }
+                    });
+                }
+                
                 clearTimeout(timeoutId);
                 
                 console.log(`[PDF Processing] Response status for ${student.name}: ${response.status} ${response.statusText}`);
@@ -495,6 +658,7 @@ exports.handler = async (event, context) => {
                 copiedPages.forEach((page) => mergedPdf.addPage(page));
                 
                 processedCount++;
+                currentPageNumber += pageCount; // Track page numbers
                 console.log(`Successfully processed PDF for ${student.name} (${pageCount} pages)`);
 
                 } catch (error) {
@@ -532,6 +696,26 @@ exports.handler = async (event, context) => {
         }
 
         console.log(`Successfully processed ${processedCount}/${studentsWithPdfs.length} student PDFs`);
+
+        // Generate and insert Table of Contents (if we have sections to list)
+        if (tocEntries.length > 0) {
+            console.log(`Generating Table of Contents with ${tocEntries.length} entries`);
+            
+            // Create the ToC page with proper colors
+            await createTocPage(mergedPdf, tocEntries, {
+                primaryColor,
+                secondaryColor,
+                textColor
+            });
+            
+            // Move the ToC page to position 1 (right after cover, which is at position 0)
+            const tocPageIndex = mergedPdf.getPageCount() - 1; // ToC was just added at the end
+            const tocPage = mergedPdf.getPages()[tocPageIndex];
+            mergedPdf.removePage(tocPageIndex);
+            mergedPdf.insertPage(1, tocPage);
+            
+            console.log(`Table of Contents inserted at page 2`);
+        }
 
         // Generate the final PDF
         const pdfBytes = await mergedPdf.save();
