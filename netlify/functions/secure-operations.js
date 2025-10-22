@@ -42,7 +42,8 @@ const validateInput = (data) => {
         if (data.studentName.length < 1 || data.studentName.length > 100) {
             errors.push('Student name must be between 1 and 100 characters');
         }
-        if (!/^[a-zA-Z\s\-'\.]+$/.test(data.studentName)) {
+        // Allow letters, numbers, spaces, hyphens, apostrophes, and periods
+        if (!/^[a-zA-Z0-9\s\-'\.]+$/.test(data.studentName)) {
             errors.push('Student name contains invalid characters');
         }
     }

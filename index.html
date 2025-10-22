@@ -739,7 +739,22 @@
                             
                             <div>
                                 <label for="content-body" class="block text-sm font-medium text-gray-700">Content</label>
-                                <textarea id="content-body" rows="8" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Enter your content here..."></textarea>
+                                
+                                <!-- Markdown Toolbar -->
+                                <div class="mt-1 mb-2 flex gap-2 border border-gray-200 bg-gray-50 p-2 rounded-t-md">
+                                    <button type="button" id="md-bold-btn" class="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-100 font-bold text-sm" title="Bold">
+                                        B
+                                    </button>
+                                    <button type="button" id="md-italic-btn" class="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-100 italic text-sm" title="Italic">
+                                        I
+                                    </button>
+                                    <button type="button" id="md-list-btn" class="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-100 text-sm" title="Bullet List">
+                                        • List
+                                    </button>
+                                    <span class="text-xs text-gray-500 self-center ml-2">Select text and click to format</span>
+                                </div>
+                                
+                                <textarea id="content-body" rows="8" required class="block w-full px-3 py-2 border border-gray-300 rounded-b-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Enter your content here..."></textarea>
                                 <p class="mt-1 text-sm text-gray-500">You can use simple formatting: **bold**, *italic*, and line breaks</p>
                             </div>
                             
@@ -860,6 +875,104 @@
                 setupContentFormHandler(addContentForm, gradId, {
                     sanitizeInput,
                     showModal
+                });
+            }
+
+            // Setup Markdown toolbar buttons
+            const contentBody = document.getElementById('content-body');
+            const boldBtn = document.getElementById('md-bold-btn');
+            const italicBtn = document.getElementById('md-italic-btn');
+            const listBtn = document.getElementById('md-list-btn');
+
+            const applyMarkdown = (type) => {
+                if (!contentBody) return;
+
+                const start = contentBody.selectionStart;
+                const end = contentBody.selectionEnd;
+                const selectedText = contentBody.value.substring(start, end);
+                const beforeText = contentBody.value.substring(0, start);
+                const afterText = contentBody.value.substring(end);
+
+                let newText = '';
+                let newCursorPos = end;
+
+                switch (type) {
+                    case 'bold':
+                        if (selectedText) {
+                            newText = `${beforeText}**${selectedText}**${afterText}`;
+                            newCursorPos = end + 4; // Move cursor after **text**
+                        } else {
+                            newText = `${beforeText}****${afterText}`;
+                            newCursorPos = start + 2; // Place cursor between ****
+                        }
+                        break;
+
+                    case 'italic':
+                        if (selectedText) {
+                            newText = `${beforeText}*${selectedText}*${afterText}`;
+                            newCursorPos = end + 2; // Move cursor after *text*
+                        } else {
+                            newText = `${beforeText}**${afterText}`;
+                            newCursorPos = start + 1; // Place cursor between **
+                        }
+                        break;
+
+                    case 'list':
+                        // Find the start of the current line
+                        let lineStart = start;
+                        while (lineStart > 0 && contentBody.value[lineStart - 1] !== '\n') {
+                            lineStart--;
+                        }
+
+                        // Find the end of the selection or current line
+                        let lineEnd = end;
+                        while (lineEnd < contentBody.value.length && contentBody.value[lineEnd] !== '\n') {
+                            lineEnd++;
+                        }
+
+                        const linesText = contentBody.value.substring(lineStart, lineEnd);
+                        const lines = linesText.split('\n');
+                        
+                        // Add bullet to each line
+                        const bulletedLines = lines.map(line => {
+                            const trimmed = line.trim();
+                            if (trimmed.startsWith('- ')) {
+                                return line; // Already has bullet
+                            } else if (trimmed) {
+                                return '- ' + trimmed;
+                            } else {
+                                return line; // Keep empty lines
+                            }
+                        }).join('\n');
+
+                        newText = contentBody.value.substring(0, lineStart) + bulletedLines + contentBody.value.substring(lineEnd);
+                        newCursorPos = lineStart + bulletedLines.length;
+                        break;
+                }
+
+                contentBody.value = newText;
+                contentBody.setSelectionRange(newCursorPos, newCursorPos);
+                contentBody.focus();
+            };
+
+            if (boldBtn) {
+                boldBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    applyMarkdown('bold');
+                });
+            }
+
+            if (italicBtn) {
+                italicBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    applyMarkdown('italic');
+                });
+            }
+
+            if (listBtn) {
+                listBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    applyMarkdown('list');
                 });
             }
 
