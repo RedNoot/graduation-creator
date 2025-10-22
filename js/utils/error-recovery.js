@@ -3,7 +3,7 @@
  * Retry logic, fallback strategies, and resilience patterns
  */
 
-import { logger } from '../services/logger.js';
+import { logger } from './logger.js';
 
 /**
  * Retry configuration
