@@ -1465,8 +1465,9 @@
                 if (user) {
                     if(!window.location.hash || window.location.hash === '#/') {
                         goToDashboard();
+                    } else {
+                        router();
                     }
-                    router();
                 } else {
                     renderLoginPageWithListeners();
                 }
