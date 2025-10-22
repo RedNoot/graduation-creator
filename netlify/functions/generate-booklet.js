@@ -376,6 +376,7 @@ exports.handler = async (event, context) => {
         
         // Process sections based on page order from request
         let processedCount = 0;
+        let skippedStudents = []; // Track students whose PDFs could not be processed
         
         for (const section of sectionsOrder) {
             if (section === 'messages' && config.showMessages !== false) {
@@ -460,6 +461,7 @@ exports.handler = async (event, context) => {
                         status: response.status
                     });
                     console.error(`[PDF Processing] Error response body: ${errorText.substring(0, 500)}`);
+                    skippedStudents.push(student.name);
                     continue;
                 }
 
@@ -467,6 +469,7 @@ exports.handler = async (event, context) => {
                 const contentLength = response.headers.get('content-length');
                 if (contentLength && parseInt(contentLength) > 50 * 1024 * 1024) {
                     console.error(`PDF too large for ${student.name}: ${contentLength} bytes`);
+                    skippedStudents.push(student.name);
                     continue;
                 }
 
@@ -475,6 +478,7 @@ exports.handler = async (event, context) => {
                 // Validate PDF file
                 if (pdfBuffer.byteLength === 0) {
                     console.error(`Empty PDF file for ${student.name}`);
+                    skippedStudents.push(student.name);
                     continue;
                 }
 
@@ -483,6 +487,7 @@ exports.handler = async (event, context) => {
                 
                 if (pageCount === 0) {
                     console.error(`No pages in PDF for ${student.name}`);
+                    skippedStudents.push(student.name);
                     continue;
                 }
 
@@ -496,11 +501,15 @@ exports.handler = async (event, context) => {
                 } catch (error) {
                     console.error(`Error processing PDF for ${student.name}:`, error.message);
                     console.error(`Stack trace:`, error.stack);
+                    skippedStudents.push(student.name);
                     // Continue with other students even if one fails
                 }
             }
             
             console.log(`Added ${processedCount} student PDFs to booklet`);
+            if (skippedStudents.length > 0) {
+                console.log(`Skipped ${skippedStudents.length} students due to errors: ${skippedStudents.join(', ')}`);
+            }
             }
         }
 
@@ -615,6 +624,7 @@ exports.handler = async (event, context) => {
                 pageCount: mergedPdf.getPageCount(),
                 studentCount: studentsWithPdfs.length,
                 processedStudents: processedCount,
+                skippedStudents: skippedStudents, // Always include, even if empty
                 sizeMB: pdfSizeMB,
                 message: `Successfully generated booklet with ${processedCount}/${studentsWithPdfs.length} student profiles`
             }),

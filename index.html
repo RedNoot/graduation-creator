@@ -114,11 +114,19 @@
                         if (freshGradData) {
                             console.log('Fresh URL from Firestore after generation:', freshGradData.generatedBookletUrl);
                             
+                            // Construct success message
+                            let message = `PDF booklet generated successfully! Contains ${result.pageCount} pages from ${result.processedStudents || result.studentCount} students.`;
+                            
+                            // Check if any students were skipped
+                            if (result.skippedStudents && result.skippedStudents.length > 0) {
+                                const skippedNames = result.skippedStudents.join(', ');
+                                message += `\n\n⚠️ Note: The PDFs for the following students could not be included due to errors: ${skippedNames}.`;
+                            }
+                            
+                            message += ' You can download it from the Booklet tab.';
+                            
                             // Update the local state with the new booklet URL
-                            showModal(
-                                'Success!', 
-                                `PDF booklet generated successfully! Contains ${result.pageCount} pages from ${result.studentCount} students. You can download it from the Booklet tab.`
-                            );
+                            showModal('Success!', message);
                             
                             // Reload the booklet tab to show the new download link
                             if (document.querySelector('[data-tab="booklet"]')) {

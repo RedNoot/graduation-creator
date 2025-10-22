@@ -83,15 +83,19 @@ export const generateBooklet = async (graduationId, onSuccess, onError) => {
             logger.pdfAction('success', graduationId, {
                 pageCount: result.pageCount,
                 studentCount: result.studentCount,
+                processedStudents: result.processedStudents,
+                skippedStudents: result.skippedStudents?.length || 0,
                 bookletUrl: result.bookletUrl?.substring(0, 50)
             });
             
-            // Call success callback with result data
+            // Call success callback with result data (including skippedStudents)
             if (onSuccess) {
                 onSuccess({
                     bookletUrl: result.bookletUrl,
                     pageCount: result.pageCount,
-                    studentCount: result.studentCount
+                    studentCount: result.studentCount,
+                    processedStudents: result.processedStudents,
+                    skippedStudents: result.skippedStudents || [] // Always pass array
                 });
             }
         } else {
