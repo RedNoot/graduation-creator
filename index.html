@@ -1289,6 +1289,33 @@
                             </div>
                         </div>
                         
+                        <!-- Delete Project Section -->
+                        <div class="border-t pt-6">
+                            <h4 class="text-lg font-medium text-red-600 mb-4">⚠️ Danger Zone</h4>
+                            <div class="bg-red-50 border border-red-200 rounded-md p-6">
+                                <div class="mb-4">
+                                    <h5 class="font-medium text-gray-900 text-base mb-2">Delete This Project Permanently</h5>
+                                    <p class="text-sm text-gray-600">
+                                        Once you delete a project, there is no going back. This will permanently delete:
+                                    </p>
+                                    <ul class="list-disc list-inside text-sm text-gray-600 mt-2 ml-4">
+                                        <li>All student profiles and data</li>
+                                        <li>All uploaded PDFs and images</li>
+                                        <li>Content pages (speeches, messages)</li>
+                                        <li>Generated booklets</li>
+                                        <li>All project settings and configurations</li>
+                                    </ul>
+                                </div>
+                                <button 
+                                    type="button" 
+                                    id="delete-project-btn" 
+                                    class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 font-medium"
+                                >
+                                    Delete This Project Forever
+                                </button>
+                            </div>
+                        </div>
+                        
                         <div class="flex justify-end">
                             <button type="submit" class="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Save Settings</button>
                         </div>
@@ -1724,6 +1751,111 @@
                 // Trigger a re-render of the editor to show the new logo
                 router(); 
              });
+             
+             // Delete project handler
+             const deleteProjectBtn = document.getElementById('delete-project-btn');
+             if (deleteProjectBtn) {
+                 deleteProjectBtn.addEventListener('click', async () => {
+                     // First confirmation
+                     const confirmed = await new Promise((resolve) => {
+                         showConfirmModal(
+                             '⚠️ Delete This Project?',
+                             `This will permanently delete ALL data for this graduation project. This action CANNOT be undone.
+                             
+Are you absolutely sure you want to continue?`,
+                             () => resolve(true),
+                             () => resolve(false)
+                         );
+                     });
+                     
+                     if (!confirmed) return;
+                     
+                     // Require password confirmation
+                     const passwordInput = await new Promise((resolve) => {
+                         const modalContent = `
+                             <div class="space-y-4">
+                                 <p class="text-sm text-gray-600">To confirm deletion, please enter your account password:</p>
+                                 <input 
+                                     type="password" 
+                                     id="delete-password-input" 
+                                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                                     placeholder="Enter your password"
+                                 >
+                                 <p class="text-xs text-red-600">⚠️ This will permanently delete all students, PDFs, content pages, and settings.</p>
+                             </div>
+                         `;
+                         
+                         showModal('Confirm Password', modalContent, true);
+                         
+                         // Add buttons to modal
+                         const modalElement = document.querySelector('[role="dialog"]');
+                         const existingButtons = modalElement.querySelector('.flex.justify-end');
+                         if (existingButtons) {
+                             existingButtons.innerHTML = `
+                                 <button id="cancel-delete-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 mr-2">Cancel</button>
+                                 <button id="confirm-delete-btn" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">Delete Forever</button>
+                             `;
+                             
+                             document.getElementById('cancel-delete-btn').addEventListener('click', () => {
+                                 closeModal();
+                                 resolve(null);
+                             });
+                             
+                             document.getElementById('confirm-delete-btn').addEventListener('click', () => {
+                                 const password = document.getElementById('delete-password-input').value;
+                                 closeModal();
+                                 resolve(password);
+                             });
+                             
+                             // Allow Enter key to submit
+                             document.getElementById('delete-password-input').addEventListener('keypress', (e) => {
+                                 if (e.key === 'Enter') {
+                                     const password = document.getElementById('delete-password-input').value;
+                                     closeModal();
+                                     resolve(password);
+                                 }
+                             });
+                         }
+                     });
+                     
+                     if (!passwordInput) return; // User cancelled
+                     
+                     try {
+                         const closeLoading = showLoadingModal('Verifying...', 'Checking your password...');
+                         
+                         // Re-authenticate user with password
+                         const { EmailAuthProvider, reauthenticateWithCredential } = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js');
+                         const credential = EmailAuthProvider.credential(currentUser.email, passwordInput);
+                         
+                         try {
+                             await reauthenticateWithCredential(auth.currentUser, credential);
+                         } catch (authError) {
+                             closeLoading();
+                             showErrorModal('Incorrect Password', 'The password you entered is incorrect. Please try again.');
+                             return;
+                         }
+                         
+                         closeLoading();
+                         const closeDeleting = showLoadingModal('Deleting Project...', 'This may take a moment. Please wait...');
+                         
+                         // Delete the graduation project from Firestore
+                         const { deleteDoc, doc } = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js');
+                         await deleteDoc(doc(db, 'graduations', gradId));
+                         
+                         closeDeleting();
+                         showSuccessModal('Project Deleted', 'The graduation project has been permanently deleted.');
+                         
+                         // Navigate back to dashboard
+                         setTimeout(() => {
+                             window.location.hash = '#/dashboard';
+                         }, 1500);
+                         
+                     } catch (error) {
+                         console.error('Error deleting project:', error);
+                         showErrorModal('Error', 'Failed to delete the project. Please try again or contact support.');
+                     }
+                 });
+             }
         };
 
         const renderShareTab = (publicUrl) => {
