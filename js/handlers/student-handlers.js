@@ -173,8 +173,13 @@ export async function uploadPdfForStudent(studentId, studentName, gradId, handle
             
             // Save URL to Firestore
             showModal('Saving...', 'Saving to database...', false);
-            // This will be called from parent - just return the URL
-            router();
+            const { StudentRepository } = await import('../data/student-repository.js');
+            await StudentRepository.update(gradId, studentId, { profilePdfUrl: uploadedUrl });
+            
+            showModal('Success', `PDF uploaded successfully for ${studentName}!`);
+            setTimeout(() => {
+                router();
+            }, 1000);
         } catch (error) {
             console.error('Upload error:', error);
             showModal('Error', 'Failed to upload PDF. Please try again.');
@@ -198,8 +203,13 @@ export async function removePdfForStudent(studentId, studentName, gradId, handle
     showModal('Confirm', `Remove PDF for ${studentName}?`, true, async () => {
         try {
             showModal('Removing...', 'Removing PDF...', false);
-            // PDF removal will be handled by parent
-            router();
+            const { StudentRepository } = await import('../data/student-repository.js');
+            await StudentRepository.update(gradId, studentId, { profilePdfUrl: null });
+            
+            showModal('Success', `PDF removed for ${studentName}!`);
+            setTimeout(() => {
+                router();
+            }, 1000);
         } catch (error) {
             console.error('Error removing PDF:', error);
             showModal('Error', 'Failed to remove PDF. Please try again.');
