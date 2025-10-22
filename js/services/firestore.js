@@ -4,6 +4,8 @@
  */
 
 import { db } from '../firebase-init.js';
+import { logger } from '../utils/logger.js';
+import { setGraduationContext } from '../utils/sentry-config.js';
 import {
     collection,
     doc,
@@ -27,14 +29,34 @@ import {
  */
 export const createGraduation = async (data) => {
     try {
+        logger.graduationAction('create', null, data.schoolName, {
+            year: data.year,
+            theme: data.theme
+        });
+        
         const docRef = await addDoc(collection(db, 'graduations'), {
             ...data,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
         });
+        
+        // Set graduation context in Sentry
+        setGraduationContext(docRef.id, data.schoolName, {
+            year: data.year,
+            theme: data.theme
+        });
+        
+        logger.graduationAction('created', docRef.id, data.schoolName, {
+            year: data.year,
+            theme: data.theme
+        });
+        
         return docRef.id;
     } catch (error) {
-        console.error('Error creating graduation:', error);
+        logger.error('Error creating graduation', error, {
+            schoolName: data.schoolName,
+            action: 'createGraduation'
+        });
         throw new Error(`Failed to create graduation: ${error.message}`);
     }
 };
@@ -46,17 +68,24 @@ export const createGraduation = async (data) => {
  */
 export const getGraduation = async (graduationId) => {
     try {
+        logger.databaseAction('read', 'graduations', graduationId);
         const docSnap = await getDoc(doc(db, 'graduations', graduationId));
         if (docSnap.exists()) {
+            const data = docSnap.data();
+            setGraduationContext(graduationId, data.schoolName);
             return {
                 id: docSnap.id,
-                ...docSnap.data()
+                ...data
             };
         } else {
+            logger.warn('Graduation not found', { gradId: graduationId });
             throw new Error('Graduation not found');
         }
     } catch (error) {
-        console.error('Error getting graduation:', error);
+        logger.error('Error getting graduation', error, {
+            gradId: graduationId,
+            action: 'getGraduation'
+        });
         throw new Error(`Failed to fetch graduation: ${error.message}`);
     }
 };
@@ -69,12 +98,17 @@ export const getGraduation = async (graduationId) => {
  */
 export const updateGraduation = async (graduationId, updates) => {
     try {
+        logger.databaseAction('update', 'graduations', graduationId, { updateKeys: Object.keys(updates) });
         await updateDoc(doc(db, 'graduations', graduationId), {
             ...updates,
             updatedAt: serverTimestamp()
         });
+        logger.info('Graduation updated', { gradId: graduationId, updatedFields: Object.keys(updates).length });
     } catch (error) {
-        console.error('Error updating graduation:', error);
+        logger.error('Error updating graduation', error, {
+            gradId: graduationId,
+            action: 'updateGraduation'
+        });
         throw new Error(`Failed to update graduation: ${error.message}`);
     }
 };
@@ -88,13 +122,18 @@ export const updateGraduation = async (graduationId, updates) => {
 export const onGraduationUpdate = (graduationId, callback) => {
     return onSnapshot(doc(db, 'graduations', graduationId), (doc) => {
         if (doc.exists()) {
+            const data = doc.data();
+            setGraduationContext(graduationId, data.schoolName);
             callback({
                 id: doc.id,
-                ...doc.data()
+                ...data
             });
         }
     }, (error) => {
-        console.error('Error listening to graduation:', error);
+        logger.error('Error listening to graduation', error, {
+            gradId: graduationId,
+            action: 'onGraduationUpdate'
+        });
     });
 };
 
@@ -108,14 +147,20 @@ export const onGraduationUpdate = (graduationId, callback) => {
  */
 export const createStudent = async (graduationId, studentData) => {
     try {
+        logger.studentAction('add', graduationId, null, studentData.name);
         const docRef = await addDoc(collection(db, 'graduations', graduationId, 'students'), {
             ...studentData,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
         });
+        logger.studentAction('added', graduationId, docRef.id, studentData.name);
         return docRef.id;
     } catch (error) {
-        console.error('Error creating student:', error);
+        logger.error('Error creating student', error, {
+            gradId: graduationId,
+            studentName: studentData.name,
+            action: 'createStudent'
+        });
         throw new Error(`Failed to add student: ${error.message}`);
     }
 };
@@ -188,9 +233,15 @@ export const updateStudent = async (graduationId, studentId, updates) => {
  */
 export const deleteStudent = async (graduationId, studentId) => {
     try {
+        logger.studentAction('delete', graduationId, studentId, 'unknown');
         await deleteDoc(doc(db, 'graduations', graduationId, 'students', studentId));
+        logger.studentAction('deleted', graduationId, studentId, 'unknown');
     } catch (error) {
-        console.error('Error deleting student:', error);
+        logger.error('Error deleting student', error, {
+            gradId: graduationId,
+            studentId: studentId,
+            action: 'deleteStudent'
+        });
         throw new Error(`Failed to delete student: ${error.message}`);
     }
 };

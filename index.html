@@ -29,7 +29,7 @@
         import { sanitizeInput } from './js/utils/sanitize.js';
         import { copyToClipboard } from './js/utils/clipboard.js';
         import { rateLimiter } from './js/utils/rate-limiter.js';
-        import { ensurePublicPdfUrl, getCurrentGradId } from './js/utils/url-helpers.js';
+        import { ensurePublicPdfUrl } from './js/utils/url-helpers.js';
         
         // Import services
         import { app, auth, db } from './js/firebase-init.js';
@@ -45,25 +45,31 @@
         import { renderTabNav, renderTabContent, setupTabListeners, renderButtonGroup } from './js/components/tabs.js';
         import { renderStudentCard, renderStudentGrid, renderContentCard, renderContentList, renderList } from './js/components/cards.js';
         
+        // Import router and navigation
+        import { parseRoute, generateRoute, getFullRouteUrl, ROUTES, ROUTE_METADATA } from './js/router/routes.js';
+        import { navigateTo, goToDashboard, goToEditGraduation, goToNewGraduation, goToPublicView, goToUploadPortal, goToDirectUpload, getPublicShareUrl, getUploadPortalUrl, getDirectUploadUrl, getCurrentHash, getBaseUrl, isPublicRoute } from './js/router/navigation.js';
+        import { createRouter, createPublicRouter } from './js/router/router.js';
+        
+        // Import event handlers
+        import { setupAuthToggleHandler, setupAuthSubmitHandler, setupLogoutHandler, setupCreateNewHandler, setupNewGraduationFormHandler, setupCancelHandler } from './js/handlers/auth-handlers.js';
+        import { setupAddStudentFormHandler, setupCopyGeneralUrlHandler, deleteStudent, uploadPdfForStudent, removePdfForStudent } from './js/handlers/student-handlers.js';
+        import { setupAddContentHandler, setupCancelContentHandler, setupContentFormHandler, editContentPage, deleteContentPage, setupPageOrderHandlers } from './js/handlers/content-handlers.js';
+        import { setupTabHandlers, setupDownloadSchedulingHandler, setupSettingsFormHandler } from './js/handlers/ui-handlers.js';
+        
+        // Import data repositories (data access layer)
+        import { GraduationRepository } from './js/data/graduation-repository.js';
+        import { StudentRepository } from './js/data/student-repository.js';
+        import { ContentRepository } from './js/data/content-repository.js';
+        
         // Import Firebase auth state listener
         import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        
-        // Import Firestore utilities used directly in index.html
-        import {
-            collection,
-            doc,
-            setDoc,
-            query,
-            where,
-            serverTimestamp
-        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- CONFIGURATION ---
         const config = getConfig();
 
         const appContainer = document.getElementById('app');
         let currentUser = null;
-        let currentGraduationListener = null;
+        // currentGraduationListener is now created in router setup
 
         // --- UTILITY & HELPER FUNCTIONS ---
         
@@ -92,9 +98,8 @@
                     // Success callback
                     async (result) => {
                         // Fetch fresh graduation data with the new booklet URL
-                        const graduationDoc = await getDoc(doc(db, "graduations", graduationId));
-                        if (graduationDoc.exists()) {
-                            const freshGradData = graduationDoc.data();
+                        const freshGradData = await GraduationRepository.getById(graduationId);
+                        if (freshGradData) {
                             console.log('Fresh URL from Firestore after generation:', freshGradData.generatedBookletUrl);
                             
                             // Update the local state with the new booklet URL
@@ -128,104 +133,27 @@
         const renderLoginPageWithListeners = () => {
             appContainer.innerHTML = renderLoginPageComponent();
             
-            // Event Listeners
+            // Get DOM elements
             const authSubmitBtn = document.getElementById('auth-submit-btn');
             const toggleAuthBtn = document.getElementById('toggle-auth-btn');
             const authSubtitle = document.getElementById('auth-subtitle');
             const toggleText = document.getElementById('toggle-text');
             const passwordHint = document.getElementById('password-hint');
-            let isSignUpMode = false;
             
-            // Toggle between sign in and sign up modes
-            toggleAuthBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                isSignUpMode = !isSignUpMode;
-                
-                if (isSignUpMode) {
-                    authSubmitBtn.textContent = 'Create Account';
-                    toggleAuthBtn.textContent = 'Sign in instead';
-                    toggleText.textContent = 'Already have an account?';
-                    authSubtitle.textContent = 'Create a new account to continue';
-                    passwordHint.classList.remove('hidden');
-                } else {
-                    authSubmitBtn.textContent = 'Sign in';
-                    toggleAuthBtn.textContent = 'Create an account';
-                    toggleText.textContent = "Don't have an account?";
-                    authSubtitle.textContent = 'Sign in to continue';
-                    passwordHint.classList.add('hidden');
-                }
-                
-                // Clear any error messages
-                document.getElementById('auth-error').classList.add('hidden');
-            });
-
-            authSubmitBtn.addEventListener('click', async (e) => {
-                e.preventDefault();
-                const email = document.getElementById('email').value.trim();
-                const password = document.getElementById('password').value;
-                
-                // Basic validation
-                if (!email || !password) {
-                    document.getElementById('auth-error').textContent = 'Please enter both email and password.';
-                    document.getElementById('auth-error').classList.remove('hidden');
-                    return;
-                }
-                
-                if (isSignUpMode && password.length < 6) {
-                    document.getElementById('auth-error').textContent = 'Password must be at least 6 characters long.';
-                    document.getElementById('auth-error').classList.remove('hidden');
-                    return;
-                }
-                
-                try {
-                    if (isSignUpMode) {
-                        console.log('Attempting to create user with Firebase...'); // Debug log
-                        await createUserWithEmailAndPassword(auth, email, password);
-                        console.log('User created successfully!'); // Debug log
-                        // Success - auth state change will trigger redirect
-                    } else {
-                        console.log('Attempting to sign in with Firebase...'); // Debug log
-                        await signInWithEmailAndPassword(auth, email, password);
-                        console.log('User signed in successfully!'); // Debug log
-                        // Success - auth state change will trigger redirect
-                    }
-                } catch (error) {
-                    console.error('Firebase Auth Error:', error); // Enhanced error logging
-                    console.error('Error Code:', error.code); // Debug log
-                    console.error('Error Message:', error.message); // Debug log
-                    let errorMessage = isSignUpMode ? 'Account creation failed. ' : 'Login failed. ';
-                    
-                    switch (error.code) {
-                        case 'auth/email-already-in-use':
-                            errorMessage += 'An account with this email already exists.';
-                            break;
-                        case 'auth/user-not-found':
-                            errorMessage += 'No account found with this email address.';
-                            break;
-                        case 'auth/wrong-password':
-                            errorMessage += 'Incorrect password.';
-                            break;
-                        case 'auth/invalid-email':
-                            errorMessage += 'Please enter a valid email address.';
-                            break;
-                        case 'auth/weak-password':
-                            errorMessage += 'Password is too weak. Use at least 6 characters.';
-                            break;
-                        case 'auth/too-many-requests':
-                            errorMessage += 'Too many failed attempts. Please try again later.';
-                            break;
-                        case 'auth/network-request-failed':
-                            errorMessage += 'Network error. Please check your connection.';
-                            break;
-                        default:
-                            errorMessage += isSignUpMode ? 'Please try again with different credentials.' : 'Please check your email and password.';
-                    }
-                    
-                    document.getElementById('auth-error').textContent = errorMessage;
-                    document.getElementById('auth-error').classList.remove('hidden');
-                }
-            });
-            console.log('Signup button event listener attached!'); // Debug log
+            // State object for auth mode
+            const authState = { isSignUpMode: false, auth };
+            
+            // Import Firebase auth functions
+            const { createUserWithEmailAndPassword, signInWithEmailAndPassword } = auth.constructor;
+            
+            // Setup auth handlers
+            setupAuthToggleHandler(toggleAuthBtn, authSubmitBtn, toggleText, authSubtitle, passwordHint, authState);
+            setupAuthSubmitHandler(authSubmitBtn, { 
+                createUserWithEmailAndPassword, 
+                signInWithEmailAndPassword 
+            }, authState);
+            
+            console.log('Login page handlers attached!');
         };
         
         const renderDashboard = async () => {
@@ -245,26 +173,24 @@
 
             document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
             document.getElementById('create-new-btn').addEventListener('click', () => {
-                 window.location.hash = '#/new';
+                 goToNewGraduation();
             });
 
-            // Fetch and display graduations
-            const q = query(collection(db, "graduations"), where("ownerUid", "==", currentUser.uid));
-            const querySnapshot = await getDocs(q);
+            // Fetch and display graduations using repository
+            const graduations = await GraduationRepository.getByOwner(currentUser.uid);
             const listContainer = document.getElementById('graduations-list');
-            if (querySnapshot.empty) {
+            if (graduations.length === 0) {
                 listContainer.innerHTML = `<div class="p-8 text-center text-gray-500">You haven't created any graduation websites yet.</div>`;
             } else {
                 let html = '<ul>';
-                querySnapshot.forEach(doc => {
-                    const data = doc.data();
+                graduations.forEach(grad => {
                     html += `
                         <li class="border-t border-gray-200">
-                            <a href="#/edit/${doc.id}" class="block hover:bg-gray-50">
+                            <a href="#/edit/${grad.id}" class="block hover:bg-gray-50">
                                 <div class="px-4 py-4 sm:px-6">
                                     <div class="flex items-center justify-between">
-                                        <p class="text-lg font-medium text-indigo-600 truncate">${data.schoolName || 'Untitled Project'}</p>
-                                        <p class="ml-2 flex-shrink-0 text-sm text-gray-500">${data.graduationYear || ''}</p>
+                                        <p class="text-lg font-medium text-indigo-600 truncate">${grad.schoolName || 'Untitled Project'}</p>
+                                        <p class="ml-2 flex-shrink-0 text-sm text-gray-500">${grad.graduationYear || ''}</p>
                                     </div>
                                 </div>
                             </a>
@@ -303,7 +229,7 @@
              appContainer.innerHTML = header + `<main>${mainContent}</main>`;
 
              document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
-             document.getElementById('cancel-btn').addEventListener('click', () => window.location.hash = '#/dashboard');
+             document.getElementById('cancel-btn').addEventListener('click', () => goToDashboard());
              document.getElementById('new-grad-form').addEventListener('submit', async (e) => {
                  e.preventDefault();
                  const schoolNameInput = document.getElementById('schoolName').value;
@@ -333,7 +259,7 @@
                  try {
                     showModal('Creating...', 'Setting up your graduation project.', false);
                     
-                    const newGradRef = await addDoc(collection(db, 'graduations'), {
+                    const newGrad = await GraduationRepository.create({
                         schoolName,
                         graduationYear: graduationYear,
                         ownerUid: currentUser.uid,
@@ -344,7 +270,7 @@
                     });
                     
                     // Create default config subcollection
-                    await setDoc(doc(db, "graduations", newGradRef.id, "config", "settings"), {
+                    await GraduationRepository.updateConfig(newGrad.id, {
                         // Basic settings
                         schoolLogoUrl: null,
                         primaryColor: "#4f46e5", // indigo-600
@@ -372,7 +298,7 @@
                         updatedAt: new Date()
                     });
 
-                    window.location.hash = `#/edit/${newGradRef.id}`;
+                    goToEditGraduation(newGrad.id);
                  } catch (error) {
                      console.error("Error creating graduation:", error);
                      showModal('Error', 'Could not create the project.');
@@ -412,33 +338,17 @@
 
             // Tab switching logic
             const tabs = document.querySelectorAll('.tab-link');
-            tabs.forEach(tab => {
-                tab.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    tabs.forEach(t => {
-                        t.classList.remove('border-indigo-500', 'text-indigo-600');
-                        t.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
-                    });
-                    e.target.classList.add('border-indigo-500', 'text-indigo-600');
-                    e.target.classList.remove('border-transparent', 'text-gray-500');
-
-                    const tabName = e.target.dataset.tab;
-                    if(tabName === 'students') renderStudentsTab(gradId);
-                    if(tabName === 'content') renderContentPagesTab(gradId);
-                    if(tabName === 'settings') renderSettingsTab(gradId, gradData.config);
-                    if(tabName === 'share') renderShareTab(publicUrl);
-                    if(tabName === 'booklet') {
-                        // Always fetch fresh data for booklet tab to get latest URL
-                        getDoc(doc(db, "graduations", gradId)).then(freshDoc => {
-                            if (freshDoc.exists()) {
-                                const freshGradData = freshDoc.data();
-                                console.log('Booklet URL from Firestore:', freshGradData.generatedBookletUrl);
-                                console.log('Booklet generated at:', freshGradData.bookletGeneratedAt);
-                                renderBookletTab(gradId, freshGradData);
-                            }
-                        });
-                    }
-                });
+            
+            // Setup tab handlers
+            setupTabHandlers(tabs, {
+                renderStudentsTab,
+                renderContentPagesTab,
+                renderSettingsTab,
+                renderShareTab,
+                renderBookletTab
+            }, {
+                gradId,
+                gradData
             });
         };
 
@@ -482,8 +392,9 @@
             `;
 
             const studentListContainer = document.getElementById('student-list-container');
-            const studentsRef = collection(db, "graduations", gradId, "students");
-            onSnapshot(studentsRef, (snapshot) => {
+            
+            // Use repository to get real-time updates
+            StudentRepository.onUpdate(gradId, (snapshot) => {
                 if (snapshot.empty) {
                     studentListContainer.innerHTML = `<p class="text-gray-500">No students added yet.</p>`;
                     return;
@@ -557,108 +468,28 @@
                 studentListContainer.innerHTML = html;
             });
             
-            document.getElementById('add-student-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const nameInput = document.getElementById('student-name').value;
-                const accessType = document.getElementById('access-type').value;
-
-                // Client-side input sanitization
-                const sanitizedName = sanitizeInput(nameInput, 'name');
-                
-                if (!sanitizedName) {
-                    showModal('Error', 'Please enter a valid student name.');
-                    return;
-                }
-
-                // Rate limiting check
-                const rateLimitKey = `add-student-${currentUser.uid}`;
-                if (!rateLimiter.isAllowed(rateLimitKey, 10, 60000)) {
-                    showModal('Rate Limit', 'Too many requests. Please wait a minute before adding more students.');
-                    return;
-                }
-
-                try {
-                    showModal('Creating...', 'Adding student to the class.', false);
-
-                    let response;
-                    if (accessType === 'password') {
-                        // Generate memorable password
-                        const adjectives = ['Blue', 'Red', 'Green', 'Gold', 'Silver', 'Bright', 'Smart', 'Cool', 'Star', 'Epic'];
-                        const nouns = ['Tiger', 'Eagle', 'Lion', 'Bear', 'Wolf', 'Shark', 'Falcon', 'Phoenix', 'Dragon', 'Hawk'];
-                        const randomAdj = adjectives[Math.floor(Math.random() * adjectives.length)];
-                        const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
-                        const randomNum = Math.floor(10 + Math.random() * 90);
-                        const generatedPassword = `${randomAdj}${randomNoun}${randomNum}`;
-                        
-                        response = await fetch('/.netlify/functions/secure-operations', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                action: 'createStudent',
-                                graduationId: gradId,
-                                studentName: sanitizedName,
-                                accessType: accessType,
-                                password: generatedPassword,
-                            }),
-                        });
-                    } else {
-                        // For public and link access types
-                        response = await fetch('/.netlify/functions/secure-operations', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                action: 'createStudent',
-                                graduationId: gradId,
-                                studentName: sanitizedName,
-                                accessType: accessType,
-                            }),
-                        });
-                    }
-
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.error || 'Failed to create student');
-                    }
-
-                    const result = await response.json();
-                    
-                    // The student is already created server-side, no need to add again
-                    document.getElementById('add-student-form').reset();
-                    
-                    // Show success message with password if it's a password student
-                    if (accessType === 'password' && result.generatedPassword) {
-                        showModal('Success', `Student added successfully! Password: ${result.generatedPassword}`);
-                    } else {
-                        showModal('Success', 'Student added successfully!');
-                    }
-                    
-                    // Refresh the current page to show the new student
-                    setTimeout(() => {
-                        router(); // Reload the current route
-                    }, 1000);
-                    
-                } catch (error) {
-                    console.error('Student creation error:', error);
-                    showModal('Error', error.message || 'Failed to add student. Please try again.');
-                }
-            });
+            // Setup student form handler
+            const addStudentForm = document.getElementById('add-student-form');
+            if (addStudentForm) {
+                setupAddStudentFormHandler(addStudentForm, {
+                    showModal,
+                    sanitizeInput,
+                    rateLimiter,
+                    currentUser,
+                    gradId,
+                    router
+                });
+            }
             
             // Add copy functionality for general upload URL
-            document.getElementById('copy-general-url-btn').addEventListener('click', (e) => {
-                const urlInput = document.getElementById('general-upload-url');
-                copyToClipboard(urlInput.value, e.target);
-            });
+            const copyBtn = document.getElementById('copy-general-url-btn');
+            if (copyBtn) {
+                setupCopyGeneralUrlHandler(copyBtn, copyToClipboard);
+            }
         };
         
         const renderContentPagesTab = async (gradId) => {
             const contentContainer = document.getElementById('tab-content');
-            
-            // Fetch existing content pages
-            const contentPagesRef = collection(db, "graduations", gradId, "contentPages");
             
             contentContainer.innerHTML = `
                 <div class="bg-white p-6 rounded-lg shadow">
@@ -720,7 +551,7 @@
 
             // Load existing content pages
             const loadContentPages = () => {
-                onSnapshot(contentPagesRef, (snapshot) => {
+                ContentRepository.onUpdate(gradId, (snapshot) => {
                     const listContainer = document.getElementById('content-pages-list');
                     
                     if (snapshot.empty) {
@@ -799,7 +630,7 @@
             window.deleteContentPage = async (id) => {
                 if (confirm('Are you sure you want to delete this content page?')) {
                     try {
-                        await deleteDoc(doc(db, "graduations", gradId, "contentPages", id));
+                        await ContentRepository.delete(gradId, id);
                         showModal('Success', 'Content page deleted successfully.');
                     } catch (error) {
                         console.error('Error deleting content page:', error);
@@ -809,64 +640,19 @@
             };
 
             // Event listeners
-            document.getElementById('add-content-btn').addEventListener('click', () => {
-                document.getElementById('content-form').classList.remove('hidden');
-                document.getElementById('add-content-form').reset();
-                delete document.getElementById('add-content-form').dataset.editId;
-            });
-
-            document.getElementById('cancel-content-btn').addEventListener('click', () => {
-                document.getElementById('content-form').classList.add('hidden');
-                document.getElementById('add-content-form').reset();
-                delete document.getElementById('add-content-form').dataset.editId;
-            });
-
-            document.getElementById('add-content-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                
-                const title = sanitizeInput(document.getElementById('content-title').value, 'text');
-                const author = sanitizeInput(document.getElementById('content-author').value, 'name');
-                const type = document.getElementById('content-type').value;
-                const content = sanitizeInput(document.getElementById('content-body').value, 'text');
-
-                if (!title || !content) {
-                    showModal('Error', 'Please fill in the title and content fields.');
-                    return;
-                }
-
-                try {
-                    const contentData = {
-                        title,
-                        author: author || null,
-                        type,
-                        content,
-                        createdAt: new Date(),
-                        updatedAt: new Date()
-                    };
-
-                    const editId = e.target.dataset.editId;
-                    if (editId) {
-                        // Update existing content
-                        await updateDoc(doc(db, "graduations", gradId, "contentPages", editId), {
-                            ...contentData,
-                            updatedAt: new Date()
-                        });
-                        showModal('Success', 'Content page updated successfully.');
-                    } else {
-                        // Add new content
-                        await addDoc(contentPagesRef, contentData);
-                        showModal('Success', 'Content page added successfully.');
-                    }
-
-                    document.getElementById('content-form').classList.add('hidden');
-                    document.getElementById('add-content-form').reset();
-                    delete e.target.dataset.editId;
-
-                } catch (error) {
-                    console.error('Error saving content page:', error);
-                    showModal('Error', 'Failed to save content page.');
-                }
-            });
+            // Setup content handlers
+            const addContentBtn = document.getElementById('add-content-btn');
+            const cancelContentBtn = document.getElementById('cancel-content-btn');
+            const addContentForm = document.getElementById('add-content-form');
+            
+            if (addContentBtn) setupAddContentHandler(addContentBtn);
+            if (cancelContentBtn) setupCancelContentHandler(cancelContentBtn);
+            if (addContentForm) {
+                setupContentFormHandler(addContentForm, gradId, {
+                    sanitizeInput,
+                    showModal
+                });
+            }
 
             // Load content pages
             loadContentPages();
@@ -1144,8 +930,7 @@
                     updatedAt: new Date()
                 };
 
-                const configRef = doc(db, "graduations", gradId, "config", "settings");
-                await setDoc(configRef, newConfig);
+                await GraduationRepository.updateConfig(gradId, newConfig);
                 showModal('Saved!', 'Your settings have been updated.');
                 // Trigger a re-render of the editor to show the new logo
                 router(); 
@@ -1333,12 +1118,7 @@
              }[config.animationStyle] || '';
              
              // Fetch content pages
-             const contentPagesRef = collection(db, "graduations", gradId, "contentPages");
-             const contentSnapshot = await getDocs(contentPagesRef);
-             const contentPages = [];
-             contentSnapshot.forEach(doc => {
-                 contentPages.push({ id: doc.id, ...doc.data() });
-             });
+             const contentPages = await ContentRepository.getAll(gradId);
              
              // Sort content pages by creation date
              contentPages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
@@ -1584,8 +1364,7 @@
                     const pdfUrl = await uploadFile(file);
 
                     if (pdfUrl) {
-                        const studentDocRef = doc(db, "graduations", gradId, "students", selectedStudentId);
-                        await updateDoc(studentDocRef, { profilePdfUrl: pdfUrl });
+                        await StudentRepository.updateProfilePdf(gradId, selectedStudentId, pdfUrl);
                         showModal('Success!', 'Your PDF has been uploaded successfully. You can now close this page.');
                     }
                 } catch (error) {
@@ -1642,8 +1421,7 @@
                     const pdfUrl = await uploadFile(file);
 
                     if (pdfUrl) {
-                        const studentDocRef = doc(db, "graduations", gradId, "students", student.id);
-                        await updateDoc(studentDocRef, { profilePdfUrl: pdfUrl });
+                        await StudentRepository.updateProfilePdf(gradId, student.id, pdfUrl);
                         showModal('Success!', 'Your PDF has been uploaded successfully. You can now close this page.');
                     }
                 } catch (error) {
@@ -1656,119 +1434,40 @@
         // Modal functions are now imported from js/components/modal.js
 
         // --- ROUTING ---
-        const router = async () => {
-            const hash = window.location.hash;
-            
-            if (!currentUser) {
-                renderLoginPageWithListeners();
-                return;
-            }
-
-            renderLoading(); // Show loading indicator during data fetch
-
-            if (hash.startsWith('#/edit/')) {
-                const gradId = hash.split('/')[2];
-                try {
-                    const gradDocRef = doc(db, "graduations", gradId);
-
-                    // Detach any previous listener
-                    if (currentGraduationListener) {
-                        currentGraduationListener();
-                    }
-
-                    // Attach a new realtime listener
-                    currentGraduationListener = onSnapshot(gradDocRef, async (gradDoc) => {
-                        if (gradDoc.exists()) {
-                            const gradData = gradDoc.data();
-
-                            if (gradData.ownerUid !== currentUser.uid) {
-                                window.location.hash = '#/dashboard';
-                                return;
-                            }
-                            // Also fetch the config subcollection
-                            const configDocRef = doc(db, "graduations", gradId, "config", "settings");
-                            const configDoc = await getDoc(configDocRef);
-                            gradData.config = configDoc.exists() ? configDoc.data() : {};
-                            
-                            renderEditor(gradData, gradId);
-                        } else {
-                             window.location.hash = '#/dashboard';
-                        }
-                    });
-                } catch(error) {
-                    console.error("Error fetching graduation data:", error);
-                    window.location.hash = '#/dashboard';
-                }
-            } else if (hash === '#/new') {
-                renderNewGraduationForm();
-            } else {
-                renderDashboard();
-            }
-        };
-
-        const publicRouter = async () => {
-             const hash = window.location.hash;
-             renderLoading();
-
-             if (hash.startsWith('#/view/')) {
-                 const gradId = hash.split('/')[2];
-                 const gradDocRef = doc(db, "graduations", gradId);
-                 const gradDoc = await getDoc(gradDocRef);
-                 if (gradDoc.exists()) {
-                     const gradData = gradDoc.data();
-                     const configDocRef = doc(db, "graduations", gradId, "config", "settings");
-                     const configDoc = await getDoc(configDocRef);
-                     gradData.config = configDoc.exists() ? configDoc.data() : {};
-
-                     const studentsRef = collection(db, "graduations", gradId, "students");
-                     const studentSnapshot = await getDocs(studentsRef);
-                     const students = studentSnapshot.docs.map(doc => doc.data());
-                     
-                     renderPublicView(gradData, students, gradId);
-                 } else {
-                     appContainer.innerHTML = `<p class="text-center p-8">Graduation not found.</p>`;
-                 }
-             } else if (hash.startsWith('#/upload/')) {
-                 const pathParts = hash.split('/');
-                 const gradId = pathParts[2];
-                 const linkId = pathParts[3]; // For unique link access
-                 
-                 const studentsRef = collection(db, "graduations", gradId, "students");
-                 
-                 if (linkId) {
-                     // Handle unique link access
-                     const q = query(studentsRef, where("uniqueLinkId", "==", linkId));
-                     const snapshot = await getDocs(q);
-                     if (!snapshot.empty) {
-                         const studentData = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
-                         renderDirectUpload(gradId, studentData);
-                     } else {
-                         showModal('Invalid Link', 'This upload link is not valid or has expired.');
-                     }
-                 } else {
-                     // Handle public and password access
-                     const studentSnapshot = await getDocs(studentsRef);
-                     const students = studentSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                     renderStudentUploadPortal(gradId, students);
-                 }
-             } else if (!currentUser) {
-                 renderLoginPageWithListeners();
-             } else {
-                 router(); // User is logged in, but not on a public page, go to their dashboard
-             }
-        }
+        // Router functions now created from router module
+        const currentGraduationListener = { current: null };
         
+        const router = createRouter({
+            renderLoading: () => renderLoading(appContainer),
+            renderLoginPage: renderLoginPageWithListeners,
+            renderDashboard,
+            renderNewGraduationForm,
+            renderEditor,
+            currentUser,
+            currentGraduationListener
+        });
+        
+        const publicRouter = createPublicRouter({
+            renderLoading: () => renderLoading(appContainer),
+            renderLoginPage: renderLoginPageWithListeners,
+            renderPublicView,
+            renderStudentUploadPortal,
+            renderDirectUpload,
+            showModal,
+            currentUser,
+            router
+        });
+
         // --- INITIALIZATION ---
         onAuthStateChanged(auth, user => {
             currentUser = user;
-            const isPublicRoute = window.location.hash.startsWith('#/view/') || window.location.hash.startsWith('#/upload/');
 
-            if (isPublicRoute) {
+            if (isPublicRoute()) {
                 publicRouter();
             } else {
                 if (user) {
                     if(!window.location.hash || window.location.hash === '#/') {
-                        window.location.hash = '#/dashboard';
+                        goToDashboard();
                     }
                     router();
                 } else {
@@ -1778,8 +1477,7 @@
         });
 
         window.addEventListener('hashchange', () => {
-            const isPublicRoute = window.location.hash.startsWith('#/view/') || window.location.hash.startsWith('#/upload/');
-             if (isPublicRoute) {
+            if (isPublicRoute()) {
                 publicRouter();
             } else {
                 router();

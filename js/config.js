@@ -1,11 +1,11 @@
 /**
  * Application Configuration Module
- * Handles environment-based configuration for Firebase and Cloudinary
+ * Handles environment-based configuration for Firebase, Cloudinary, and Sentry
  */
 
 /**
  * Get environment-based configuration
- * @returns {Object} Configuration object with Firebase and Cloudinary settings
+ * @returns {Object} Configuration object with Firebase, Cloudinary, and Sentry settings
  */
 export const getConfig = () => {
     const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
@@ -26,6 +26,10 @@ export const getConfig = () => {
                 cloudName: "dkm3avvjl",
                 uploadPreset: "Graduation-Uploads"
             },
+            sentry: {
+                // Production Sentry DSN
+                dsn: 'https://93d779626b30e8101d5512445d3719c1@o4507568980172800.ingest.sentry.io/4507568983678976'
+            },
             isDevelopment: false
         };
     } else {
@@ -43,6 +47,10 @@ export const getConfig = () => {
                 cloudName: "dkm3avvjl",
                 uploadPreset: "Graduation-Uploads"
             },
+            sentry: {
+                // Development Sentry DSN (uses same project, development environment)
+                dsn: 'https://93d779626b30e8101d5512445d3719c1@o4507568980172800.ingest.sentry.io/4507568983678976'
+            },
             isDevelopment: true
         };
     }
@@ -54,6 +62,7 @@ const config = getConfig();
 // Export individual configs for easy access
 export const firebaseConfig = config.firebase;
 export const cloudinaryConfig = config.cloudinary;
+export const sentryDsn = config.sentry.dsn;
 
 // Cloudinary API constants
 export const CLOUDINARY_CLOUD_NAME = cloudinaryConfig.cloudName;

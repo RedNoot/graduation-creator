@@ -1,12 +1,19 @@
 /**
  * Firebase Initialization Module
- * Sets up Firebase app, authentication, and Firestore
+ * Sets up Firebase app, authentication, Firestore, and Sentry error tracking
  */
 
-import { firebaseConfig } from '../config.js';
+import { firebaseConfig, sentryDsn } from '../config.js';
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { initSentry } from './utils/sentry-config.js';
+
+/**
+ * Initialize Sentry for error tracking
+ * This should be done before initializing Firebase
+ */
+await initSentry(sentryDsn);
 
 /**
  * Initialize Firebase application

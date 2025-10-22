@@ -4,6 +4,7 @@
  */
 
 import { getConfig } from '../config.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * Generate PDF booklet from graduation students
@@ -15,6 +16,8 @@ import { getConfig } from '../config.js';
  */
 export const generateBooklet = async (graduationId, onSuccess, onError) => {
     try {
+        logger.pdfAction('start', graduationId, { action: 'generateBooklet' });
+        
         const config = getConfig();
         
         // Call the Netlify serverless function
@@ -37,19 +40,31 @@ export const generateBooklet = async (graduationId, onSuccess, onError) => {
             try {
                 errorData = await response.json();
             } catch (parseError) {
-                console.error('Could not parse error response:', parseError);
+                logger.error('Could not parse PDF error response', parseError, {
+                    gradId: graduationId,
+                    statusCode: response.status,
+                    action: 'generateBooklet'
+                });
                 throw new Error(`Server error: ${response.status} - ${response.statusText}`);
             }
             
-            console.error('Server error response:', errorData);
             const errorMsg = errorData.message || errorData.error || `Server error: ${response.status}`;
+            logger.error('PDF generation server error', new Error(errorMsg), {
+                gradId: graduationId,
+                statusCode: response.status,
+                action: 'generateBooklet'
+            });
             throw new Error(errorMsg);
         }
 
         const result = await response.json();
         
         if (result.success) {
-            console.log('Booklet generated successfully, returned URL:', result.bookletUrl);
+            logger.pdfAction('success', graduationId, {
+                pageCount: result.pageCount,
+                studentCount: result.studentCount,
+                bookletUrl: result.bookletUrl?.substring(0, 50)
+            });
             
             // Call success callback with result data
             if (onSuccess) {
@@ -64,7 +79,10 @@ export const generateBooklet = async (graduationId, onSuccess, onError) => {
         }
 
     } catch (error) {
-        console.error("PDF Generation Error:", error);
+        logger.pdfAction('failure', graduationId, {
+            error: error.message,
+            action: 'generateBooklet'
+        });
         
         // Parse and provide user-friendly error message
         let errorMessage = 'Could not generate PDF booklet. ';

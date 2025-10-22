@@ -4,6 +4,7 @@
  */
 
 import { CLOUDINARY_CLOUD_NAME, CLOUDINARY_UPLOAD_PRESET, CLOUDINARY_URL } from '../config.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * Comprehensive file upload to Cloudinary
@@ -15,12 +16,20 @@ import { CLOUDINARY_CLOUD_NAME, CLOUDINARY_UPLOAD_PRESET, CLOUDINARY_URL } from 
 export const uploadFile = async (file) => {
     // Comprehensive file validation
     if (!file) {
+        logger.warn('Upload attempted with no file');
         throw new Error('No file provided for upload');
     }
+
+    logger.info('Starting file upload', {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type
+    });
 
     // Check file size (limit to 10MB)
     const maxSize = 10 * 1024 * 1024; // 10MB
     if (file.size > maxSize) {
+        logger.warn('File too large', { fileSize: file.size, maxSize });
         throw new Error('File size too large. Please keep files under 10MB.');
     }
 
@@ -29,6 +38,7 @@ export const uploadFile = async (file) => {
     const allowedExtensions = ['.pdf', '.jpg', '.jpeg', '.png'];
     
     if (!allowedTypes.includes(file.type)) {
+        logger.warn('Invalid file type', { fileType: file.type });
         throw new Error('Invalid file type. Please upload PDF, JPEG, or PNG files only.');
     }
 
@@ -36,17 +46,20 @@ export const uploadFile = async (file) => {
     const fileName = file.name.toLowerCase();
     const hasValidExtension = allowedExtensions.some(ext => fileName.endsWith(ext));
     if (!hasValidExtension) {
+        logger.warn('Invalid file extension', { fileName });
         throw new Error('Invalid file extension. Please use .pdf, .jpg, .jpeg, or .png files.');
     }
 
     // Security: Validate file name
     const sanitizedFileName = fileName.replace(/[^a-z0-9._-]/g, '');
     if (sanitizedFileName.length === 0) {
+        logger.warn('Invalid file name pattern', { fileName });
         throw new Error('Invalid file name. Please use alphanumeric characters only.');
     }
 
     // Check for potentially malicious file patterns
     if (fileName.includes('..') || fileName.includes('/') || fileName.includes('\\')) {
+        logger.warn('Malicious file pattern detected', { fileName });
         throw new Error('Invalid file name pattern detected.');
     }
 
@@ -62,6 +75,8 @@ export const uploadFile = async (file) => {
         : CLOUDINARY_URL; // Use default for images
 
     try {
+        logger.uploadAction('start', file.name, file.size, file.type);
+
         const response = await fetch(uploadUrl, {
             method: 'POST',
             body: formData,
@@ -77,7 +92,11 @@ export const uploadFile = async (file) => {
                 errorDetail = await response.text();
             }
             
-            console.error('Cloudinary error response:', errorDetail);
+            logger.error('Cloudinary error response', new Error(`HTTP ${response.status}: ${errorDetail}`), {
+                fileName: file.name,
+                statusCode: response.status,
+                action: 'uploadFile'
+            });
             
             if (response.status === 400) {
                 throw new Error(`Upload failed: ${errorDetail || 'Invalid file or configuration'}`);
@@ -95,21 +114,42 @@ export const uploadFile = async (file) => {
         const data = await response.json();
         
         if (data.error) {
+            logger.error('Upload error in response', new Error(data.error.message), {
+                fileName: file.name,
+                action: 'uploadFile'
+            });
             throw new Error(`Upload error: ${data.error.message}`);
         }
 
         if (data.secure_url) {
             // Additional security: validate returned URL
             if (!data.secure_url.startsWith('https://')) {
+                logger.error('Insecure URL returned from upload', new Error('Non-HTTPS URL'), {
+                    fileName: file.name,
+                    action: 'uploadFile',
+                    url: data.secure_url
+                });
                 throw new Error('Invalid upload response - insecure URL');
             }
+            logger.uploadAction('success', file.name, file.size, file.type, {
+                url: data.secure_url.substring(0, 50),
+                publicId: data.public_id
+            });
             return data.secure_url;
         } else {
+            logger.error('Upload failed - no URL returned', new Error('No URL in response'), {
+                fileName: file.name,
+                action: 'uploadFile',
+                response: JSON.stringify(data).substring(0, 100)
+            });
             throw new Error('File upload failed - no URL returned');
         }
         
     } catch (error) {
-        console.error("Cloudinary upload error:", error);
+        logger.uploadAction('failure', file.name, file.size, file.type, {
+            error: error.message,
+            errorName: error.name
+        });
         
         // Re-throw with user-friendly message
         if (error.name === 'TypeError' && error.message.includes('fetch')) {

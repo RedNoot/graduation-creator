@@ -4,6 +4,8 @@
  */
 
 import { auth, db } from '../firebase-init.js';
+import { logger } from '../utils/logger.js';
+import { setUserContext, clearUserContext } from '../utils/sentry-config.js';
 import { 
     createUserWithEmailAndPassword, 
     signInWithEmailAndPassword, 
@@ -21,6 +23,7 @@ import {
  */
 export const verifyStudentPassword = async (graduationId, studentId, password) => {
     try {
+        logger.debug('Verifying student password', { graduationId, studentId });
         const response = await fetch('/.netlify/functions/secure-operations', {
             method: 'POST',
             headers: {
@@ -35,13 +38,31 @@ export const verifyStudentPassword = async (graduationId, studentId, password) =
         });
 
         if (!response.ok) {
+            logger.warn('Password verification failed', { 
+                statusCode: response.status,
+                gradId: graduationId,
+                studentId: studentId,
+                action: 'verifyPassword'
+            });
             throw new Error(`Server error: ${response.status}`);
         }
 
         const result = await response.json();
+        if (!result.isValid) {
+            logger.warn('Invalid password attempt', {
+                gradId: graduationId,
+                studentId: studentId,
+                action: 'verifyPassword'
+            });
+        }
+        logger.debug('Password verification result', { isValid: result.isValid });
         return result.isValid;
     } catch (error) {
-        console.error('Password verification error:', error);
+        logger.error('Password verification error', error, {
+            gradId: graduationId,
+            studentId: studentId,
+            action: 'verifyPassword'
+        });
         throw new Error('Failed to verify password. Please try again.');
     }
 };
@@ -54,9 +75,24 @@ export const verifyStudentPassword = async (graduationId, studentId, password) =
  */
 export const signUp = async (email, password) => {
     try {
-        return await createUserWithEmailAndPassword(auth, email, password);
+        logger.debug('Attempting user sign up', { email });
+        const result = await createUserWithEmailAndPassword(auth, email, password);
+        
+        // Set user context in Sentry for tracking
+        setUserContext(result.user.uid, email);
+        
+        // Log success with Sentry context
+        logger.authAction('signup', result.user.uid, email, {
+            method: 'email/password'
+        });
+        
+        return result;
     } catch (error) {
-        console.error('Sign up error:', error);
+        logger.error('Sign up error', error, {
+            email: email,
+            action: 'signup',
+            errorCode: error.code
+        });
         throw new Error(`Sign up failed: ${error.message}`);
     }
 };
@@ -69,9 +105,24 @@ export const signUp = async (email, password) => {
  */
 export const signIn = async (email, password) => {
     try {
-        return await signInWithEmailAndPassword(auth, email, password);
+        logger.debug('Attempting user sign in', { email });
+        const result = await signInWithEmailAndPassword(auth, email, password);
+        
+        // Set user context in Sentry for tracking
+        setUserContext(result.user.uid, email);
+        
+        // Log success with Sentry context
+        logger.authAction('login', result.user.uid, email, {
+            method: 'email/password'
+        });
+        
+        return result;
     } catch (error) {
-        console.error('Sign in error:', error);
+        logger.error('Sign in error', error, {
+            email: email,
+            action: 'signin',
+            errorCode: error.code
+        });
         throw new Error(`Sign in failed: ${error.message}`);
     }
 };
@@ -82,9 +133,23 @@ export const signIn = async (email, password) => {
  */
 export const signOut = async () => {
     try {
-        return await firebaseSignOut(auth);
+        logger.debug('Attempting user sign out');
+        const result = await firebaseSignOut(auth);
+        
+        // Clear user context in Sentry
+        clearUserContext();
+        
+        // Log success with Sentry context
+        logger.authAction('logout', 'anonymous', null, {
+            method: 'manual'
+        });
+        
+        return result;
     } catch (error) {
-        console.error('Sign out error:', error);
+        logger.error('Sign out error', error, {
+            action: 'signout',
+            errorCode: error.code
+        });
         throw new Error(`Sign out failed: ${error.message}`);
     }
 };

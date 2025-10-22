@@ -27,37 +27,12 @@ export const ensurePublicPdfUrl = (url) => {
 
 /**
  * Get the current graduation ID from URL hash
+ * @deprecated Use parseRoute() from js/router/routes.js instead
  * @returns {string|null} The graduation ID or null if not found
  */
 export function getCurrentGradId() {
     const path = window.location.hash;
     const match = path.match(/#\/graduation\/([^\/]+)/);
-    return match ? decodeURIComponent(match[1]) : null;
-}
-
-/**
- * Navigate to a specific graduation page
- * @param {string} gradId - The graduation ID
- */
-export function navigateToGraduation(gradId) {
-    window.location.hash = `#/graduation/${encodeURIComponent(gradId)}`;
-}
-
-/**
- * Navigate to public view
- * @param {string} gradId - The graduation ID
- */
-export function navigateToPublicView(gradId) {
-    window.location.hash = `#/view/${encodeURIComponent(gradId)}`;
-}
-
-/**
- * Get the current public view ID from URL hash
- * @returns {string|null} The graduation ID or null if not found
- */
-export function getCurrentPublicViewId() {
-    const path = window.location.hash;
-    const match = path.match(/#\/view\/([^\/]+)/);
     return match ? decodeURIComponent(match[1]) : null;
 }
 
