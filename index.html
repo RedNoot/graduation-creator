@@ -386,6 +386,11 @@
 
         const renderStudentsTab = async (gradId) => {
             console.log('[Students Tab] renderStudentsTab called with gradId:', gradId);
+            
+            // Load graduation config to check if cover pages are enabled
+            const graduation = await GraduationRepository.getById(gradId);
+            const config = graduation?.config || {};
+            
             const contentContainer = document.getElementById('tab-content');
             contentContainer.innerHTML = `
                 <div class="bg-white p-6 rounded-lg shadow">
