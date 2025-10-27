@@ -60,7 +60,7 @@ const optimizeCloudinaryPdfUrl = (url) => {
  */
 const createTocPage = async (pdfDoc, tocEntries, colors) => {
     const tocPage = pdfDoc.addPage([612, 792]); // Letter size
-    const { width, height } = tocPage.getSize();
+    const { width, height} = tocPage.getSize();
     
     // Embed standard fonts
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -129,6 +129,209 @@ const createTocPage = async (pdfDoc, tocEntries, colors) => {
     }
     
     return tocPage;
+};
+
+/**
+ * Helper function to create a student cover page with photos and speech
+ * @param {PDFDocument} pdfDoc - The PDF document
+ * @param {Object} student - Student data with name, coverPhotoBeforeUrl, coverPhotoAfterUrl, graduationSpeech
+ * @param {Object} colors - Color scheme {primaryColor, secondaryColor, textColor}
+ * @returns {Promise<Page>} The created cover page
+ */
+const createStudentCoverPage = async (pdfDoc, student, colors) => {
+    const coverPage = pdfDoc.addPage([612, 792]); // Letter size
+    const { width, height } = coverPage.getSize();
+    
+    // Embed fonts
+    const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    
+    let yPosition = height - 80;
+    
+    // Draw student name as title
+    const nameText = student.name || 'Student';
+    const nameWidth = boldFont.widthOfTextAtSize(nameText, 24);
+    coverPage.drawText(nameText, {
+        x: (width - nameWidth) / 2, // Center horizontally
+        y: yPosition,
+        size: 24,
+        font: boldFont,
+        color: rgb(colors.primaryColor.r, colors.primaryColor.g, colors.primaryColor.b),
+    });
+    
+    // Draw decorative line
+    coverPage.drawLine({
+        start: { x: 50, y: yPosition - 10 },
+        end: { x: width - 50, y: yPosition - 10 },
+        thickness: 2,
+        color: rgb(colors.primaryColor.r, colors.primaryColor.g, colors.primaryColor.b),
+    });
+    
+    yPosition -= 50;
+    
+    // Add photos if available
+    if (student.coverPhotoBeforeUrl || student.coverPhotoAfterUrl) {
+        const photoHeight = 250;
+        const photoWidth = 200;
+        const spacing = 30;
+        
+        // Calculate positions for side-by-side photos
+        const totalWidth = (student.coverPhotoBeforeUrl && student.coverPhotoAfterUrl) 
+            ? (photoWidth * 2 + spacing) 
+            : photoWidth;
+        const startX = (width - totalWidth) / 2;
+        
+        let currentX = startX;
+        
+        // Before photo
+        if (student.coverPhotoBeforeUrl) {
+            try {
+                const imageResponse = await fetch(student.coverPhotoBeforeUrl);
+                if (imageResponse.ok) {
+                    const imageBytes = await imageResponse.arrayBuffer();
+                    let embeddedImage;
+                    
+                    // Determine image type and embed
+                    if (student.coverPhotoBeforeUrl.toLowerCase().includes('.png')) {
+                        embeddedImage = await pdfDoc.embedPng(imageBytes);
+                    } else {
+                        embeddedImage = await pdfDoc.embedJpg(imageBytes);
+                    }
+                    
+                    // Draw image maintaining aspect ratio
+                    const imageDims = embeddedImage.scale(1);
+                    const scale = Math.min(photoWidth / imageDims.width, photoHeight / imageDims.height);
+                    const scaledWidth = imageDims.width * scale;
+                    const scaledHeight = imageDims.height * scale;
+                    
+                    coverPage.drawImage(embeddedImage, {
+                        x: currentX + (photoWidth - scaledWidth) / 2,
+                        y: yPosition - scaledHeight,
+                        width: scaledWidth,
+                        height: scaledHeight,
+                    });
+                    
+                    // Label
+                    const labelText = 'Before';
+                    const labelWidth = regularFont.widthOfTextAtSize(labelText, 12);
+                    coverPage.drawText(labelText, {
+                        x: currentX + (photoWidth - labelWidth) / 2,
+                        y: yPosition - scaledHeight - 20,
+                        size: 12,
+                        font: regularFont,
+                        color: rgb(colors.secondaryColor.r, colors.secondaryColor.g, colors.secondaryColor.b),
+                    });
+                    
+                    currentX += photoWidth + spacing;
+                }
+            } catch (error) {
+                console.error(`Failed to embed before photo for ${student.name}:`, error.message);
+            }
+        }
+        
+        // After photo
+        if (student.coverPhotoAfterUrl) {
+            try {
+                const imageResponse = await fetch(student.coverPhotoAfterUrl);
+                if (imageResponse.ok) {
+                    const imageBytes = await imageResponse.arrayBuffer();
+                    let embeddedImage;
+                    
+                    if (student.coverPhotoAfterUrl.toLowerCase().includes('.png')) {
+                        embeddedImage = await pdfDoc.embedPng(imageBytes);
+                    } else {
+                        embeddedImage = await pdfDoc.embedJpg(imageBytes);
+                    }
+                    
+                    const imageDims = embeddedImage.scale(1);
+                    const scale = Math.min(photoWidth / imageDims.width, photoHeight / imageDims.height);
+                    const scaledWidth = imageDims.width * scale;
+                    const scaledHeight = imageDims.height * scale;
+                    
+                    // If only after photo, center it
+                    const photoX = student.coverPhotoBeforeUrl ? currentX : startX;
+                    
+                    coverPage.drawImage(embeddedImage, {
+                        x: photoX + (photoWidth - scaledWidth) / 2,
+                        y: yPosition - scaledHeight,
+                        width: scaledWidth,
+                        height: scaledHeight,
+                    });
+                    
+                    // Label
+                    const labelText = 'After';
+                    const labelWidth = regularFont.widthOfTextAtSize(labelText, 12);
+                    coverPage.drawText(labelText, {
+                        x: photoX + (photoWidth - labelWidth) / 2,
+                        y: yPosition - scaledHeight - 20,
+                        size: 12,
+                        font: regularFont,
+                        color: rgb(colors.secondaryColor.r, colors.secondaryColor.g, colors.secondaryColor.b),
+                    });
+                }
+            } catch (error) {
+                console.error(`Failed to embed after photo for ${student.name}:`, error.message);
+            }
+        }
+        
+        yPosition -= (photoHeight + 60);
+    }
+    
+    // Add graduation speech if available
+    if (student.graduationSpeech) {
+        const speechText = student.graduationSpeech;
+        const maxWidth = width - 100;
+        const lineHeight = 16;
+        const fontSize = 11;
+        
+        // Word wrap the speech text
+        const words = speechText.split(' ');
+        const lines = [];
+        let currentLine = '';
+        
+        for (const word of words) {
+            const testLine = currentLine + (currentLine ? ' ' : '') + word;
+            const testWidth = regularFont.widthOfTextAtSize(testLine, fontSize);
+            
+            if (testWidth > maxWidth && currentLine) {
+                lines.push(currentLine);
+                currentLine = word;
+            } else {
+                currentLine = testLine;
+            }
+        }
+        if (currentLine) {
+            lines.push(currentLine);
+        }
+        
+        // Draw speech heading
+        coverPage.drawText('Graduation Speech', {
+            x: 50,
+            y: yPosition,
+            size: 14,
+            font: boldFont,
+            color: rgb(colors.primaryColor.r, colors.primaryColor.g, colors.primaryColor.b),
+        });
+        
+        yPosition -= 25;
+        
+        // Draw speech text
+        for (const line of lines) {
+            if (yPosition < 60) break; // Don't go off page
+            
+            coverPage.drawText(line, {
+                x: 50,
+                y: yPosition,
+                size: fontSize,
+                font: regularFont,
+                color: rgb(colors.textColor.r, colors.textColor.g, colors.textColor.b),
+            });
+            
+            yPosition -= lineHeight;
+        }
+    }
+    
+    return coverPage;
 };
 
 exports.handler = async (event, context) => {
@@ -295,7 +498,11 @@ exports.handler = async (event, context) => {
                 studentsWithPdfs.push({
                     name: student.name,
                     pdfUrl: student.profilePdfUrl,
-                    order: student.order !== undefined ? student.order : 999999 // Include order field
+                    order: student.order !== undefined ? student.order : 999999, // Include order field
+                    // Include cover page fields
+                    coverPhotoBeforeUrl: student.coverPhotoBeforeUrl || null,
+                    coverPhotoAfterUrl: student.coverPhotoAfterUrl || null,
+                    graduationSpeech: student.graduationSpeech || null
                 });
                 console.log(`[Student PDF Found] ${student.name}: ${student.profilePdfUrl} (order: ${student.order})`);
             }
@@ -648,6 +855,20 @@ exports.handler = async (event, context) => {
             console.log(`Processing PDF ${i + 1}/${studentsWithPdfs.length} for student: ${student.name}`);
 
             try {
+                // Check if cover pages are enabled and student has cover content
+                const hasCoverContent = (student.coverPhotoBeforeUrl || student.coverPhotoAfterUrl || student.graduationSpeech);
+                
+                if (config.enableStudentCoverPages && hasCoverContent) {
+                    console.log(`Creating cover page for ${student.name}`);
+                    try {
+                        await createStudentCoverPage(mergedPdf, student, { primaryColor, secondaryColor, textColor });
+                        console.log(`Successfully added cover page for ${student.name}`);
+                    } catch (coverError) {
+                        console.error(`Failed to create cover page for ${student.name}:`, coverError.message);
+                        // Continue with main PDF even if cover page fails
+                    }
+                }
+                
                 // Use the PDF URL directly - files are uploaded as public type for easier access
                 const pdfUrl = student.pdfUrl;
                 const optimizedUrl = optimizeCloudinaryPdfUrl(pdfUrl);

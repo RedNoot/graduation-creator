@@ -481,3 +481,172 @@ export async function importStudentsFromCSV(file, accessType, gradId, handlers) 
         showErrorModal('Import Error', `Failed to import CSV: ${error.message}`);
     }
 }
+
+/**
+ * Edit student cover page (photos and speech)
+ * @param {string} studentId - ID of student
+ * @param {string} studentName - Name of student
+ * @param {string} gradId - Graduation ID
+ * @param {Object} config - Graduation config object
+ */
+export async function editStudentCoverPage(studentId, studentName, gradId, config) {
+    // Import necessary modules
+    const { StudentRepository } = await import('../data/student-repository.js');
+    const { showModal, showLoadingModal } = await import('../components/modal.js');
+    const { uploadToCloudinary } = await import('../services/cloudinary.js');
+    
+    // Get student data
+    const student = await StudentRepository.getById(gradId, studentId);
+    
+    // Build modal content based on config settings
+    let modalContent = `
+        <div class="space-y-4">
+            <p class="text-sm text-gray-600 mb-4">
+                Personalize ${studentName}'s cover page for the graduation booklet.
+            </p>
+    `;
+    
+    // Photo uploads section
+    if (config.allowCoverPhotos) {
+        modalContent += `
+            <div class="border-t pt-4">
+                <h4 class="font-medium text-gray-900 mb-3">Before & After Photos 📸</h4>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <!-- Before Photo -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Before Photo</label>
+                        ${student.coverPhotoBeforeUrl ? `
+                            <div class="mb-2">
+                                <img src="${student.coverPhotoBeforeUrl}" alt="Before" class="w-full h-32 object-cover rounded border">
+                                <button id="remove-before-photo" class="mt-1 text-xs text-red-600 hover:text-red-800">Remove Photo</button>
+                            </div>
+                        ` : ''}
+                        <input type="file" id="cover-photo-before" accept="image/*" class="block w-full text-sm text-gray-500 file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    </div>
+                    
+                    <!-- After Photo -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">After Photo</label>
+                        ${student.coverPhotoAfterUrl ? `
+                            <div class="mb-2">
+                                <img src="${student.coverPhotoAfterUrl}" alt="After" class="w-full h-32 object-cover rounded border">
+                                <button id="remove-after-photo" class="mt-1 text-xs text-red-600 hover:text-red-800">Remove Photo</button>
+                            </div>
+                        ` : ''}
+                        <input type="file" id="cover-photo-after" accept="image/*" class="block w-full text-sm text-gray-500 file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Speech section
+    if (config.allowCoverSpeeches) {
+        modalContent += `
+            <div class="border-t pt-4">
+                <h4 class="font-medium text-gray-900 mb-3">Graduation Speech 🎓</h4>
+                <textarea 
+                    id="graduation-speech" 
+                    rows="6" 
+                    placeholder="Enter graduation speech..."
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                >${student.graduationSpeech || ''}</textarea>
+                <p class="mt-1 text-xs text-gray-500">This will appear on the cover page in the PDF booklet.</p>
+            </div>
+        `;
+    }
+    
+    modalContent += `
+        </div>
+    `;
+    
+    // Show modal with custom buttons
+    showModal(`Edit Cover Page - ${studentName}`, modalContent, true, [
+        {
+            text: 'Cancel',
+            onclick: () => {},
+            style: 'bg-gray-300 text-gray-700 hover:bg-gray-400'
+        },
+        {
+            text: 'Save Changes',
+            onclick: async () => {
+                try {
+                    const closeLoading = showLoadingModal('Saving...', 'Saving cover page changes...');
+                    
+                    const updates = {};
+                    
+                    // Handle photo uploads
+                    if (config.allowCoverPhotos) {
+                        const beforeFileInput = document.getElementById('cover-photo-before');
+                        const afterFileInput = document.getElementById('cover-photo-after');
+                        
+                        if (beforeFileInput?.files[0]) {
+                            const beforeUrl = await uploadToCloudinary(beforeFileInput.files[0], `graduation-${gradId}-student-${studentId}-before`);
+                            updates.coverPhotoBeforeUrl = beforeUrl;
+                        }
+                        
+                        if (afterFileInput?.files[0]) {
+                            const afterUrl = await uploadToCloudinary(afterFileInput.files[0], `graduation-${gradId}-student-${studentId}-after`);
+                            updates.coverPhotoAfterUrl = afterUrl;
+                        }
+                    }
+                    
+                    // Handle speech
+                    if (config.allowCoverSpeeches) {
+                        const speechTextarea = document.getElementById('graduation-speech');
+                        if (speechTextarea) {
+                            updates.graduationSpeech = speechTextarea.value.trim() || null;
+                        }
+                    }
+                    
+                    // Save updates
+                    await StudentRepository.update(gradId, studentId, updates);
+                    
+                    closeLoading();
+                    showModal('Success!', 'Cover page updated successfully!');
+                    
+                    // Refresh after short delay
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                    
+                } catch (error) {
+                    console.error('Error saving cover page:', error);
+                    showModal('Error', `Failed to save cover page: ${error.message}`);
+                }
+            },
+            style: 'bg-indigo-600 text-white hover:bg-indigo-700'
+        }
+    ]);
+    
+    // Add event listeners for remove photo buttons (after modal is shown)
+    setTimeout(() => {
+        const removeBeforeBtn = document.getElementById('remove-before-photo');
+        const removeAfterBtn = document.getElementById('remove-after-photo');
+        
+        if (removeBeforeBtn) {
+            removeBeforeBtn.addEventListener('click', async () => {
+                try {
+                    await StudentRepository.update(gradId, studentId, { coverPhotoBeforeUrl: null });
+                    showModal('Success', 'Before photo removed!');
+                    setTimeout(() => window.location.reload(), 800);
+                } catch (error) {
+                    showModal('Error', 'Failed to remove photo');
+                }
+            });
+        }
+        
+        if (removeAfterBtn) {
+            removeAfterBtn.addEventListener('click', async () => {
+                try {
+                    await StudentRepository.update(gradId, studentId, { coverPhotoAfterUrl: null });
+                    showModal('Success', 'After photo removed!');
+                    setTimeout(() => window.location.reload(), 800);
+                } catch (error) {
+                    showModal('Error', 'Failed to remove photo');
+                }
+            });
+        }
+    }, 100);
+}
