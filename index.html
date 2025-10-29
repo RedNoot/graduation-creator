@@ -778,6 +778,13 @@
                             </div>
                             
                             <div>
+                                <label for="content-video-url" class="block text-sm font-medium text-gray-700">Video URL (Optional) 🎥</label>
+                                <input type="url" id="content-video-url" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="YouTube, Vimeo, or direct video URL">
+                                <p class="mt-1 text-xs text-gray-500">Add a video that will be displayed on the website (video pages are excluded from PDF)</p>
+                                <p class="mt-1 text-xs text-indigo-600">Supports: YouTube, Vimeo, or direct .mp4/.webm links</p>
+                            </div>
+                            
+                            <div>
                                 <label for="content-type" class="block text-sm font-medium text-gray-700">Content Type</label>
                                 <select id="content-type" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
                                     <option value="text">Text Content</option>
@@ -857,6 +864,7 @@
                         const authorPhotoParam = content.authorPhotoUrl ? `'${content.authorPhotoUrl}'` : 'null';
                         const bodyImagesParam = content.bodyImageUrls ? JSON.stringify(content.bodyImageUrls) : '[]';
                         const imageSizeParam = content.imageSize ? `'${content.imageSize}'` : "'medium'";
+                        const videoUrlParam = content.videoUrl ? `'${content.videoUrl}'` : 'null';
                         
                         html += `
                             <div class="border border-gray-200 rounded-lg p-4">
@@ -870,6 +878,7 @@
                                             </div>
                                         </div>
                                         <span class="inline-block mt-2 px-2 py-1 text-xs font-medium rounded-full ${getContentTypeStyle(content.type)}">${getContentTypeLabel(content.type)}</span>
+                                        ${content.videoUrl ? `<span class="inline-block mt-2 ml-2 px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">🎥 Has Video</span>` : ''}
                                         <p class="mt-3 text-gray-700">${preview}</p>
                                         ${content.bodyImageUrls && content.bodyImageUrls.length > 0 ? `
                                             <div class="mt-2 flex gap-2">
@@ -879,7 +888,7 @@
                                         ` : ''}
                                     </div>
                                     <div class="flex gap-2 ml-4">
-                                        <button onclick="window.editContentPage('${content.id}', '${escapedTitle}', '${escapedAuthor}', '${content.type}', \`${escapedContent}\`, ${authorPhotoParam}, ${bodyImagesParam}, ${imageSizeParam})" class="text-indigo-600 hover:text-indigo-800 text-sm">Edit</button>
+                                        <button onclick="window.editContentPage('${content.id}', '${escapedTitle}', '${escapedAuthor}', '${content.type}', \`${escapedContent}\`, ${authorPhotoParam}, ${bodyImagesParam}, ${imageSizeParam}, ${videoUrlParam})" class="text-indigo-600 hover:text-indigo-800 text-sm">Edit</button>
                                         <button onclick="deleteContentPageWrapper('${content.id}')" class="text-red-600 hover:text-red-800 text-sm">Delete</button>
                                     </div>
                                 </div>
@@ -2214,6 +2223,76 @@ Are you absolutely sure you want to continue?`,
             }
         };
         
+        /**
+         * Convert video URL to embedded player HTML
+         * Supports YouTube, Vimeo, and direct video URLs
+         * @param {string} url - Video URL
+         * @returns {string} - HTML for embedded video player
+         */
+        const convertVideoUrlToEmbed = (url) => {
+            if (!url) return '';
+            
+            // YouTube detection and conversion
+            const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+            const youtubeMatch = url.match(youtubeRegex);
+            if (youtubeMatch && youtubeMatch[1]) {
+                return `
+                    <div class="relative w-full mb-4" style="padding-bottom: 56.25%;">
+                        <iframe 
+                            class="absolute top-0 left-0 w-full h-full rounded-lg shadow-lg"
+                            src="https://www.youtube.com/embed/${youtubeMatch[1]}" 
+                            frameborder="0" 
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                            allowfullscreen>
+                        </iframe>
+                    </div>
+                `;
+            }
+            
+            // Vimeo detection and conversion
+            const vimeoRegex = /vimeo\.com\/(?:channels\/(?:\w+\/)?|groups\/([^\/]*)\/videos\/|album\/(\d+)\/video\/|)(\d+)(?:$|\/|\?)/;
+            const vimeoMatch = url.match(vimeoRegex);
+            if (vimeoMatch && vimeoMatch[3]) {
+                return `
+                    <div class="relative w-full mb-4" style="padding-bottom: 56.25%;">
+                        <iframe 
+                            class="absolute top-0 left-0 w-full h-full rounded-lg shadow-lg"
+                            src="https://player.vimeo.com/video/${vimeoMatch[3]}" 
+                            frameborder="0" 
+                            allow="autoplay; fullscreen; picture-in-picture" 
+                            allowfullscreen>
+                        </iframe>
+                    </div>
+                `;
+            }
+            
+            // Direct video file (mp4, webm, ogg)
+            if (url.match(/\.(mp4|webm|ogg)$/i)) {
+                return `
+                    <div class="mb-4">
+                        <video 
+                            class="w-full rounded-lg shadow-lg" 
+                            controls 
+                            preload="metadata"
+                            style="max-height: 500px;">
+                            <source src="${url}" type="video/${url.split('.').pop().toLowerCase()}">
+                            Your browser does not support the video tag.
+                        </video>
+                    </div>
+                `;
+            }
+            
+            // Fallback: display as link
+            return `
+                <div class="mb-4 p-4 bg-gray-100 rounded-lg">
+                    <p class="text-sm text-gray-600 mb-2">Video content:</p>
+                    <a href="${url}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 underline break-all">
+                        ${url}
+                    </a>
+                </div>
+            `;
+        };
+
         const renderPublicView = async (gradData, students, gradId) => {
              const { config } = gradData;
              const fontFamily = config.font || 'Inter';
@@ -2376,6 +2455,7 @@ Are you absolutely sure you want to continue?`,
                                                                     ${page.author ? `<p class="text-sm text-gray-600">By: ${page.author}</p>` : ''}
                                                                 </div>
                                                             </div>
+                                                            ${page.videoUrl ? convertVideoUrlToEmbed(page.videoUrl) : ''}
                                                             <div class="prose prose-sm mb-4">${page.content.replace(/\n/g, '<br>')}</div>
                                                             ${page.bodyImageUrls && page.bodyImageUrls.length > 0 ? `
                                                                 <div class="grid grid-cols-2 gap-2 mt-4">
@@ -2418,6 +2498,7 @@ Are you absolutely sure you want to continue?`,
                                                                     ${page.author ? `<p class="text-gray-600 italic">By: ${page.author}</p>` : ''}
                                                                 </div>
                                                             </div>
+                                                            ${page.videoUrl ? convertVideoUrlToEmbed(page.videoUrl) : ''}
                                                             <div class="prose prose-lg max-w-none mb-6">${page.content.replace(/\n/g, '<br>')}</div>
                                                             ${page.bodyImageUrls && page.bodyImageUrls.length > 0 ? `
                                                                 <div class="grid grid-cols-2 gap-4 mt-6">

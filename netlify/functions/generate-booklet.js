@@ -785,7 +785,8 @@ exports.handler = async (event, context) => {
         
         for (const section of sectionsOrder) {
             if (section === 'messages' && config.showMessages !== false) {
-                const messagePages = contentPages.filter(p => p.type === 'thanks' || p.type === 'memory');
+                // Filter out video pages from PDF (videos are web-only)
+                const messagePages = contentPages.filter(p => (p.type === 'thanks' || p.type === 'memory') && !p.videoUrl);
                 if (messagePages.length > 0) {
                     // Record ToC entry
                     tocEntries.push({
@@ -812,7 +813,8 @@ exports.handler = async (event, context) => {
                     console.log(`Added ${messagePages.length} message pages to booklet`);
                 }
             } else if (section === 'speeches' && config.showSpeeches !== false) {
-                const speechPages = contentPages.filter(p => p.type === 'speech' || p.type === 'text');
+                // Filter out video pages from PDF (videos are web-only)
+                const speechPages = contentPages.filter(p => (p.type === 'speech' || p.type === 'text') && !p.videoUrl);
                 if (speechPages.length > 0) {
                     // Record ToC entry
                     tocEntries.push({
