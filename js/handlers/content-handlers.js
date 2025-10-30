@@ -47,11 +47,11 @@ export function setupContentFormHandler(formElement, gradId, handlers) {
         const type = document.getElementById('content-type').value;
         const content = sanitizeInput(document.getElementById('content-body').value, 'text');
         const imageSize = document.getElementById('image-size').value;
-        const videoUrl = document.getElementById('content-video-url')?.value.trim() || null;
         
-        // Get image files
+        // Get file inputs
         const authorPhotoInput = document.getElementById('content-author-photo');
         const bodyImagesInput = document.getElementById('content-body-images');
+        const videoFileInput = document.getElementById('content-video-upload');
 
         if (!title || !content) {
             showModal('Error', 'Please fill in the title and content fields.');
@@ -61,9 +61,10 @@ export function setupContentFormHandler(formElement, gradId, handlers) {
         try {
             showModal('Uploading', 'Uploading images and saving content...', false);
             
-            // Check for existing images when editing
+            // Check for existing images and video when editing
             const authorPhotoPreview = document.getElementById('author-photo-preview');
             const bodyImagesPreview = document.getElementById('body-images-preview');
+            const videoPreview = document.getElementById('video-preview');
             const editId = e.target.dataset.editId;
             
             // Upload author photo if present, or keep existing
@@ -88,6 +89,25 @@ export function setupContentFormHandler(formElement, gradId, handlers) {
                 );
                 const newUrls = await Promise.all(uploadPromises);
                 bodyImageUrls = [...bodyImageUrls, ...newUrls];
+            }
+            
+            // Upload video if present, or keep existing
+            let videoUrl = null;
+            if (editId && videoPreview.dataset.existingUrl) {
+                // Keep existing video when editing
+                videoUrl = videoPreview.dataset.existingUrl;
+            }
+            if (videoFileInput && videoFileInput.files.length > 0) {
+                // Upload new video with progress tracking
+                showModal('Uploading', 'Uploading video (0%)...', false);
+                videoUrl = await uploadVideoToCloudinary(
+                    videoFileInput.files[0], 
+                    'content-videos',
+                    (progress) => {
+                        showModal('Uploading', `Uploading video (${Math.round(progress)}%)...`, false);
+                    }
+                );
+                showModal('Uploading', 'Processing content...', false);
             }
             
             const { ContentRepository } = await import('../data/content-repository.js');
@@ -161,6 +181,53 @@ async function uploadImageToCloudinary(file, folder) {
 }
 
 /**
+ * Upload video to Cloudinary
+ * @param {File} file - Video file to upload
+ * @param {string} folder - Cloudinary folder name
+ * @param {Function} progressCallback - Optional callback for upload progress
+ * @returns {Promise<string>} - URL of uploaded video
+ */
+async function uploadVideoToCloudinary(file, folder, progressCallback) {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+    formData.append('folder', folder);
+    formData.append('resource_type', 'video'); // Important: specify video resource type
+    
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        
+        // Track upload progress for large video files
+        if (progressCallback) {
+            xhr.upload.addEventListener('progress', (e) => {
+                if (e.lengthComputable) {
+                    const percentComplete = (e.loaded / e.total) * 100;
+                    progressCallback(percentComplete);
+                }
+            });
+        }
+        
+        xhr.addEventListener('load', () => {
+            if (xhr.status === 200) {
+                const data = JSON.parse(xhr.responseText);
+                resolve(data.secure_url);
+            } else {
+                const errorData = JSON.parse(xhr.responseText || '{}');
+                console.error('Cloudinary video upload error:', errorData);
+                reject(new Error(`Failed to upload video to Cloudinary: ${errorData.error?.message || xhr.statusText}`));
+            }
+        });
+        
+        xhr.addEventListener('error', () => {
+            reject(new Error('Network error during video upload'));
+        });
+        
+        xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/video/upload`);
+        xhr.send(formData);
+    });
+}
+
+/**
  * Setup edit content handler (called via onclick)
  * @param {string} docId - Document ID
  * @param {string} title - Content title
@@ -178,7 +245,6 @@ export function editContentPage(docId, title, author, type, content, authorPhoto
     document.getElementById('content-type').value = type;
     document.getElementById('content-body').value = content;
     document.getElementById('image-size').value = imageSize || 'medium';
-    document.getElementById('content-video-url').value = videoUrl || '';
     
     // Show author photo if exists
     if (authorPhotoUrl) {
@@ -205,6 +271,16 @@ export function editContentPage(docId, title, author, type, content, authorPhoto
         });
         // Store the URLs so we don't lose them on save
         bodyImagesPreview.dataset.existingUrls = JSON.stringify(bodyImageUrls);
+    }
+    
+    // Show video if exists
+    if (videoUrl) {
+        const videoPreview = document.getElementById('video-preview');
+        const videoPlayer = document.getElementById('video-preview-player');
+        videoPlayer.src = videoUrl;
+        videoPreview.classList.remove('hidden');
+        // Store the URL so we don't lose it on save
+        videoPreview.dataset.existingUrl = videoUrl;
     }
     
     // Set the form into edit mode
