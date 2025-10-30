@@ -1197,6 +1197,81 @@
                         <div id="settings-tab-design" class="settings-tab-content">
                             <h4 class="text-xl font-semibold text-gray-900 mb-6">🎨 Design & Appearance</h4>
                             
+                            <!-- Live Preview Section -->
+                            <div class="mb-8 p-6 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg border-2 border-gray-200">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h5 class="text-lg font-medium text-gray-900">👁️ Live Preview</h5>
+                                    <span class="px-3 py-1 text-xs font-semibold bg-green-100 text-green-800 rounded-full">Real-time</span>
+                                </div>
+                                
+                                <!-- Preview Container -->
+                                <div id="design-preview-container" class="bg-white rounded-lg shadow-lg overflow-hidden" style="min-height: 400px;">
+                                    <!-- Preview Header -->
+                                    <div id="preview-header" class="p-6 transition-all duration-300" style="background-color: var(--preview-bg, #F9FAFB);">
+                                        <div id="preview-header-content" class="text-center">
+                                            <div id="preview-logo-container" class="mb-4 flex justify-center">
+                                                <div class="w-16 h-16 bg-gray-300 rounded-full flex items-center justify-center">
+                                                    <svg class="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                                    </svg>
+                                                </div>
+                                            </div>
+                                            <h1 id="preview-title" class="text-3xl font-bold mb-2 transition-all duration-300" style="color: var(--preview-primary, #3B82F6);">
+                                                Class of 2024
+                                            </h1>
+                                            <p id="preview-subtitle" class="text-lg transition-all duration-300" style="color: var(--preview-secondary, #6B7280);">
+                                                Lincoln High School
+                                            </p>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Preview Student Cards -->
+                                    <div id="preview-cards-container" class="p-6" style="background-color: var(--preview-bg, #F9FAFB);">
+                                        <div id="preview-cards-grid" class="grid gap-6 transition-all duration-300">
+                                            <!-- Sample Student Card 1 -->
+                                            <div class="preview-student-card bg-white transition-all duration-300" id="preview-card-1">
+                                                <div class="flex items-center space-x-4">
+                                                    <div class="w-20 h-20 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex-shrink-0"></div>
+                                                    <div class="flex-1">
+                                                        <h3 class="text-lg font-semibold" style="color: var(--preview-primary, #3B82F6);">Sarah Johnson</h3>
+                                                        <p class="text-sm" style="color: var(--preview-secondary, #6B7280);">Future Engineer</p>
+                                                        <p class="text-xs mt-1" style="color: var(--preview-secondary, #6B7280);">"Dream big, work hard"</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Sample Student Card 2 -->
+                                            <div class="preview-student-card bg-white transition-all duration-300" id="preview-card-2">
+                                                <div class="flex items-center space-x-4">
+                                                    <div class="w-20 h-20 rounded-full bg-gradient-to-br from-green-400 to-teal-500 flex-shrink-0"></div>
+                                                    <div class="flex-1">
+                                                        <h3 class="text-lg font-semibold" style="color: var(--preview-primary, #3B82F6);">Michael Chen</h3>
+                                                        <p class="text-sm" style="color: var(--preview-secondary, #6B7280);">Aspiring Doctor</p>
+                                                        <p class="text-xs mt-1" style="color: var(--preview-secondary, #6B7280);">"The future is now"</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Sample Student Card 3 -->
+                                            <div class="preview-student-card bg-white transition-all duration-300" id="preview-card-3">
+                                                <div class="flex items-center space-x-4">
+                                                    <div class="w-20 h-20 rounded-full bg-gradient-to-br from-pink-400 to-orange-500 flex-shrink-0"></div>
+                                                    <div class="flex-1">
+                                                        <h3 class="text-lg font-semibold" style="color: var(--preview-primary, #3B82F6);">Emma Rodriguez</h3>
+                                                        <p class="text-sm" style="color: var(--preview-secondary, #6B7280);">Creative Artist</p>
+                                                        <p class="text-xs mt-1" style="color: var(--preview-secondary, #6B7280);">"Stay curious, stay creative"</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <p class="mt-4 text-xs text-gray-600 text-center">
+                                    ✨ Changes are reflected instantly as you modify the design settings below
+                                </p>
+                            </div>
+                            
                             <!-- Basic Branding -->
                             <div class="space-y-6 pb-6 border-b">
                                 <h5 class="text-lg font-medium text-gray-900">Basic Branding</h5>
@@ -2084,6 +2159,151 @@
                 // Trigger a re-render of the editor to show the new logo
                 router(); 
              });
+             
+             // Live Preview Updates - Real-time design changes
+             function updateLivePreview() {
+                 // Get current values
+                 const primaryColor = document.getElementById('primaryColor')?.value || '#3B82F6';
+                 const secondaryColor = document.getElementById('secondaryColor')?.value || '#6B7280';
+                 const backgroundColor = document.getElementById('backgroundColor')?.value || '#F9FAFB';
+                 const cardStyle = document.getElementById('cardStyle')?.value || 'shadow';
+                 const borderRadius = document.getElementById('borderRadius')?.value || 'medium';
+                 const layout = document.getElementById('layout')?.value || 'grid';
+                 const headerStyle = document.getElementById('headerStyle')?.value || 'centered';
+                 const animationStyle = document.getElementById('animationStyle')?.value || 'none';
+                 const font = document.getElementById('font')?.value || 'Inter';
+                 
+                 // Update CSS variables for colors
+                 const previewContainer = document.getElementById('design-preview-container');
+                 if (!previewContainer) return;
+                 
+                 previewContainer.style.setProperty('--preview-primary', primaryColor);
+                 previewContainer.style.setProperty('--preview-secondary', secondaryColor);
+                 previewContainer.style.setProperty('--preview-bg', backgroundColor);
+                 
+                 // Update font
+                 previewContainer.style.fontFamily = font;
+                 
+                 // Update header style
+                 const previewHeader = document.getElementById('preview-header-content');
+                 if (previewHeader) {
+                     previewHeader.className = headerStyle === 'centered' ? 'text-center' : 
+                                              headerStyle === 'left' ? 'text-left' : 
+                                              headerStyle === 'banner' ? 'text-center py-8' : 
+                                              'text-center py-2';
+                 }
+                 
+                 // Update border radius for cards
+                 const radiusMap = {
+                     'none': '0px',
+                     'small': '4px',
+                     'medium': '8px',
+                     'large': '12px',
+                     'full': '50px'
+                 };
+                 
+                 // Update card style
+                 const cards = document.querySelectorAll('.preview-student-card');
+                 cards.forEach(card => {
+                     card.style.borderRadius = radiusMap[borderRadius] || '8px';
+                     card.style.padding = '1.5rem';
+                     
+                     // Apply card style
+                     if (cardStyle === 'shadow') {
+                         card.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
+                         card.style.border = 'none';
+                     } else if (cardStyle === 'border') {
+                         card.style.boxShadow = 'none';
+                         card.style.border = '2px solid #E5E7EB';
+                     } else if (cardStyle === 'elevated') {
+                         card.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)';
+                         card.style.border = 'none';
+                     } else if (cardStyle === 'minimal') {
+                         card.style.boxShadow = 'none';
+                         card.style.border = '1px solid #F3F4F6';
+                     }
+                 });
+                 
+                 // Update layout grid
+                 const cardsGrid = document.getElementById('preview-cards-grid');
+                 if (cardsGrid) {
+                     if (layout === 'grid') {
+                         cardsGrid.className = 'grid grid-cols-1 gap-6 transition-all duration-300';
+                     } else if (layout === 'scroll') {
+                         cardsGrid.className = 'flex space-x-6 overflow-x-auto transition-all duration-300';
+                     } else if (layout === 'cards') {
+                         cardsGrid.className = 'grid grid-cols-1 md:grid-cols-2 gap-6 transition-all duration-300';
+                     } else if (layout === 'list') {
+                         cardsGrid.className = 'space-y-4 transition-all duration-300';
+                     }
+                 }
+                 
+                 // Apply animations
+                 if (animationStyle !== 'none') {
+                     cards.forEach((card, index) => {
+                         card.style.animation = 'none';
+                         setTimeout(() => {
+                             if (animationStyle === 'fade') {
+                                 card.style.animation = `fadeIn 0.5s ease-out ${index * 0.1}s both`;
+                             } else if (animationStyle === 'slide') {
+                                 card.style.animation = `slideIn 0.5s ease-out ${index * 0.1}s both`;
+                             } else if (animationStyle === 'bounce') {
+                                 card.style.animation = `bounceIn 0.6s ease-out ${index * 0.1}s both`;
+                             }
+                         }, 10);
+                     });
+                 }
+             }
+             
+             // Add animation keyframes
+             const styleSheet = document.createElement('style');
+             styleSheet.textContent = `
+                 @keyframes fadeIn {
+                     from { opacity: 0; }
+                     to { opacity: 1; }
+                 }
+                 @keyframes slideIn {
+                     from { 
+                         opacity: 0;
+                         transform: translateX(-20px);
+                     }
+                     to { 
+                         opacity: 1;
+                         transform: translateX(0);
+                     }
+                 }
+                 @keyframes bounceIn {
+                     0% { 
+                         opacity: 0;
+                         transform: scale(0.3);
+                     }
+                     50% { 
+                         opacity: 1;
+                         transform: scale(1.05);
+                     }
+                     70% { transform: scale(0.9); }
+                     100% { transform: scale(1); }
+                 }
+             `;
+             document.head.appendChild(styleSheet);
+             
+             // Attach event listeners to all design inputs
+             const designInputs = [
+                 'primaryColor', 'secondaryColor', 'backgroundColor',
+                 'cardStyle', 'borderRadius', 'layout', 'headerStyle',
+                 'animationStyle', 'font'
+             ];
+             
+             designInputs.forEach(inputId => {
+                 const element = document.getElementById(inputId);
+                 if (element) {
+                     element.addEventListener('input', updateLivePreview);
+                     element.addEventListener('change', updateLivePreview);
+                 }
+             });
+             
+             // Initial preview update
+             setTimeout(updateLivePreview, 100);
              
              // Delete project handler
              const deleteProjectBtn = document.getElementById('delete-project-btn');
