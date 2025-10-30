@@ -8,6 +8,30 @@ import { goToDashboard } from './navigation.js';
 import { GraduationRepository } from '../data/graduation-repository.js';
 import { StudentRepository } from '../data/student-repository.js';
 import { logger } from '../utils/logger.js';
+import { isSlug, extractIdFromSlug } from '../utils/url-slug.js';
+
+/**
+ * Resolve a slug or ID to a graduation ID
+ * If it's a slug, query Firestore to find the graduation by slug
+ * Otherwise return the ID as-is
+ * @param {string} identifier - Slug or graduation ID
+ * @returns {Promise<string|null>} - Graduation ID or null if not found
+ */
+async function resolveGraduationIdentifier(identifier) {
+    // If it's just an ID (no hyphens or looks like a document ID), return as-is
+    if (!isSlug(identifier)) {
+        return identifier;
+    }
+    
+    // It's a slug - query Firestore to find the graduation
+    try {
+        const graduation = await GraduationRepository.getBySlug(identifier);
+        return graduation ? graduation.id : null;
+    } catch (error) {
+        console.error('Error resolving slug:', error);
+        return null;
+    }
+}
 
 /**
  * Main router for authenticated users
@@ -48,7 +72,15 @@ export const createRouter = ({
         try {
             switch (route.name) {
                 case 'EDIT_GRADUATION': {
-                    const { gradId } = route.params;
+                    const { gradId: identifier } = route.params;
+                    
+                    // Resolve slug to ID if necessary
+                    const gradId = await resolveGraduationIdentifier(identifier);
+                    
+                    if (!gradId) {
+                        goToDashboard();
+                        return;
+                    }
 
                     // Detach any previous listener
                     if (currentGraduationListener.current) {
@@ -130,7 +162,16 @@ export const createPublicRouter = ({
         try {
             switch (route.name) {
                 case 'PUBLIC_VIEW': {
-                    const { gradId } = route.params;
+                    const { gradId: identifier } = route.params;
+                    
+                    // Resolve slug to ID if necessary
+                    const gradId = await resolveGraduationIdentifier(identifier);
+                    
+                    if (!gradId) {
+                        showModal('Not Found', 'Graduation not found.');
+                        break;
+                    }
+                    
                     const gradData = await GraduationRepository.getById(gradId);
                     
                     if (gradData) {
@@ -216,7 +257,16 @@ export const createPublicRouter = ({
                 }
 
                 case 'UPLOAD_PORTAL': {
-                    const { gradId } = route.params;
+                    const { gradId: identifier } = route.params;
+                    
+                    // Resolve slug to ID if necessary
+                    const gradId = await resolveGraduationIdentifier(identifier);
+                    
+                    if (!gradId) {
+                        showModal('Not Found', 'Graduation project not found.');
+                        break;
+                    }
+                    
                     const gradData = await GraduationRepository.getById(gradId);
                     
                     // Check if project is locked
@@ -242,7 +292,16 @@ export const createPublicRouter = ({
                 }
 
                 case 'DIRECT_UPLOAD': {
-                    const { gradId, linkId } = route.params;
+                    const { gradId: identifier, linkId } = route.params;
+                    
+                    // Resolve slug to ID if necessary
+                    const gradId = await resolveGraduationIdentifier(identifier);
+                    
+                    if (!gradId) {
+                        showModal('Not Found', 'Graduation project not found.');
+                        break;
+                    }
+                    
                     const gradData = await GraduationRepository.getById(gradId);
                     
                     // Check if project is locked

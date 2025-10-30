@@ -6,7 +6,7 @@
 
 import * as firestoreService from '../services/firestore.js';
 import { db } from '../firebase-init.js';
-import { doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { doc, setDoc, collection, query, where, limit, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 /**
  * Graduation Repository
@@ -30,6 +30,32 @@ export const GraduationRepository = {
      */
     async getById(graduationId) {
         return firestoreService.getGraduation(graduationId);
+    },
+
+    /**
+     * Get a graduation by URL slug
+     * @param {string} slug - The URL slug (e.g., "lincoln-high-school-2024-abc12345")
+     * @returns {Promise<Object|null>} Graduation data with ID, or null if not found
+     */
+    async getBySlug(slug) {
+        try {
+            const q = query(
+                collection(db, 'graduations'),
+                where('urlSlug', '==', slug),
+                limit(1)
+            );
+            const snapshot = await getDocs(q);
+            
+            if (snapshot.empty) {
+                return null;
+            }
+            
+            const doc = snapshot.docs[0];
+            return { id: doc.id, ...doc.data() };
+        } catch (error) {
+            console.error('Error getting graduation by slug:', error);
+            throw error;
+        }
     },
 
     /**
