@@ -53,9 +53,19 @@ export const showModal = (title, message, showClose = true, buttons = null) => {
         buttons.forEach((btn, idx) => {
             const btnElement = document.getElementById(`modal-btn-${idx}`);
             if (btnElement) {
-                btnElement.addEventListener('click', () => {
-                    modal.remove();
-                    if (btn.onclick) btn.onclick();
+                btnElement.addEventListener('click', async () => {
+                    if (btn.onclick) {
+                        // Call the onclick handler and wait if it's async
+                        const result = btn.onclick();
+                        if (result && typeof result.then === 'function') {
+                            await result;
+                        }
+                    }
+                    // Remove modal after handler completes
+                    // (Unless handler already removed it, check if still exists)
+                    if (document.getElementById(modalId)) {
+                        modal.remove();
+                    }
                 });
             }
         });

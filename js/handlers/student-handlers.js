@@ -613,37 +613,41 @@ export async function editStudentCoverPage(studentId, studentName, gradId, confi
         {
             text: 'Save Changes',
             onclick: async () => {
+                // Store file references BEFORE any modals change
+                const beforeFileInput = document.getElementById('cover-photo-before');
+                const afterFileInput = document.getElementById('cover-photo-after');
+                const speechTextarea = document.getElementById('graduation-speech');
+                
+                // Get the files immediately
+                const beforeFile = beforeFileInput?.files[0];
+                const afterFile = afterFileInput?.files[0];
+                const speechText = speechTextarea?.value.trim() || null;
+                
                 try {
                     const closeLoading = showLoadingModal('Saving...', 'Saving cover page changes...');
                     
                     const updates = {};
                     
-                    // Handle photo uploads
+                    // Handle photo uploads using stored file references
                     if (config.allowCoverPhotos) {
-                        const beforeFileInput = document.getElementById('cover-photo-before');
-                        const afterFileInput = document.getElementById('cover-photo-after');
-                        
-                        if (beforeFileInput?.files[0]) {
-                            console.log('[Cover Page] Uploading before photo...');
-                            const beforeUrl = await uploadFile(beforeFileInput.files[0]);
+                        if (beforeFile) {
+                            console.log('[Cover Page] Uploading before photo...', beforeFile.name);
+                            const beforeUrl = await uploadFile(beforeFile);
                             console.log('[Cover Page] Before photo URL:', beforeUrl);
                             updates.coverPhotoBeforeUrl = beforeUrl;
                         }
                         
-                        if (afterFileInput?.files[0]) {
-                            console.log('[Cover Page] Uploading after photo...');
-                            const afterUrl = await uploadFile(afterFileInput.files[0]);
+                        if (afterFile) {
+                            console.log('[Cover Page] Uploading after photo...', afterFile.name);
+                            const afterUrl = await uploadFile(afterFile);
                             console.log('[Cover Page] After photo URL:', afterUrl);
                             updates.coverPhotoAfterUrl = afterUrl;
                         }
                     }
                     
                     // Handle speech
-                    if (config.allowCoverSpeeches) {
-                        const speechTextarea = document.getElementById('graduation-speech');
-                        if (speechTextarea) {
-                            updates.graduationSpeech = speechTextarea.value.trim() || null;
-                        }
+                    if (config.allowCoverSpeeches && speechText) {
+                        updates.graduationSpeech = speechText;
                     }
                     
                     console.log('[Cover Page] Saving updates:', updates);
@@ -652,17 +656,17 @@ export async function editStudentCoverPage(studentId, studentName, gradId, confi
                     if (Object.keys(updates).length > 0) {
                         await StudentRepository.update(gradId, studentId, updates);
                         console.log('[Cover Page] Updates saved successfully');
+                        closeLoading();
+                        showModal('Success!', 'Cover page updated successfully!');
                     } else {
-                        console.log('[Cover Page] No changes to save');
+                        closeLoading();
+                        showModal('Info', 'No changes to save');
                     }
-                    
-                    closeLoading();
-                    showModal('Success!', 'Cover page updated successfully!');
                     
                     // Refresh after short delay
                     setTimeout(() => {
                         window.location.reload();
-                    }, 1000);
+                    }, 1500);
                     
                 } catch (error) {
                     console.error('Error saving cover page:', error);
