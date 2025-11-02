@@ -78,6 +78,7 @@ js/
 │   ├── modal.js                # Modal dialogs
 │   ├── tabs.js                 # Tab navigation (legacy, kept for compatibility)
 │   ├── main-nav.js             # Hierarchical navigation with dropdowns (primary)
+│   ├── project-home.js         # Project Home dashboard with progress tracking
 │   ├── collaborative-ui.js     # Real-time editing UI
 │   └── setup-guide.js          # Onboarding wizard for new projects
 ├── data/                        # Repository Pattern (Data Layer)
@@ -744,7 +745,131 @@ setupMainNavListeners((page) => {
 - Better first-time user experience
 - Easier navigation for power users
 
-### 13. Error Handling & Monitoring
+### 13. Project Home Dashboard
+
+**Status:** ✅ Fully Implemented (Nov 2, 2025 - Task 21)
+
+**Purpose:** Provide at-a-glance project statistics and progress tracking as the default landing page for established projects.
+
+**Component:** `js/components/project-home.js`
+
+**Features:**
+- ✅ Comprehensive dashboard with real-time statistics
+- ✅ Visual progress bars for upload tracking
+- ✅ Quick action buttons for common tasks
+- ✅ Public and upload link sharing
+- ✅ Readiness detection for booklet generation
+- ✅ Default landing page for completed setup projects
+
+**Dashboard Sections:**
+
+**1. Project Header:**
+- School name and graduation year
+- Booklet generation status badge
+- Gradient visual design
+
+**2. Upload Progress Tracking:**
+```
+📄 Profile PDFs Uploaded: 25 / 30 (83% complete)
+📷 Profile Photos Uploaded: 20 / 30 (67% complete)
+🖼️ Cover Photos Uploaded: 18 / 30 (60% complete)
+✍️ Graduation Speeches Written: 15 / 30 (50% complete)
+```
+- Color-coded progress bars
+- Percentage completion
+- Visual status indicators (✅ complete, 🔄 partial, ⚪ empty)
+
+**3. Quick Stats Cards:**
+- Total Students (with count)
+- Content Pages (with count)
+- Booklet Status (Generated/Ready/Pending)
+
+**4. Primary Quick Action:**
+- Large "Generate Booklet" button (shown when ready)
+- Conditional display based on student data availability
+
+**5. Quick Actions Grid:**
+- Manage Students
+- Add Content
+- Share Links
+- Customize Site
+
+**6. Public Links Section:**
+- Public graduation site URL (with copy/visit buttons)
+- Student upload portal URL (with copy/visit buttons)
+
+**Repository Method:**
+```javascript
+// New method in StudentRepository
+await StudentRepository.getDashboardStats(gradId);
+// Returns: {
+//   totalStudents: 30,
+//   pdfCount: 25,
+//   photoCount: 20,
+//   coverPhotoCount: 18,
+//   speechCount: 15,
+//   pdfProgress: 83,
+//   photoProgress: 67,
+//   coverPhotoProgress: 60,
+//   speechProgress: 50
+// }
+```
+
+**Stats Calculation:**
+- **totalStudents:** Total count of students in project
+- **pdfCount:** Students with profile PDFs uploaded
+- **photoCount:** Students with profile photos uploaded
+- **coverPhotoCount:** Students with at least one cover photo
+- **speechCount:** Students with graduation speeches written
+- **Progress percentages:** Calculated as (count / total) * 100
+
+**User Flow:**
+```
+User opens established project (isSetupComplete: true)
+  → Lands on Project Home (default page)
+  → Sees upload progress: "25 / 30 PDFs uploaded"
+  → Notices booklet is ready
+  → Clicks "Generate Booklet" button
+  → Navigates to Booklet tab
+  → Generates PDF
+```
+
+**Conditional Rendering:**
+```javascript
+// No students warning
+if (totalStudents === 0) {
+  Show warning: "No students added yet"
+  Display "Add Students Now" button
+}
+
+// Booklet readiness
+if (hasStudents && hasPdfs) {
+  Show prominent "Generate Booklet" button
+  Display "Ready to Generate" section
+}
+```
+
+**Visual Design:**
+- Gradient headers (indigo → purple, blue → cyan)
+- Color-coded progress bars (indigo, green, purple, orange)
+- Icon-based visual language (emojis for quick recognition)
+- Card-based layout with shadows
+- Responsive grid (mobile-friendly)
+
+**Integration:**
+- Default landing page: `renderFullDashboard(gradData, gradId, 'home')`
+- Replaces placeholder renderHomeTab
+- Uses existing navigation system
+- Maintains backward compatibility
+
+**Benefits:**
+- Immediate visibility into project progress
+- Clear indication of missing uploads
+- Motivates completion with visual feedback
+- Reduces clicks to common actions
+- Professional, data-driven interface
+
+### 14. Error Handling & Monitoring
 
 **Status:** ✅ Fully Implemented
 
