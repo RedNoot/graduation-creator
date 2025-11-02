@@ -130,9 +130,10 @@ export const createRouter = ({
                     // Attach a new realtime listener using repository
                     currentGraduationListener.current = GraduationRepository.onUpdate(gradId, async (gradData) => {
                         if (gradData) {
-                            // Check if user is an editor
+                            // Check if user is an editor (with backwards compatibility for ownerUid)
                             const editors = gradData.editors || [];
-                            const isEditor = editors.includes(currentUser.uid);
+                            const isEditor = editors.includes(currentUser.uid) || 
+                                           (gradData.ownerUid && gradData.ownerUid === currentUser.uid);
                             
                             if (!isEditor) {
                                 // User was removed from editors - show message and redirect

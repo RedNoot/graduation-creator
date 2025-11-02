@@ -87,10 +87,25 @@ export const GraduationRepository = {
         console.log('[GraduationRepo] Querying graduations for user:', userUid);
         
         // Query for graduations where user is in editors array
-        const results = await firestoreService.queryGraduations('editors', 'array-contains', userUid);
-        console.log('[GraduationRepo] Found graduations:', results.length);
+        const editorsResults = await firestoreService.queryGraduations('editors', 'array-contains', userUid);
+        console.log('[GraduationRepo] Found via editors array:', editorsResults.length);
         
-        return results;
+        // Also query for old projects with ownerUid (backwards compatibility)
+        const ownerResults = await firestoreService.queryGraduations('ownerUid', '==', userUid);
+        console.log('[GraduationRepo] Found via ownerUid:', ownerResults.length);
+        
+        // Merge results, avoiding duplicates
+        const allResults = [...editorsResults];
+        const existingIds = new Set(editorsResults.map(g => g.id));
+        
+        for (const grad of ownerResults) {
+            if (!existingIds.has(grad.id)) {
+                allResults.push(grad);
+            }
+        }
+        
+        console.log('[GraduationRepo] Total graduations found:', allResults.length);
+        return allResults;
     },
 
     /**
