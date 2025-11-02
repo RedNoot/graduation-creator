@@ -129,6 +129,9 @@ export const renderMainNav = (activePage) => {
     `;
 };
 
+// Track if document-level listeners have been set up
+let documentListenersSetup = false;
+
 /**
  * Set up navigation event listeners
  * Handles both direct navigation and dropdown interactions
@@ -206,35 +209,40 @@ export const setupMainNavListeners = (onNavigate) => {
         });
     });
 
-    // Close dropdowns when clicking outside
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('.nav-dropdown-wrapper')) {
-            document.querySelectorAll('.nav-dropdown-menu').forEach(menu => {
-                menu.classList.add('hidden');
-                const button = menu.previousElementSibling;
-                if (button) {
-                    button.setAttribute('aria-expanded', 'false');
-                    const chevron = button.querySelector('.dropdown-chevron');
-                    if (chevron) chevron.classList.remove('rotate-180');
-                }
-            });
-        }
-    });
+    // Set up document-level listeners only once
+    if (!documentListenersSetup) {
+        documentListenersSetup = true;
+        
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.nav-dropdown-wrapper')) {
+                document.querySelectorAll('.nav-dropdown-menu').forEach(menu => {
+                    menu.classList.add('hidden');
+                    const button = menu.previousElementSibling;
+                    if (button) {
+                        button.setAttribute('aria-expanded', 'false');
+                        const chevron = button.querySelector('.dropdown-chevron');
+                        if (chevron) chevron.classList.remove('rotate-180');
+                    }
+                });
+            }
+        });
 
-    // Close dropdowns on Escape key
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            document.querySelectorAll('.nav-dropdown-menu').forEach(menu => {
-                menu.classList.add('hidden');
-                const button = menu.previousElementSibling;
-                if (button) {
-                    button.setAttribute('aria-expanded', 'false');
-                    const chevron = button.querySelector('.dropdown-chevron');
-                    if (chevron) chevron.classList.remove('rotate-180');
-                }
-            });
-        }
-    });
+        // Close dropdowns on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.nav-dropdown-menu').forEach(menu => {
+                    menu.classList.add('hidden');
+                    const button = menu.previousElementSibling;
+                    if (button) {
+                        button.setAttribute('aria-expanded', 'false');
+                        const chevron = button.querySelector('.dropdown-chevron');
+                        if (chevron) chevron.classList.remove('rotate-180');
+                    }
+                });
+            }
+        });
+    }
 };
 
 /**
