@@ -146,6 +146,7 @@ firestore/
 │   ├── generatedBookletUrl: string
 │   ├── bookletGeneratedAt: timestamp        # Last booklet generation time
 │   ├── customCoverUrl: string
+│   ├── isSetupComplete: boolean             # Setup guide completion flag
 │   ├── activeEditors: map<uid, timestamp>   # Real-time presence
 │   ├── lockedFields: map<fieldPath, {editorUid, email, timestamp}>  # Field-level locks (NEW)
 │   ├── config: {                            # Settings object
@@ -166,6 +167,12 @@ firestore/
 │   │   enableDownloadScheduling: boolean
 │   │   downloadableAfterDate: timestamp
 │   │   downloadMessage: string
+│   │   setupStatus: {                       # Setup guide progress tracking
+│   │       studentsAdded: boolean
+│   │       contentAdded: boolean
+│   │       themeCustomized: boolean
+│   │       bookletGenerated: boolean
+│   │   }
 │   │   }
 │   ├── createdAt: timestamp
 │   └── updatedAt: timestamp
@@ -529,7 +536,63 @@ Query assetsPendingDeletion where status='pending'
 **Integration:**
 All repository update/delete methods automatically track old assets using try-catch blocks to ensure operations continue even if tracking fails.
 
-### 10. Error Handling & Monitoring
+### 10. Setup Guide Tracking System
+
+**Status:** ✅ Fully Implemented (Nov 2, 2025)
+
+**Purpose:** Track user onboarding progress through key setup steps for new graduation projects.
+
+**Components:**
+- `isSetupComplete` - Top-level boolean flag (false for new projects)
+- `config.setupStatus` - Object tracking 4 setup milestones
+- `GraduationRepository.setSetupStepComplete()` - Function to mark steps complete
+
+**Tracked Steps:**
+1. **studentsAdded** - Triggers when first student is added (bulk or CSV import)
+2. **contentAdded** - Triggers when first content page is created
+3. **themeCustomized** - Triggers when graduation settings are saved
+4. **bookletGenerated** - Triggers when PDF booklet is successfully generated
+
+**Auto-Completion Logic:**
+When all 4 steps are complete, `isSetupComplete` automatically updates to `true`.
+
+**Implementation:**
+```javascript
+// New graduation initialization (in firestore.js)
+config: {
+  setupStatus: {
+    studentsAdded: false,
+    contentAdded: false,
+    themeCustomized: false,
+    bookletGenerated: false
+  }
+},
+isSetupComplete: false
+
+// Mark step complete (in GraduationRepository)
+await GraduationRepository.setSetupStepComplete(gradId, 'studentsAdded');
+  → Updates config.setupStatus.studentsAdded = true
+  → Checks if all steps complete
+  → If yes, sets isSetupComplete = true
+```
+
+**Data Flow:**
+```
+User adds first student
+  → student-handlers.js detects successful add
+  → Calls setSetupStepComplete(gradId, 'studentsAdded')
+  → Updates Firestore: config.setupStatus.studentsAdded = true
+  → Router passes updated gradData to editor
+  → UI can display setup progress (future enhancement)
+```
+
+**Benefits:**
+- Non-blocking (wrapped in try-catch, failures don't interrupt operations)
+- Automatic tracking across bulk and single operations
+- Foundation for setup wizard UI (Task 19)
+- Available in `gradData` for conditional rendering
+
+### 11. Error Handling & Monitoring
 
 **Status:** ✅ Fully Implemented
 
@@ -985,6 +1048,7 @@ await GraduationRepository.update(gradId, updates)
 await GraduationRepository.getByOwner(userUid)
 await GraduationRepository.addEditor(gradId, editorUid)
 await GraduationRepository.removeEditor(gradId, editorUid)
+await GraduationRepository.setSetupStepComplete(gradId, stepName)
 GraduationRepository.onUpdate(gradId, callback)
 ```
 
