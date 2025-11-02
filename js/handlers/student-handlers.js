@@ -624,12 +624,16 @@ export async function editStudentCoverPage(studentId, studentName, gradId, confi
                         const afterFileInput = document.getElementById('cover-photo-after');
                         
                         if (beforeFileInput?.files[0]) {
+                            console.log('[Cover Page] Uploading before photo...');
                             const beforeUrl = await uploadToCloudinary(beforeFileInput.files[0], `graduation-${gradId}-student-${studentId}-before`);
+                            console.log('[Cover Page] Before photo URL:', beforeUrl);
                             updates.coverPhotoBeforeUrl = beforeUrl;
                         }
                         
                         if (afterFileInput?.files[0]) {
+                            console.log('[Cover Page] Uploading after photo...');
                             const afterUrl = await uploadToCloudinary(afterFileInput.files[0], `graduation-${gradId}-student-${studentId}-after`);
+                            console.log('[Cover Page] After photo URL:', afterUrl);
                             updates.coverPhotoAfterUrl = afterUrl;
                         }
                     }
@@ -642,8 +646,15 @@ export async function editStudentCoverPage(studentId, studentName, gradId, confi
                         }
                     }
                     
-                    // Save updates
-                    await StudentRepository.update(gradId, studentId, updates);
+                    console.log('[Cover Page] Saving updates:', updates);
+                    
+                    // Only save if there are updates
+                    if (Object.keys(updates).length > 0) {
+                        await StudentRepository.update(gradId, studentId, updates);
+                        console.log('[Cover Page] Updates saved successfully');
+                    } else {
+                        console.log('[Cover Page] No changes to save');
+                    }
                     
                     closeLoading();
                     showModal('Success!', 'Cover page updated successfully!');

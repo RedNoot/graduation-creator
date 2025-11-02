@@ -2805,12 +2805,12 @@ Are you absolutely sure you want to continue?`,
                                                         photoUrl = s.profilePhotoUrl;
                                                     }
                                                     // 2. After photo from cover page (if enabled and exists)
-                                                    else if (config.enableStudentCoverPages && s.coverPhotoAfter) {
-                                                        photoUrl = s.coverPhotoAfter;
+                                                    else if (config.enableStudentCoverPages && s.coverPhotoAfterUrl) {
+                                                        photoUrl = s.coverPhotoAfterUrl;
                                                     }
                                                     // 3. Before photo from cover page (if enabled and exists)
-                                                    else if (config.enableStudentCoverPages && s.coverPhotoBefore) {
-                                                        photoUrl = s.coverPhotoBefore;
+                                                    else if (config.enableStudentCoverPages && s.coverPhotoBeforeUrl) {
+                                                        photoUrl = s.coverPhotoBeforeUrl;
                                                     }
                                                     
                                                     return `
