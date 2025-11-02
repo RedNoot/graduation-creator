@@ -63,8 +63,15 @@ class CollaborativeEditingManager {
      * @param {string} currentUserUid - Current user's UID
      */
     stopTracking(graduationId, currentUserUid) {
-        // Clear presence
-        this.updatePresence(graduationId, currentUserUid, false);
+        // Skip if no graduation ID (e.g., on dashboard)
+        if (!graduationId) {
+            return;
+        }
+        
+        // Clear presence (fire and forget - don't wait for it)
+        this.updatePresence(graduationId, currentUserUid, false).catch(() => {
+            // Silently ignore errors when stopping tracking
+        });
 
         // Unsubscribe from listener
         const unsubscribe = this.listeners.get(graduationId);
@@ -109,7 +116,13 @@ class CollaborativeEditingManager {
                 }
             }
         } catch (error) {
-            console.error('Error updating presence:', error);
+            // Presence tracking is non-critical - fail silently if permissions issue
+            // This can happen if user doesn't have editor permissions yet or during transitions
+            if (error.code === 'permission-denied') {
+                console.debug('Presence update skipped (not an editor):', graduationId);
+            } else {
+                console.warn('Error updating presence:', error.message);
+            }
         }
     }
 
