@@ -76,7 +76,8 @@ js/
 │   ├── forms.js                # Form generators
 │   ├── layout.js               # Page layout components
 │   ├── modal.js                # Modal dialogs
-│   ├── tabs.js                 # Tab navigation
+│   ├── tabs.js                 # Tab navigation (legacy, kept for compatibility)
+│   ├── main-nav.js             # Hierarchical navigation with dropdowns (primary)
 │   ├── collaborative-ui.js     # Real-time editing UI
 │   └── setup-guide.js          # Onboarding wizard for new projects
 ├── data/                        # Repository Pattern (Data Layer)
@@ -659,7 +660,91 @@ All 4 steps completed
 **Skip Functionality:**
 Users familiar with the system can click "skip to full dashboard" link to bypass the guide and immediately access all tabs.
 
-### 12. Error Handling & Monitoring
+### 12. Hierarchical Navigation System
+
+**Status:** ✅ Fully Implemented (Nov 2, 2025 - Task 20)
+
+**Purpose:** Replace cluttered 7-tab flat layout with cleaner, hierarchical navigation structure.
+
+**Component:** `js/components/main-nav.js`
+
+**Features:**
+- ✅ Hierarchical menu structure with dropdown menus
+- ✅ 4 top-level navigation items (down from 7 flat tabs)
+- ✅ Logical grouping of related functions
+- ✅ Sticky navigation bar (stays visible on scroll)
+- ✅ Smooth dropdown animations
+- ✅ Keyboard navigation support (Escape to close)
+- ✅ Click-outside-to-close functionality
+- ✅ ARIA attributes for screen readers
+- ✅ Active state highlighting
+
+**Navigation Structure:**
+```
+🏠 Project Home
+   └── Overview dashboard with stats and quick actions
+
+📝 Manage Content ▼
+   ├── 👥 Students
+   └── 💬 Speeches & Messages
+
+🚀 Publishing ▼
+   ├── 📄 Booklet Generation
+   └── 🔗 Share Links
+
+⚙️ Settings
+   └── Site customization and configuration
+```
+
+**New Project Home Dashboard:**
+- Overview cards showing:
+  - Student count
+  - Content page count
+  - Booklet generation status
+- Quick action buttons for common tasks
+- Public site URL with copy/visit buttons
+- Visual feedback and hover states
+
+**Technical Implementation:**
+```javascript
+// Render navigation
+const mainNav = renderMainNav(activePage); // 'students', 'content', etc.
+
+// Setup handlers
+setupMainNavListeners((page) => {
+  handleNavigation(page);
+  // Re-render nav with updated active state
+});
+```
+
+**Dropdown Behavior:**
+- Click button → Opens dropdown
+- Click item → Navigates to page, closes dropdown
+- Click outside → Closes all dropdowns
+- Press Escape → Closes all dropdowns
+- Only one dropdown open at a time
+
+**Styling:**
+- Smooth animations (slideDown/slideUp)
+- Hover effects with color transitions
+- Active states: indigo-600 text + indigo-50 background
+- Focus visible outlines for accessibility
+- Responsive design (mobile-friendly)
+
+**Backward Compatibility:**
+- Setup guide still works (uses same page IDs)
+- Old tabs.js component preserved but not used
+- All existing render functions unchanged
+- Router requires no modifications
+
+**User Benefits:**
+- Reduced visual clutter
+- Professional, modern appearance
+- Intuitive grouping of features
+- Better first-time user experience
+- Easier navigation for power users
+
+### 13. Error Handling & Monitoring
 
 **Status:** ✅ Fully Implemented
 
