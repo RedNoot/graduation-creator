@@ -544,11 +544,29 @@ export async function editStudentCoverPage(studentId, studentName, gradId, confi
     let modalContent = `
         <div class="space-y-4">
             <p class="text-sm text-gray-600 mb-4">
-                Personalize ${studentName}'s cover page for the graduation booklet.
+                Personalize ${studentName}'s profile and cover page.
             </p>
     `;
     
-    // Photo uploads section
+    // Profile Picture section (ALWAYS shown)
+    modalContent += `
+        <div class="border-t pt-4">
+            <h4 class="font-medium text-gray-900 mb-3">👤 Profile Picture</h4>
+            <p class="text-xs text-gray-500 mb-2">This photo will appear on the student card on the website.</p>
+            
+            <div>
+                ${student.profilePhotoUrl ? `
+                    <div class="mb-2">
+                        <img src="${student.profilePhotoUrl}" alt="Profile" class="w-32 h-32 object-cover rounded-lg border mx-auto">
+                        <button id="remove-profile-photo" class="mt-1 text-xs text-red-600 hover:text-red-800 block mx-auto">Remove Photo</button>
+                    </div>
+                ` : ''}
+                <input type="file" id="profile-photo-upload" accept="image/*" class="block w-full text-sm text-gray-500 file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
+            </div>
+        </div>
+    `;
+    
+    // Cover Page Photo uploads section (only if enabled)
     if (config.allowCoverPhotos) {
         modalContent += `
             <div class="border-t pt-4">
@@ -614,21 +632,31 @@ export async function editStudentCoverPage(studentId, studentName, gradId, confi
             text: 'Save Changes',
             onclick: async () => {
                 // Store file references BEFORE any modals change
+                const profilePhotoInput = document.getElementById('profile-photo-upload');
                 const beforeFileInput = document.getElementById('cover-photo-before');
                 const afterFileInput = document.getElementById('cover-photo-after');
                 const speechTextarea = document.getElementById('graduation-speech');
                 
                 // Get the files immediately
+                const profileFile = profilePhotoInput?.files[0];
                 const beforeFile = beforeFileInput?.files[0];
                 const afterFile = afterFileInput?.files[0];
                 const speechText = speechTextarea?.value.trim() || null;
                 
                 try {
-                    const closeLoading = showLoadingModal('Saving...', 'Saving cover page changes...');
+                    const closeLoading = showLoadingModal('Saving...', 'Uploading photos and saving changes...');
                     
                     const updates = {};
                     
-                    // Handle photo uploads using stored file references
+                    // Handle profile photo upload (ALWAYS available)
+                    if (profileFile) {
+                        console.log('[Student Profile] Uploading profile photo...', profileFile.name);
+                        const profileUrl = await uploadFile(profileFile);
+                        console.log('[Student Profile] Profile photo URL:', profileUrl);
+                        updates.profilePhotoUrl = profileUrl;
+                    }
+                    
+                    // Handle cover page photo uploads (only if enabled)
                     if (config.allowCoverPhotos) {
                         if (beforeFile) {
                             console.log('[Cover Page] Uploading before photo...', beforeFile.name);
@@ -650,7 +678,7 @@ export async function editStudentCoverPage(studentId, studentName, gradId, confi
                         updates.graduationSpeech = speechText;
                     }
                     
-                    console.log('[Cover Page] Saving updates:', updates);
+                    console.log('[Student Profile] Saving updates:', updates);
                     
                     // Only save if there are updates
                     if (Object.keys(updates).length > 0) {
@@ -679,8 +707,21 @@ export async function editStudentCoverPage(studentId, studentName, gradId, confi
     
     // Add event listeners for remove photo buttons (after modal is shown)
     setTimeout(() => {
+        const removeProfileBtn = document.getElementById('remove-profile-photo');
         const removeBeforeBtn = document.getElementById('remove-before-photo');
         const removeAfterBtn = document.getElementById('remove-after-photo');
+        
+        if (removeProfileBtn) {
+            removeProfileBtn.addEventListener('click', async () => {
+                try {
+                    await StudentRepository.update(gradId, studentId, { profilePhotoUrl: null });
+                    showModal('Success', 'Profile photo removed!');
+                    setTimeout(() => window.location.reload(), 800);
+                } catch (error) {
+                    showModal('Error', 'Failed to remove photo');
+                }
+            });
+        }
         
         if (removeBeforeBtn) {
             removeBeforeBtn.addEventListener('click', async () => {

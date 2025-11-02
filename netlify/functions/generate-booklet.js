@@ -584,38 +584,13 @@ exports.handler = async (event, context) => {
         // Fetch content pages (messages, speeches, etc.)
         const contentPagesSnapshot = await db.collection('graduations').doc(graduationId).collection('contentPages').get();
         const contentPages = [];
-        const validationErrors = [];
-        const MIN_CONTENT_LENGTH = 10;
         
         contentPagesSnapshot.forEach(doc => {
             const page = { id: doc.id, ...doc.data() };
-            
-            // Server-side validation: ensure content meets minimum length requirements
-            if (!page.title || page.title.trim().length < 3) {
-                validationErrors.push(`Content page "${page.title || 'Untitled'}" has title that is too short (minimum 3 characters)`);
-            }
-            
-            if (!page.content || page.content.trim().length < MIN_CONTENT_LENGTH) {
-                validationErrors.push(`Content page "${page.title || 'Untitled'}" has content that is too short (minimum ${MIN_CONTENT_LENGTH} characters)`);
-            }
-            
+            // All content pages are valid regardless of length
+            // Empty or short pages will simply render as-is in the booklet
             contentPages.push(page);
         });
-        
-        // Check for validation errors and report them
-        if (validationErrors.length > 0) {
-            console.error('[Content Validation] Found invalid content pages:', validationErrors);
-            return {
-                statusCode: 400,
-                headers,
-                body: JSON.stringify({
-                    error: 'Invalid content detected',
-                    message: 'Some content pages do not meet minimum length requirements.',
-                    details: validationErrors,
-                    suggestion: 'Please edit or remove content pages with insufficient content before generating the booklet.'
-                })
-            };
-        }
         
         // Sort content pages by creation date
         contentPages.sort((a, b) => {

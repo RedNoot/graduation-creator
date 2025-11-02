@@ -142,41 +142,53 @@ export const generateBooklet = async (graduationId, onSuccess, onError) => {
  * @returns {Promise<void>}
  */
 export const viewStudentPdf = async (pdfUrl, studentName) => {
-    // Create modal with loading state
+    // Create modal with loading state - clean, minimal design
     const modal = document.createElement('div');
     modal.id = 'pdf-viewer-modal';
-    modal.className = 'fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4';
+    modal.className = 'fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-2';
     modal.innerHTML = `
-        <div class="bg-white rounded-lg w-full max-w-6xl h-5/6 flex flex-col">
-            <div class="flex justify-between items-center p-4 border-b">
-                <h3 class="text-xl font-bold text-gray-900">${studentName}'s Profile</h3>
-                <button onclick="window.closeStudentPdfModal()" class="text-gray-500 hover:text-gray-700 text-2xl font-bold">&times;</button>
+        <div class="bg-white w-full max-w-5xl h-full max-h-[95vh] flex flex-col shadow-2xl">
+            <!-- Close button - minimal, top-right corner -->
+            <button 
+                onclick="window.closeStudentPdfModal()" 
+                class="absolute top-4 right-4 z-10 w-10 h-10 flex items-center justify-center bg-white hover:bg-gray-100 rounded-full shadow-lg text-gray-600 hover:text-gray-900 text-2xl font-bold transition-colors"
+                aria-label="Close"
+            >
+                &times;
+            </button>
+            
+            <!-- Space for future content (student info, photos, messages) -->
+            <div id="student-header-content" class="hidden">
+                <!-- Content will be added here in future: profile pic, before/after photos, grad message -->
             </div>
-            <div id="pdf-content" class="flex-1 overflow-hidden flex items-center justify-center">
+            
+            <!-- PDF Content Area - takes full space -->
+            <div id="pdf-content" class="flex-1 overflow-hidden flex items-center justify-center bg-gray-50">
                 <div class="text-center">
                     <div class="spinner w-12 h-12 border-4 border-indigo-600 rounded-full mx-auto mb-4"></div>
-                    <p class="text-gray-600">Loading PDF...</p>
+                    <p class="text-gray-600">Loading ${studentName}'s Profile...</p>
                 </div>
-            </div>
-            <div class="p-4 border-t flex justify-end gap-3">
-                <a href="${pdfUrl}" target="_blank" class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">
-                    Open in New Tab
-                </a>
-                <button onclick="window.closeStudentPdfModal()" class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">
-                    Close
-                </button>
             </div>
         </div>
     `;
     
     document.body.appendChild(modal);
     
-    // Close on outside click
+    // Close on outside click (clicking the dark overlay)
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {
             closeStudentPdfModal();
         }
     });
+    
+    // Close on Escape key
+    const handleEscape = (e) => {
+        if (e.key === 'Escape') {
+            closeStudentPdfModal();
+            document.removeEventListener('keydown', handleEscape);
+        }
+    };
+    document.addEventListener('keydown', handleEscape);
     
     // Fetch PDF and create blob URL to bypass CSP
     try {
@@ -186,10 +198,14 @@ export const viewStudentPdf = async (pdfUrl, studentName) => {
         const blob = await response.blob();
         const blobUrl = URL.createObjectURL(blob);
         
-        // Replace loading state with PDF viewer (no toolbar)
+        // Replace loading state with PDF viewer (no toolbar, seamless integration)
         const pdfContent = document.getElementById('pdf-content');
         pdfContent.innerHTML = `
-            <iframe src="${blobUrl}#toolbar=0&navpanes=0&scrollbar=0" class="w-full h-full border-0"></iframe>
+            <iframe 
+                src="${blobUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH" 
+                class="w-full h-full border-0 bg-white"
+                title="${studentName}'s Profile PDF"
+            ></iframe>
         `;
         
         // Store blob URL for cleanup
@@ -198,11 +214,9 @@ export const viewStudentPdf = async (pdfUrl, studentName) => {
         console.error('Error loading PDF:', error);
         const pdfContent = document.getElementById('pdf-content');
         pdfContent.innerHTML = `
-            <div class="text-center">
-                <p class="text-red-600 mb-4">Unable to load PDF preview</p>
-                <a href="${pdfUrl}" target="_blank" class="text-indigo-600 hover:underline">
-                    Click here to open PDF in new tab
-                </a>
+            <div class="text-center p-8">
+                <p class="text-red-600 mb-4 text-lg">Unable to load PDF preview</p>
+                <p class="text-gray-600 mb-4">Please try again or contact support if the issue persists.</p>
             </div>
         `;
     }
