@@ -263,21 +263,62 @@ async function markSetupComplete(gradId) {
  */
 async function toggleSetupStep(gradId, stepName, isChecked) {
     try {
-        const { updateDoc, doc } = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js');
+        console.log('[Setup Guide] toggleSetupStep called:', { gradId, stepName, isChecked });
+        
+        const { updateDoc, doc, getDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js');
         const { db } = await import('../firebase-init.js');
         const { GraduationRepository } = await import('../data/graduation-repository.js');
+        const { auth } = await import('../firebase-init.js');
         
-        // Use Firestore's dot notation directly in updateDoc (bypasses the repository layer)
-        // This works with Firestore's native field update syntax
+        const currentUser = auth.currentUser;
+        if (!currentUser) {
+            console.error('[Setup Guide] No authenticated user');
+            alert('You must be logged in to update setup steps.');
+            return;
+        }
+        
+        console.log('[Setup Guide] Current user:', currentUser.uid);
+        
+        // First, verify user has permission
+        const gradRef = doc(db, 'graduations', gradId);
+        const gradDoc = await getDoc(gradRef);
+        
+        if (!gradDoc.exists()) {
+            console.error('[Setup Guide] Graduation document not found:', gradId);
+            alert('Graduation not found.');
+            return;
+        }
+        
+        const gradData = gradDoc.data();
+        const editors = gradData.editors || [];
+        const ownerUid = gradData.ownerUid;
+        const isEditor = editors.includes(currentUser.uid) || ownerUid === currentUser.uid;
+        
+        console.log('[Setup Guide] Permission check:', { 
+            editors, 
+            ownerUid, 
+            currentUserUid: currentUser.uid,
+            isEditor 
+        });
+        
+        if (!isEditor) {
+            console.error('[Setup Guide] User is not an editor');
+            alert('You do not have permission to edit this graduation.');
+            return;
+        }
+        
+        // Use Firestore's dot notation directly in updateDoc
         const fieldPath = `config.setupStatus.${stepName}`;
         const updates = {
             [fieldPath]: isChecked,
-            updatedAt: new Date()
+            updatedAt: serverTimestamp()
         };
         
-        await updateDoc(doc(db, 'graduations', gradId), updates);
+        console.log('[Setup Guide] Attempting update with:', updates);
         
-        console.log(`[Setup Guide] Toggled ${stepName} to ${isChecked}`);
+        await updateDoc(gradRef, updates);
+        
+        console.log(`[Setup Guide] Successfully toggled ${stepName} to ${isChecked}`);
         
         // If all steps are complete, mark setup as complete and reload
         if (isChecked) {

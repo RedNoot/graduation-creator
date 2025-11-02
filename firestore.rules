@@ -23,38 +23,14 @@ service cloud.firestore {
                        request.resource.data.editors.size() >= 1;
       
       // Allow update if user is an editor (with backwards compatibility for ownerUid)
-      // Special rules for editors array modification and presence tracking
       allow update: if request.auth != null && 
                        (request.auth.uid in resource.data.editors ||
                         (resource.data.ownerUid != null && request.auth.uid == resource.data.ownerUid)) &&
-                       // For new projects with editors array, ensure at least one editor
-                       (resource.data.editors == null || request.resource.data.editors.size() >= 1) &&
-                       // Only existing editors can modify the editors array (if it exists)
-                       (resource.data.editors == null || 
-                        request.resource.data.editors == resource.data.editors ||
-                        request.auth.uid in resource.data.editors) &&
+                       // Ensure at least one editor remains (if editors array exists)
+                       (!request.resource.data.keys().hasAny(['editors']) || request.resource.data.editors.size() >= 1) &&
                        // Prevent modification of createdBy field (immutable)
-                       (!request.resource.data.keys().hasAny(['createdBy']) ||
-                        request.resource.data.createdBy == resource.data.createdBy) &&
-                       // Prevent modification of editors array unless user is already an editor
-                       (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['editors']) ||
-                        request.auth.uid in resource.data.editors);
-      
-      // Allow presence tracking updates (activeEditors map) without full editor permissions
-      // This allows editors to update their own presence timestamp
-      allow update: if request.auth != null && 
-                       (request.auth.uid in resource.data.editors ||
-                        (resource.data.ownerUid != null && request.auth.uid == resource.data.ownerUid)) &&
-                       // Only allow updates to activeEditors field
-                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['activeEditors', 'updatedAt']);
-      
-      // Allow field lock updates (lockedFields map)
-      // Editors can lock/unlock fields they are editing
-      allow update: if request.auth != null && 
-                       (request.auth.uid in resource.data.editors ||
-                        (resource.data.ownerUid != null && request.auth.uid == resource.data.ownerUid)) &&
-                       // Only allow updates to lockedFields field
-                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lockedFields', 'updatedAt']);
+                       (!request.resource.data.keys().hasAny(['createdBy']) || 
+                        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['createdBy']));
       
       // Allow delete if user is an editor (with backwards compatibility for ownerUid)
       allow delete: if request.auth != null && 

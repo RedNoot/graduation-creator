@@ -100,28 +100,58 @@ class CollaborativeEditingManager {
      */
     async updatePresence(graduationId, userUid, isActive) {
         try {
+            console.log('[Presence] Updating presence:', { graduationId, userUid, isActive });
             const presenceRef = doc(db, 'graduations', graduationId);
             
+            // First verify user has permission by reading the document
+            const gradDoc = await getDoc(presenceRef);
+            if (!gradDoc.exists()) {
+                console.warn('[Presence] Graduation document does not exist:', graduationId);
+                return;
+            }
+            
+            const gradData = gradDoc.data();
+            const editors = gradData.editors || [];
+            const ownerUid = gradData.ownerUid;
+            
+            // Check if user is an editor
+            const isEditor = editors.includes(userUid) || ownerUid === userUid;
+            console.log('[Presence] Editor check:', { isEditor, editors, ownerUid, userUid });
+            
+            if (!isEditor) {
+                console.warn('[Presence] User is not an editor, skipping presence update');
+                return;
+            }
+            
             if (isActive) {
+                console.log('[Presence] Setting active presence');
                 await updateDoc(presenceRef, {
-                    [`activeEditors.${userUid}`]: serverTimestamp()
+                    [`activeEditors.${userUid}`]: serverTimestamp(),
+                    updatedAt: serverTimestamp()
                 });
+                console.log('[Presence] Active presence updated successfully');
             } else {
-                // Remove presence when leaving
-                const gradDoc = await getDoc(presenceRef);
-                if (gradDoc.exists()) {
-                    const activeEditors = { ...(gradDoc.data().activeEditors || {}) };
-                    delete activeEditors[userUid];
-                    await updateDoc(presenceRef, { activeEditors });
-                }
+                console.log('[Presence] Removing presence');
+                const activeEditors = { ...(gradData.activeEditors || {}) };
+                delete activeEditors[userUid];
+                await updateDoc(presenceRef, { 
+                    activeEditors,
+                    updatedAt: serverTimestamp()
+                });
+                console.log('[Presence] Presence removed successfully');
             }
         } catch (error) {
             // Presence tracking is non-critical - fail silently if permissions issue
-            // This can happen if user doesn't have editor permissions yet or during transitions
+            console.error('[Presence] Error updating presence:', {
+                code: error.code,
+                message: error.message,
+                graduationId,
+                userUid,
+                isActive
+            });
+            
             if (error.code === 'permission-denied') {
-                console.debug('Presence update skipped (not an editor):', graduationId);
-            } else {
-                console.warn('Error updating presence:', error.message);
+                console.debug('[Presence] Permission denied - user may not be an editor');
             }
         }
     }
