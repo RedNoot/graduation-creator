@@ -2813,9 +2813,18 @@ Are you absolutely sure you want to continue?`,
                                                         photoUrl = s.coverPhotoBeforeUrl;
                                                     }
                                                     
+                                                    // Create student data object for modal
+                                                    const studentDataJson = JSON.stringify({
+                                                        name: s.name,
+                                                        profilePhotoUrl: s.profilePhotoUrl || null,
+                                                        coverPhotoBeforeUrl: s.coverPhotoBeforeUrl || null,
+                                                        coverPhotoAfterUrl: s.coverPhotoAfterUrl || null,
+                                                        graduationSpeech: s.graduationSpeech || null
+                                                    }).replace(/"/g, '&quot;');
+                                                    
                                                     return `
                                                     <div class="text-center ${config.layout === 'scroll' || config.layout === 'list' ? `p-6 bg-white ${cardStyleClass} ${borderRadiusClass}` : config.layout === 'cards' ? `bg-white ${cardStyleClass} ${borderRadiusClass} p-4` : ''} ${s.profilePdfUrl ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}" 
-                                                         ${s.profilePdfUrl ? `onclick="viewStudentPdf('${ensurePublicPdfUrl(s.profilePdfUrl)}', '${s.name}')"` : ''}>
+                                                         ${s.profilePdfUrl ? `onclick='viewStudentPdf("${ensurePublicPdfUrl(s.profilePdfUrl)}", JSON.parse("${studentDataJson}"))'` : ''}>
                                                         ${photoUrl ? `
                                                             <img src="${photoUrl}" 
                                                                  alt="${s.name}" 

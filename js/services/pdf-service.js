@@ -135,19 +135,84 @@ export const generateBooklet = async (graduationId, onSuccess, onError) => {
 };
 
 /**
- * Display student PDF in modal viewer
+ * Display student PDF in modal viewer with student info
  * Fetches PDF and creates blob URL to bypass CSP restrictions
  * @param {string} pdfUrl - URL of the PDF to view
- * @param {string} studentName - Name of student (for display)
+ * @param {string|Object} studentNameOrData - Student name string OR full student object with photos/message
  * @returns {Promise<void>}
  */
-export const viewStudentPdf = async (pdfUrl, studentName) => {
+export const viewStudentPdf = async (pdfUrl, studentNameOrData) => {
+    // Handle both old (string) and new (object) calling patterns
+    const studentData = typeof studentNameOrData === 'string' 
+        ? { name: studentNameOrData }
+        : studentNameOrData;
+    
+    const studentName = studentData.name || 'Student';
+    
     // Create modal with loading state - clean, minimal design
     const modal = document.createElement('div');
     modal.id = 'pdf-viewer-modal';
     modal.className = 'fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-2';
+    
+    // Build student header content if we have additional data
+    let headerContent = '';
+    const hasPhotos = studentData.profilePhotoUrl || studentData.coverPhotoBeforeUrl || studentData.coverPhotoAfterUrl;
+    const hasMessage = studentData.graduationSpeech;
+    
+    if (hasPhotos || hasMessage) {
+        headerContent = `
+            <div class="border-b border-gray-200 bg-white p-6">
+                <!-- Student Name -->
+                <h2 class="text-2xl font-bold text-gray-900 mb-4 text-center">${studentName}</h2>
+                
+                <!-- Photos Section -->
+                ${hasPhotos ? `
+                    <div class="flex justify-center gap-4 mb-4 flex-wrap">
+                        ${studentData.profilePhotoUrl ? `
+                            <div class="text-center">
+                                <img src="${studentData.profilePhotoUrl}" 
+                                     alt="${studentName} - Profile" 
+                                     class="w-32 h-32 rounded-lg object-cover shadow-md border-2 border-gray-200"
+                                     onerror="this.style.display='none'">
+                                <p class="text-xs text-gray-500 mt-1">Profile</p>
+                            </div>
+                        ` : ''}
+                        
+                        ${studentData.coverPhotoBeforeUrl ? `
+                            <div class="text-center">
+                                <img src="${studentData.coverPhotoBeforeUrl}" 
+                                     alt="${studentName} - Before" 
+                                     class="w-32 h-32 rounded-lg object-cover shadow-md border-2 border-gray-200"
+                                     onerror="this.style.display='none'">
+                                <p class="text-xs text-gray-500 mt-1">Before</p>
+                            </div>
+                        ` : ''}
+                        
+                        ${studentData.coverPhotoAfterUrl ? `
+                            <div class="text-center">
+                                <img src="${studentData.coverPhotoAfterUrl}" 
+                                     alt="${studentName} - After" 
+                                     class="w-32 h-32 rounded-lg object-cover shadow-md border-2 border-gray-200"
+                                     onerror="this.style.display='none'">
+                                <p class="text-xs text-gray-500 mt-1">After</p>
+                            </div>
+                        ` : ''}
+                    </div>
+                ` : ''}
+                
+                <!-- Graduation Message -->
+                ${hasMessage ? `
+                    <div class="bg-gray-50 rounded-lg p-4 max-w-2xl mx-auto">
+                        <p class="text-sm font-semibold text-gray-700 mb-2">Graduation Message</p>
+                        <p class="text-sm text-gray-600 italic">"${studentData.graduationSpeech}"</p>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }
+    
     modal.innerHTML = `
-        <div class="bg-white w-full max-w-5xl h-full max-h-[95vh] flex flex-col shadow-2xl">
+        <div class="bg-white w-full max-w-5xl h-full max-h-[95vh] flex flex-col shadow-2xl rounded-lg overflow-hidden">
             <!-- Close button - minimal, top-right corner -->
             <button 
                 onclick="window.closeStudentPdfModal()" 
@@ -157,16 +222,14 @@ export const viewStudentPdf = async (pdfUrl, studentName) => {
                 &times;
             </button>
             
-            <!-- Space for future content (student info, photos, messages) -->
-            <div id="student-header-content" class="hidden">
-                <!-- Content will be added here in future: profile pic, before/after photos, grad message -->
-            </div>
+            <!-- Student Header Content (photos, message) -->
+            ${headerContent}
             
-            <!-- PDF Content Area - takes full space -->
+            <!-- PDF Content Area -->
             <div id="pdf-content" class="flex-1 overflow-hidden flex items-center justify-center bg-gray-50">
                 <div class="text-center">
                     <div class="spinner w-12 h-12 border-4 border-indigo-600 rounded-full mx-auto mb-4"></div>
-                    <p class="text-gray-600">Loading ${studentName}'s Profile...</p>
+                    <p class="text-gray-600">Loading PDF...</p>
                 </div>
             </div>
         </div>
