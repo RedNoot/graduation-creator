@@ -35,7 +35,10 @@ service cloud.firestore {
                         request.auth.uid in resource.data.editors) &&
                        // Prevent modification of createdBy field (immutable)
                        (!request.resource.data.keys().hasAny(['createdBy']) ||
-                        request.resource.data.createdBy == resource.data.createdBy);
+                        request.resource.data.createdBy == resource.data.createdBy) &&
+                       // Prevent modification of editors array unless user is already an editor
+                       (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['editors']) ||
+                        request.auth.uid in resource.data.editors);
       
       // Allow presence tracking updates (activeEditors map) without full editor permissions
       // This allows editors to update their own presence timestamp

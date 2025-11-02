@@ -265,24 +265,40 @@ async function toggleSetupStep(gradId, stepName, isChecked) {
     try {
         const { GraduationRepository } = await import('../data/graduation-repository.js');
         
-        // Update the specific setup step
-        const updatePath = `config.setupStatus.${stepName}`;
+        // Fetch current graduation data to get the full config object
+        const gradData = await GraduationRepository.getById(gradId);
+        const currentConfig = gradData.config || {};
+        const currentSetupStatus = currentConfig.setupStatus || {
+            studentsAdded: false,
+            contentAdded: false,
+            themeCustomized: false,
+            bookletGenerated: false
+        };
+        
+        // Update the specific step in the setupStatus object
+        const updatedSetupStatus = {
+            ...currentSetupStatus,
+            [stepName]: isChecked
+        };
+        
+        // Update the entire config object with the modified setupStatus
+        const updatedConfig = {
+            ...currentConfig,
+            setupStatus: updatedSetupStatus
+        };
+        
         await GraduationRepository.update(gradId, {
-            [updatePath]: isChecked
+            config: updatedConfig
         });
         
         console.log(`[Setup Guide] Toggled ${stepName} to ${isChecked}`);
         
         // If all steps are complete, mark setup as complete and reload
         if (isChecked) {
-            // Fetch current grad data to check all steps
-            const gradData = await GraduationRepository.getById(gradId);
-            const setupStatus = gradData.config?.setupStatus || {};
-            
-            const allComplete = setupStatus.studentsAdded && 
-                               setupStatus.contentAdded && 
-                               setupStatus.themeCustomized && 
-                               setupStatus.bookletGenerated;
+            const allComplete = updatedSetupStatus.studentsAdded && 
+                               updatedSetupStatus.contentAdded && 
+                               updatedSetupStatus.themeCustomized && 
+                               updatedSetupStatus.bookletGenerated;
             
             if (allComplete) {
                 await markSetupComplete(gradId);

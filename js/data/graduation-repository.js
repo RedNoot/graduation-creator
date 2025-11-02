@@ -214,18 +214,37 @@ export const GraduationRepository = {
      */
     async setSetupStepComplete(graduationId, stepName) {
         try {
-            const updatePath = `config.setupStatus.${stepName}`;
+            // Fetch current graduation data to get the full config object
+            const grad = await this.getById(graduationId);
+            const currentConfig = grad.config || {};
+            const currentSetupStatus = currentConfig.setupStatus || {
+                studentsAdded: false,
+                contentAdded: false,
+                themeCustomized: false,
+                bookletGenerated: false
+            };
+            
+            // Update the specific step in the setupStatus object
+            const updatedSetupStatus = {
+                ...currentSetupStatus,
+                [stepName]: true
+            };
+            
+            // Update the entire config object with the modified setupStatus
+            const updatedConfig = {
+                ...currentConfig,
+                setupStatus: updatedSetupStatus
+            };
+            
             await this.update(graduationId, {
-                [updatePath]: true
+                config: updatedConfig
             });
             
             // Check if all steps are complete and update isSetupComplete flag
-            const grad = await this.getById(graduationId);
-            const setupStatus = grad.config?.setupStatus || {};
-            const allStepsComplete = setupStatus.studentsAdded && 
-                                    setupStatus.contentAdded && 
-                                    setupStatus.themeCustomized && 
-                                    setupStatus.bookletGenerated;
+            const allStepsComplete = updatedSetupStatus.studentsAdded && 
+                                    updatedSetupStatus.contentAdded && 
+                                    updatedSetupStatus.themeCustomized && 
+                                    updatedSetupStatus.bookletGenerated;
             
             if (allStepsComplete && !grad.isSetupComplete) {
                 await this.update(graduationId, {
