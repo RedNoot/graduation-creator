@@ -232,7 +232,7 @@ export async function deleteStudent(studentId, studentName, gradId, modals, rout
  *   - router: Router function to refresh
  */
 export async function uploadPdfForStudent(studentId, studentName, gradId, handlers) {
-    const { showModal, uploadToCloudinary, router } = handlers;
+    const { showModal, uploadFile, router } = handlers;
     
     // Create hidden file input and click it
     const fileInput = document.createElement('input');
@@ -244,7 +244,7 @@ export async function uploadPdfForStudent(studentId, studentName, gradId, handle
         
         try {
             showModal('Uploading...', 'Uploading PDF, please wait...', false);
-            const uploadedUrl = await uploadToCloudinary(file, `graduation-${gradId}-${studentId}`);
+            const uploadedUrl = await uploadFile(file);
             
             // Save URL to Firestore
             showModal('Saving...', 'Saving to database...', false);
@@ -274,7 +274,7 @@ export async function uploadPdfForStudent(studentId, studentName, gradId, handle
  *   - router: Router function to refresh
  */
 export async function uploadPhotoForStudent(studentId, studentName, gradId, handlers) {
-    const { showModal, uploadToCloudinary, router } = handlers;
+    const { showModal, uploadFile, router } = handlers;
     
     // Create hidden file input and click it
     const fileInput = document.createElement('input');
@@ -286,7 +286,7 @@ export async function uploadPhotoForStudent(studentId, studentName, gradId, hand
         
         try {
             showModal('Uploading...', 'Uploading profile photo, please wait...', false);
-            const uploadedUrl = await uploadToCloudinary(file, `student-profile-${gradId}-${studentId}`);
+            const uploadedUrl = await uploadFile(file);
             
             // Save URL to Firestore
             showModal('Saving...', 'Saving to database...', false);
@@ -535,7 +535,7 @@ export async function editStudentCoverPage(studentId, studentName, gradId, confi
     // Import necessary modules
     const { StudentRepository } = await import('../data/student-repository.js');
     const { showModal, showLoadingModal } = await import('../components/modal.js');
-    const { uploadToCloudinary } = await import('../services/cloudinary.js');
+    const { uploadFile } = await import('../services/cloudinary.js');
     
     // Get student data
     const student = await StudentRepository.getById(gradId, studentId);
@@ -625,14 +625,14 @@ export async function editStudentCoverPage(studentId, studentName, gradId, confi
                         
                         if (beforeFileInput?.files[0]) {
                             console.log('[Cover Page] Uploading before photo...');
-                            const beforeUrl = await uploadToCloudinary(beforeFileInput.files[0], `graduation-${gradId}-student-${studentId}-before`);
+                            const beforeUrl = await uploadFile(beforeFileInput.files[0]);
                             console.log('[Cover Page] Before photo URL:', beforeUrl);
                             updates.coverPhotoBeforeUrl = beforeUrl;
                         }
                         
                         if (afterFileInput?.files[0]) {
                             console.log('[Cover Page] Uploading after photo...');
-                            const afterUrl = await uploadToCloudinary(afterFileInput.files[0], `graduation-${gradId}-student-${studentId}-after`);
+                            const afterUrl = await uploadFile(afterFileInput.files[0]);
                             console.log('[Cover Page] After photo URL:', afterUrl);
                             updates.coverPhotoAfterUrl = afterUrl;
                         }

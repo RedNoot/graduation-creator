@@ -121,7 +121,7 @@ export function setupDownloadSchedulingHandler(toggleElement, handlers) {
  *   - gradId: Graduation ID
  */
 export function setupSettingsFormHandler(formElement, handlers) {
-    const { showModal, sanitizeInput, uploadToCloudinary, gradId } = handlers;
+    const { showModal, sanitizeInput, uploadFile, gradId } = handlers;
     
     // Track form input changes for collaborative editing
     const trackInputChange = async () => {
@@ -157,7 +157,7 @@ export function setupSettingsFormHandler(formElement, handlers) {
             // Handle logo upload if new file selected
             const logoFile = document.getElementById('schoolLogo')?.files?.[0];
             if (logoFile) {
-                const logoUrl = await uploadToCloudinary(logoFile, `logo-${gradId}`);
+                const logoUrl = await uploadFile(logoFile);
                 config.schoolLogoUrl = logoUrl;
             }
             

@@ -506,7 +506,7 @@
             window.uploadPdfForStudentWrapper = (studentId, studentName) => {
                 uploadPdfForStudent(studentId, studentName, gradId, { 
                     showModal, 
-                    uploadToCloudinary: uploadFile, 
+                    uploadFile, 
                     router 
                 });
             };
@@ -514,7 +514,7 @@
             window.uploadPhotoForStudentWrapper = (studentId, studentName) => {
                 uploadPhotoForStudent(studentId, studentName, gradId, { 
                     showModal, 
-                    uploadToCloudinary: uploadFile, 
+                    uploadFile, 
                     router 
                 });
             };
