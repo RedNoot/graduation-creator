@@ -95,8 +95,8 @@ const renderQuickAction = (action) => {
     if (action.primary) {
         return `
             <button 
-                onclick="document.querySelector('[data-page=\\"${action.page}\\"]')?.click()"
-                class="flex items-center gap-3 p-4 border-2 rounded-lg transition-all transform hover:scale-[1.02] ${primaryClass}">
+                class="quick-action-btn flex items-center gap-3 p-4 border-2 rounded-lg transition-all transform hover:scale-[1.02] ${primaryClass}"
+                data-target-page="${action.page}">
                 <span class="text-2xl">${action.icon}</span>
                 <div class="text-left flex-1">
                     <p class="text-base font-bold">${action.title}</p>
@@ -111,8 +111,8 @@ const renderQuickAction = (action) => {
 
     return `
         <button 
-            onclick="document.querySelector('[data-page=\\"${action.page}\\"]')?.click()"
-            class="flex items-center gap-2 p-3 border-2 border-gray-200 rounded-lg transition-all ${hoverClass}">
+            class="quick-action-btn flex items-center gap-2 p-3 border-2 border-gray-200 rounded-lg transition-all ${hoverClass}"
+            data-target-page="${action.page}">
             <span class="text-2xl">${action.icon}</span>
             <div class="text-left">
                 <p class="text-sm font-medium text-gray-900">${action.title}</p>
@@ -179,8 +179,8 @@ export const renderProjectHome = async (gradData, gradId, navigateToPage) => {
                                     <p class="text-sm font-medium text-yellow-800">No students added yet</p>
                                     <p class="text-xs text-yellow-700 mt-1">Add students to start tracking their progress.</p>
                                     <button 
-                                        onclick="document.querySelector('[data-page=\\"students\\"]')?.click()"
-                                        class="mt-2 px-3 py-1.5 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 text-xs font-medium">
+                                        class="quick-action-btn mt-2 px-3 py-1.5 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 text-xs font-medium"
+                                        data-target-page="students">
                                         Add Students Now
                                     </button>
                                 </div>
@@ -408,13 +408,23 @@ export const renderProjectHome = async (gradData, gradId, navigateToPage) => {
 
 /**
  * Setup Project Home event handlers
- * Currently uses inline onclick handlers, but this function is available for future enhancements
+ * Attaches event listeners to quick action buttons
  * @param {Function} navigateToPage - Navigation function
  */
 export const setupProjectHomeHandlers = (navigateToPage) => {
-    // Future: Add any additional event handlers here
-    // For now, quick actions use inline onclick with data-page attributes
-    console.log('[ProjectHome] Event handlers ready');
+    // Handle all quick action buttons
+    const quickActionButtons = document.querySelectorAll('.quick-action-btn');
+    quickActionButtons.forEach(button => {
+        button.addEventListener('click', (e) => {
+            e.preventDefault();
+            const targetPage = button.getAttribute('data-target-page');
+            if (targetPage && navigateToPage) {
+                navigateToPage(targetPage);
+            }
+        });
+    });
+    
+    console.log('[ProjectHome] Event handlers ready -', quickActionButtons.length, 'buttons configured');
 };
 
 export default {
