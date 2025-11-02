@@ -264,6 +264,48 @@ export async function uploadPdfForStudent(studentId, studentName, gradId, handle
 }
 
 /**
+ * Upload profile photo for a student (called via onclick from teacher dashboard)
+ * @param {string} studentId - ID of student
+ * @param {string} studentName - Name of student
+ * @param {string} gradId - Graduation ID
+ * @param {Object} handlers - Required handlers
+ *   - showModal: Function to show modal
+ *   - uploadToCloudinary: Function to upload to Cloudinary
+ *   - router: Router function to refresh
+ */
+export async function uploadPhotoForStudent(studentId, studentName, gradId, handlers) {
+    const { showModal, uploadToCloudinary, router } = handlers;
+    
+    // Create hidden file input and click it
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+    fileInput.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        try {
+            showModal('Uploading...', 'Uploading profile photo, please wait...', false);
+            const uploadedUrl = await uploadToCloudinary(file, `student-profile-${gradId}-${studentId}`);
+            
+            // Save URL to Firestore
+            showModal('Saving...', 'Saving to database...', false);
+            const { StudentRepository } = await import('../data/student-repository.js');
+            await StudentRepository.update(gradId, studentId, { profilePhotoUrl: uploadedUrl });
+            
+            showModal('Success', `Profile photo uploaded successfully for ${studentName}!`);
+            setTimeout(() => {
+                router();
+            }, 1000);
+        } catch (error) {
+            console.error('Upload error:', error);
+            showModal('Error', 'Failed to upload profile photo. Please try again.');
+        }
+    };
+    fileInput.click();
+}
+
+/**
  * Setup remove PDF handler for student (called via onclick)
  * @param {string} studentId - ID of student
  * @param {string} studentName - Name of student

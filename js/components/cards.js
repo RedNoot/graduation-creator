@@ -19,25 +19,55 @@ export const renderStudentCard = (student, graduationId, options = {}) => {
     
     return `
         <div class="bg-white p-4 rounded-lg shadow border border-gray-200 hover:shadow-md transition-shadow">
-            <div class="flex justify-between items-start">
-                <div class="flex-1">
-                    <h4 class="font-semibold text-gray-900">${student.name}</h4>
-                    <p class="text-xs text-gray-500 mt-1">
-                        ${student.profilePdfUrl ? '✓ PDF Uploaded' : '○ No PDF'}
-                    </p>
+            <div class="flex gap-3 items-start">
+                <!-- Student Photo -->
+                <div class="flex-shrink-0">
+                    ${student.profilePhotoUrl ? `
+                        <img src="${student.profilePhotoUrl}" 
+                             alt="${student.name}" 
+                             class="w-16 h-16 rounded-lg object-cover border-2 border-gray-200"
+                             onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div class="w-16 h-16 rounded-lg bg-gray-200 flex items-center justify-center" style="display: none;">
+                            <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                        </div>
+                    ` : `
+                        <div class="w-16 h-16 rounded-lg bg-gray-200 flex items-center justify-center">
+                            <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                        </div>
+                    `}
                 </div>
-                ${student.profilePdfUrl ? 
-                    `<div class="text-green-600 text-lg">✓</div>` 
-                    : `<div class="text-gray-300 text-lg">○</div>`
-                }
+                
+                <!-- Student Info -->
+                <div class="flex-1">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <h4 class="font-semibold text-gray-900">${student.name}</h4>
+                            <p class="text-xs text-gray-500 mt-1">
+                                ${student.profilePdfUrl ? '✓ PDF' : '○ No PDF'} 
+                                ${student.profilePhotoUrl ? ' | ✓ Photo' : ' | ○ No Photo'}
+                            </p>
+                        </div>
+                        ${student.profilePdfUrl ? 
+                            `<div class="text-green-600 text-lg">✓</div>` 
+                            : `<div class="text-gray-300 text-lg">○</div>`
+                        }
+                    </div>
+                </div>
             </div>
             
             <div class="mt-3 flex flex-wrap gap-2">
                 ${showUploadBtn ? `
                     <button 
-                        onclick="window.uploadPdfForStudent('${student.id}', '${student.name}', '${graduationId}')"
-                        class="px-2 py-1 bg-indigo-100 text-indigo-700 text-xs rounded hover:bg-indigo-200 transition-colors">
-                        Upload PDF
+                        onclick="window.uploadPhotoForStudentWrapper('${student.id}', '${student.name}')"
+                        class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded hover:bg-green-200 transition-colors"
+                        title="Upload profile photo">
+                        📸 Photo
+                    </button>
+                    <button 
+                        onclick="window.uploadPdfForStudentWrapper('${student.id}', '${student.name}')"
+                        class="px-2 py-1 bg-indigo-100 text-indigo-700 text-xs rounded hover:bg-indigo-200 transition-colors"
+                        title="Upload PDF profile">
+                        📄 PDF
                     </button>
                 ` : ''}
                 

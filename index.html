@@ -55,7 +55,7 @@
         
         // Import event handlers
         import { setupAuthToggleHandler, setupAuthSubmitHandler, setupLogoutHandler, setupCreateNewHandler, setupNewGraduationFormHandler, setupCancelHandler } from './js/handlers/auth-handlers.js';
-        import { setupAddStudentFormHandler, setupCopyGeneralUrlHandler, deleteStudent, uploadPdfForStudent, removePdfForStudent, editStudentCoverPage } from './js/handlers/student-handlers.js';
+        import { setupAddStudentFormHandler, setupCopyGeneralUrlHandler, deleteStudent, uploadPdfForStudent, uploadPhotoForStudent, removePdfForStudent, editStudentCoverPage } from './js/handlers/student-handlers.js';
         import { setupAddContentHandler, setupCancelContentHandler, setupContentFormHandler, editContentPage, deleteContentPage, setupPageOrderHandlers } from './js/handlers/content-handlers.js';
         import { setupTabHandlers, setupDownloadSchedulingHandler, setupSettingsFormHandler } from './js/handlers/ui-handlers.js';
         
@@ -91,6 +91,7 @@
         // Make student handler functions available globally for onclick handlers
         window.deleteStudent = deleteStudent;
         window.uploadPdfForStudent = uploadPdfForStudent;
+        window.uploadPhotoForStudent = uploadPhotoForStudent;
         window.removePdfForStudent = removePdfForStudent;
         
         // Make content handler functions available globally for onclick handlers
@@ -491,6 +492,14 @@
             
             window.uploadPdfForStudentWrapper = (studentId, studentName) => {
                 uploadPdfForStudent(studentId, studentName, gradId, { 
+                    showModal, 
+                    uploadToCloudinary: uploadFile, 
+                    router 
+                });
+            };
+            
+            window.uploadPhotoForStudentWrapper = (studentId, studentName) => {
+                uploadPhotoForStudent(studentId, studentName, gradId, { 
                     showModal, 
                     uploadToCloudinary: uploadFile, 
                     router 
@@ -2775,16 +2784,45 @@ Are you absolutely sure you want to continue?`,
                                         <section class="${animationClass}">
                                             <h2 class="text-3xl font-bold text-center mb-8" style="color: ${config.primaryColor};">Our Graduates</h2>
                                             <div class="${layoutClass}">
-                                                ${students.map(s => `
+                                                ${students.map(s => {
+                                                    // Determine which photo to display (priority order)
+                                                    let photoUrl = null;
+                                                    let photoClass = borderRadiusClass;
+                                                    
+                                                    // 1. Profile photo (highest priority)
+                                                    if (s.profilePhotoUrl) {
+                                                        photoUrl = s.profilePhotoUrl;
+                                                    }
+                                                    // 2. After photo from cover page (if enabled and exists)
+                                                    else if (config.enableStudentCoverPages && s.coverPhotoAfter) {
+                                                        photoUrl = s.coverPhotoAfter;
+                                                    }
+                                                    // 3. Before photo from cover page (if enabled and exists)
+                                                    else if (config.enableStudentCoverPages && s.coverPhotoBefore) {
+                                                        photoUrl = s.coverPhotoBefore;
+                                                    }
+                                                    
+                                                    return `
                                                     <div class="text-center ${config.layout === 'scroll' || config.layout === 'list' ? `p-6 bg-white ${cardStyleClass} ${borderRadiusClass}` : config.layout === 'cards' ? `bg-white ${cardStyleClass} ${borderRadiusClass} p-4` : ''} ${s.profilePdfUrl ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}" 
                                                          ${s.profilePdfUrl ? `onclick="viewStudentPdf('${ensurePublicPdfUrl(s.profilePdfUrl)}', '${s.name}')"` : ''}>
-                                                        <div class="w-32 h-32 bg-gray-200 ${borderRadiusClass} mx-auto flex items-center justify-center mb-2" style="background-color: ${config.secondaryColor}20;">
-                                                            <svg class="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                                                        </div>
+                                                        ${photoUrl ? `
+                                                            <img src="${photoUrl}" 
+                                                                 alt="${s.name}" 
+                                                                 class="w-32 h-32 ${photoClass} mx-auto object-cover mb-2 border-2 border-gray-200"
+                                                                 onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                                            <div class="w-32 h-32 bg-gray-200 ${borderRadiusClass} mx-auto flex items-center justify-center mb-2" style="background-color: ${config.secondaryColor}20; display: none;">
+                                                                <svg class="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                                                            </div>
+                                                        ` : `
+                                                            <div class="w-32 h-32 bg-gray-200 ${borderRadiusClass} mx-auto flex items-center justify-center mb-2" style="background-color: ${config.secondaryColor}20;">
+                                                                <svg class="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                                                            </div>
+                                                        `}
                                                         <h3 class="font-semibold text-gray-800">${s.name}</h3>
                                                         ${s.profilePdfUrl ? `<span class="text-sm hover:underline transition-colors" style="color: ${config.primaryColor};">View Profile</span>` : ''}
                                                     </div>
-                                                `).join('')}
+                                                `;
+                                                }).join('')}
                                             </div>
                                         </section>
                                     `;
@@ -2922,6 +2960,18 @@ Are you absolutely sure you want to continue?`,
                         </div>
                         
                          <div id="upload-area" class="hidden">
+                            <!-- Profile Photo Upload -->
+                            <div class="mb-6 pb-6 border-b border-gray-200">
+                                <label for="profile-photo-upload" class="block text-sm font-medium text-gray-700">📸 Profile Photo (Optional)</label>
+                                <p class="text-xs text-gray-500 mt-1 mb-2">Upload a photo that will appear on your card in the graduation website</p>
+                                <input type="file" id="profile-photo-upload" accept="image/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
+                                <div id="profile-photo-preview" class="mt-3 hidden">
+                                    <img id="profile-photo-preview-img" src="" alt="Profile preview" class="w-32 h-32 rounded-lg object-cover border-2 border-gray-200 mx-auto">
+                                </div>
+                                <button id="upload-profile-photo-btn" class="mt-3 w-full py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">Save Profile Photo</button>
+                            </div>
+                            
+                            <!-- PDF Upload -->
                             <label for="pdf-upload" class="block text-sm font-medium text-gray-700">Upload Your PDF Profile</label>
                             <p class="text-xs text-gray-500 mt-1">Please upload your graduation profile as a PDF (max 10MB)</p>
                             <input type="file" id="pdf-upload" accept=".pdf" class="mt-2 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
@@ -3032,6 +3082,63 @@ Are you absolutely sure you want to continue?`,
                 });
             }
 
+             // Handle profile photo upload
+             const profilePhotoInput = document.getElementById('profile-photo-upload');
+             const profilePhotoPreview = document.getElementById('profile-photo-preview');
+             const profilePhotoPreviewImg = document.getElementById('profile-photo-preview-img');
+             const uploadProfilePhotoBtn = document.getElementById('upload-profile-photo-btn');
+             
+             // Show preview when photo is selected
+             if (profilePhotoInput) {
+                 profilePhotoInput.addEventListener('change', (e) => {
+                     const file = e.target.files[0];
+                     if (file && file.type.startsWith('image/')) {
+                         const reader = new FileReader();
+                         reader.onload = (e) => {
+                             profilePhotoPreviewImg.src = e.target.result;
+                             profilePhotoPreview.classList.remove('hidden');
+                         };
+                         reader.readAsDataURL(file);
+                     }
+                 });
+             }
+             
+             // Handle profile photo upload button
+             if (uploadProfilePhotoBtn) {
+                 uploadProfilePhotoBtn.addEventListener('click', async () => {
+                     if (!selectedStudentId) {
+                         showModal('Error', 'Please select your name first.');
+                         return;
+                     }
+                     
+                     const photoFile = profilePhotoInput?.files[0];
+                     if (!photoFile) {
+                         showModal('Error', 'Please select a photo to upload.');
+                         return;
+                     }
+                     
+                     if (CLOUDINARY_CLOUD_NAME === "YOUR_CLOUD_NAME") {
+                         showModal("Configuration Needed", "This feature is disabled until the app is configured with Cloudinary details.");
+                         return;
+                     }
+                     
+                     try {
+                         showModal('Uploading...', 'Your profile photo is being uploaded.', false);
+                         const photoUrl = await uploadFile(photoFile, `student-profile-${gradId}-${selectedStudentId}`);
+                         
+                         if (photoUrl) {
+                             await StudentRepository.update(gradId, selectedStudentId, { profilePhotoUrl: photoUrl });
+                             showModal('Success!', 'Your profile photo has been uploaded successfully!');
+                             // Clear the file input
+                             profilePhotoInput.value = '';
+                         }
+                     } catch (error) {
+                         console.error('Profile photo upload error:', error);
+                         showModal('Upload Failed', error.message || 'Failed to upload profile photo. Please try again.');
+                     }
+                 });
+             }
+
              document.getElementById('submit-pdf-btn').addEventListener('click', async () => {
                 if (!selectedStudentId) {
                     showModal('Error', 'Please select your name first.');
@@ -3130,6 +3237,18 @@ Are you absolutely sure you want to continue?`,
                             <p class="text-sm text-gray-500">Upload your PDF profile using the form below.</p>
                         </div>
                         
+                        <!-- Profile Photo Upload -->
+                        <div class="mb-6 pb-6 border-b border-gray-200">
+                            <label for="profile-photo-upload-direct" class="block text-sm font-medium text-gray-700">📸 Profile Photo (Optional)</label>
+                            <p class="text-xs text-gray-500 mt-1 mb-2">Upload a photo that will appear on your card in the graduation website</p>
+                            <input type="file" id="profile-photo-upload-direct" accept="image/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
+                            <div id="profile-photo-preview-direct" class="mt-3 hidden">
+                                <img id="profile-photo-preview-img-direct" src="" alt="Profile preview" class="w-32 h-32 rounded-lg object-cover border-2 border-gray-200 mx-auto">
+                            </div>
+                            <button id="upload-profile-photo-btn-direct" class="mt-3 w-full py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">Save Profile Photo</button>
+                        </div>
+                        
+                        <!-- PDF Upload -->
                         <div>
                             <label for="pdf-upload" class="block text-sm font-medium text-gray-700">Upload Your PDF Profile</label>
                             <input type="file" id="pdf-upload" accept=".pdf" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
@@ -3199,6 +3318,58 @@ Are you absolutely sure you want to continue?`,
                     showModal('Upload Failed', error.message || 'Failed to upload PDF. Please try again.');
                 }
             });
+            
+            // Handle profile photo upload for direct upload
+            const profilePhotoInputDirect = document.getElementById('profile-photo-upload-direct');
+            const profilePhotoPreviewDirect = document.getElementById('profile-photo-preview-direct');
+            const profilePhotoPreviewImgDirect = document.getElementById('profile-photo-preview-img-direct');
+            const uploadProfilePhotoBtnDirect = document.getElementById('upload-profile-photo-btn-direct');
+            
+            // Show preview when photo is selected
+            if (profilePhotoInputDirect) {
+                profilePhotoInputDirect.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (file && file.type.startsWith('image/')) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            profilePhotoPreviewImgDirect.src = e.target.result;
+                            profilePhotoPreviewDirect.classList.remove('hidden');
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+            }
+            
+            // Handle profile photo upload button
+            if (uploadProfilePhotoBtnDirect) {
+                uploadProfilePhotoBtnDirect.addEventListener('click', async () => {
+                    const photoFile = profilePhotoInputDirect?.files[0];
+                    if (!photoFile) {
+                        showModal('Error', 'Please select a photo to upload.');
+                        return;
+                    }
+                    
+                    if (CLOUDINARY_CLOUD_NAME === "YOUR_CLOUD_NAME") {
+                        showModal("Configuration Needed", "This feature is disabled until the app is configured with Cloudinary details.");
+                        return;
+                    }
+                    
+                    try {
+                        showModal('Uploading...', 'Your profile photo is being uploaded.', false);
+                        const photoUrl = await uploadFile(photoFile, `student-profile-${gradId}-${student.id}`);
+                        
+                        if (photoUrl) {
+                            await StudentRepository.update(gradId, student.id, { profilePhotoUrl: photoUrl });
+                            showModal('Success!', 'Your profile photo has been uploaded successfully!');
+                            // Clear the file input
+                            profilePhotoInputDirect.value = '';
+                        }
+                    } catch (error) {
+                        console.error('Profile photo upload error:', error);
+                        showModal('Upload Failed', error.message || 'Failed to upload profile photo. Please try again.');
+                    }
+                });
+            }
             
             // Handle cover page save (if enabled)
             if (config.enableStudentCoverPages) {
