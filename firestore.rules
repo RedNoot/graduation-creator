@@ -45,6 +45,14 @@ service cloud.firestore {
                        // Only allow updates to activeEditors field
                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['activeEditors', 'updatedAt']);
       
+      // Allow field lock updates (lockedFields map)
+      // Editors can lock/unlock fields they are editing
+      allow update: if request.auth != null && 
+                       (request.auth.uid in resource.data.editors ||
+                        (resource.data.ownerUid != null && request.auth.uid == resource.data.ownerUid)) &&
+                       // Only allow updates to lockedFields field
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lockedFields', 'updatedAt']);
+      
       // Allow delete if user is an editor (with backwards compatibility for ownerUid)
       allow delete: if request.auth != null && 
                        (request.auth.uid in resource.data.editors ||

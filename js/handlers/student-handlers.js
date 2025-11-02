@@ -536,6 +536,7 @@ export async function editStudentCoverPage(studentId, studentName, gradId, confi
     const { StudentRepository } = await import('../data/student-repository.js');
     const { showModal, showLoadingModal } = await import('../components/modal.js');
     const { uploadFile } = await import('../services/cloudinary.js');
+    const { setupStudentFormLocking } = await import('../utils/field-locking-integration.js');
     
     // Get student data
     const student = await StudentRepository.getById(gradId, studentId);
@@ -705,8 +706,14 @@ export async function editStudentCoverPage(studentId, studentName, gradId, confi
         }
     ]);
     
-    // Add event listeners for remove photo buttons (after modal is shown)
+    // Add event listeners for remove photo buttons and setup field locking (after modal is shown)
     setTimeout(() => {
+        // Setup field locking for the speech textarea
+        const cleanup = setupStudentFormLocking(gradId, studentId);
+        
+        // Store cleanup function to run when modal closes
+        window.addEventListener('beforeunload', cleanup);
+        
         const removeProfileBtn = document.getElementById('remove-profile-photo');
         const removeBeforeBtn = document.getElementById('remove-before-photo');
         const removeAfterBtn = document.getElementById('remove-after-photo');

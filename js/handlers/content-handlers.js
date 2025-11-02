@@ -347,6 +347,15 @@ export function editContentPage(docId, title, author, type, content, authorPhoto
     // Show form
     document.getElementById('content-form').classList.remove('hidden');
     document.getElementById('content-title').focus();
+    
+    // Setup field locking for content form
+    setTimeout(async () => {
+        const { setupContentFormLocking } = await import('../utils/field-locking-integration.js');
+        const cleanup = setupContentFormLocking(gradId, docId);
+        
+        // Store cleanup function
+        window.addEventListener('beforeunload', cleanup);
+    }, 100);
 }
 
 /**

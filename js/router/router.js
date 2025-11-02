@@ -10,6 +10,7 @@ import { StudentRepository } from '../data/student-repository.js';
 import { logger } from '../utils/logger.js';
 import { isSlug, extractIdFromSlug } from '../utils/url-slug.js';
 import collaborativeEditingManager from '../utils/collaborative-editing.js';
+import fieldLockManager from '../utils/field-lock-manager.js';
 import { showActiveEditorsBanner, removeActiveEditorsBanner } from '../components/collaborative-ui.js';
 import { showModal } from '../components/modal.js';
 
@@ -90,6 +91,10 @@ export const createRouter = ({
                         currentGraduationListener.current();
                     }
                     collaborativeEditingManager.stopTracking(gradId, currentUser.uid);
+                    fieldLockManager.cleanup(gradId);
+
+                    // Initialize field lock manager for this graduation
+                    fieldLockManager.initialize(gradId, currentUser.uid, currentUser.email);
 
                     // Start presence tracking for collaborative editing
                     collaborativeEditingManager.startTracking(

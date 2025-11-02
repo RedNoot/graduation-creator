@@ -205,10 +205,167 @@ export function showSaveIndicator(status, container) {
     }
 }
 
+/**
+ * Show field lock indicator on a form element
+ * @param {HTMLElement} element - The form element to show lock indicator on
+ * @param {string} editorEmail - Email of the editor who has the lock
+ */
+export function showFieldLockIndicator(element, editorEmail) {
+    // Remove existing indicator
+    removeFieldLockIndicator(element);
+    
+    // Create lock indicator
+    const indicator = document.createElement('div');
+    indicator.className = 'field-lock-indicator absolute -top-8 left-0 right-0 bg-amber-50 border border-amber-200 rounded-t-md px-3 py-1 flex items-center text-xs z-10';
+    indicator.innerHTML = `
+        <svg class="h-3 w-3 text-amber-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+        </svg>
+        <span class="text-amber-700 font-medium">${editorEmail} is editing this field</span>
+    `;
+    
+    // Make element container position relative if not already
+    const parent = element.parentElement;
+    if (parent && window.getComputedStyle(parent).position === 'static') {
+        parent.style.position = 'relative';
+    }
+    
+    // Insert indicator before the element
+    element.parentNode.insertBefore(indicator, element);
+    
+    // Add locked visual state to element
+    element.classList.add('field-locked');
+    element.style.backgroundColor = '#fef3c7'; // amber-100
+    element.style.borderColor = '#f59e0b'; // amber-500
+    element.style.cursor = 'not-allowed';
+    element.setAttribute('readonly', 'true');
+    element.setAttribute('disabled', 'true');
+    element.setAttribute('aria-disabled', 'true');
+    element.setAttribute('title', `Locked by ${editorEmail}`);
+}
+
+/**
+ * Remove field lock indicator from a form element
+ * @param {HTMLElement} element - The form element to remove lock indicator from
+ */
+export function removeFieldLockIndicator(element) {
+    // Find and remove indicator
+    const indicator = element.parentNode?.querySelector('.field-lock-indicator');
+    if (indicator) {
+        indicator.remove();
+    }
+    
+    // Remove locked visual state
+    element.classList.remove('field-locked');
+    element.style.backgroundColor = '';
+    element.style.borderColor = '';
+    element.style.cursor = '';
+    element.removeAttribute('readonly');
+    element.removeAttribute('disabled');
+    element.removeAttribute('aria-disabled');
+    element.removeAttribute('title');
+}
+
+/**
+ * Show editing indicator on a form element (current user is editing)
+ * @param {HTMLElement} element - The form element to show editing indicator on
+ */
+export function showEditingIndicator(element) {
+    // Remove existing indicator
+    removeEditingIndicator(element);
+    
+    // Create editing indicator (subtle pulse)
+    const indicator = document.createElement('div');
+    indicator.className = 'editing-indicator absolute -top-6 right-0 flex items-center text-xs z-10';
+    indicator.innerHTML = `
+        <span class="relative flex h-2 w-2 mr-1">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+        </span>
+        <span class="text-green-700 font-medium text-xs">Editing</span>
+    `;
+    
+    // Make element container position relative if not already
+    const parent = element.parentElement;
+    if (parent && window.getComputedStyle(parent).position === 'static') {
+        parent.style.position = 'relative';
+    }
+    
+    // Insert indicator
+    element.parentNode.insertBefore(indicator, element);
+    
+    // Add subtle border highlight
+    element.style.borderColor = '#10b981'; // green-500
+    element.style.boxShadow = '0 0 0 2px rgba(16, 185, 129, 0.1)';
+}
+
+/**
+ * Remove editing indicator from a form element
+ * @param {HTMLElement} element - The form element to remove editing indicator from
+ */
+export function removeEditingIndicator(element) {
+    // Find and remove indicator
+    const indicator = element.parentNode?.querySelector('.editing-indicator');
+    if (indicator) {
+        indicator.remove();
+    }
+    
+    // Remove highlight
+    element.style.borderColor = '';
+    element.style.boxShadow = '';
+}
+
+/**
+ * Show field lock conflict modal
+ * @param {Function} showModal - Modal display function
+ * @param {string} editorEmail - Email of editor holding the lock
+ * @param {Function} onForceUnlock - Callback if user chooses to force unlock
+ * @param {Function} onCancel - Callback if user cancels
+ */
+export function showFieldLockConflict(showModal, editorEmail, onForceUnlock, onCancel) {
+    const modalContent = `
+        <div class="text-left">
+            <div class="flex items-center mb-4">
+                <svg class="h-6 w-6 text-amber-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                </svg>
+                <h3 class="text-lg font-semibold text-gray-900">Field Currently Locked</h3>
+            </div>
+            <p class="text-sm text-gray-600 mb-4">
+                <strong>${editorEmail}</strong> is currently editing this field.
+            </p>
+            <p class="text-sm text-gray-600 mb-4">
+                The field will automatically unlock when they finish editing. You can wait a moment and try again, or force unlock if necessary.
+            </p>
+            <p class="text-xs text-amber-700 bg-amber-50 p-2 rounded border border-amber-200 mb-2">
+                <strong>Warning:</strong> Force unlocking may cause their changes to be lost.
+            </p>
+        </div>
+    `;
+    
+    showModal('Field Locked', modalContent, true, [
+        {
+            text: 'Wait',
+            onclick: onCancel,
+            style: 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+        },
+        {
+            text: 'Force Unlock',
+            onclick: onForceUnlock,
+            style: 'bg-amber-600 text-white hover:bg-amber-700'
+        }
+    ]);
+}
+
 export default {
     showActiveEditorsBanner,
     removeActiveEditorsBanner,
     showConflictWarning,
     showUnsavedChangesWarning,
-    showSaveIndicator
+    showSaveIndicator,
+    showFieldLockIndicator,
+    removeFieldLockIndicator,
+    showEditingIndicator,
+    removeEditingIndicator,
+    showFieldLockConflict
 };
