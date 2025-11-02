@@ -2813,18 +2813,18 @@ Are you absolutely sure you want to continue?`,
                                                         photoUrl = s.coverPhotoBeforeUrl;
                                                     }
                                                     
-                                                    // Create student data object for modal
-                                                    const studentDataJson = JSON.stringify({
-                                                        name: s.name,
-                                                        profilePhotoUrl: s.profilePhotoUrl || null,
-                                                        coverPhotoBeforeUrl: s.coverPhotoBeforeUrl || null,
-                                                        coverPhotoAfterUrl: s.coverPhotoAfterUrl || null,
-                                                        graduationSpeech: s.graduationSpeech || null
-                                                    }).replace(/"/g, '&quot;');
+                                                    // Store student data for modal access
+                                                    const studentId = `student-${s.id || Math.random().toString(36).substr(2, 9)}`;
                                                     
                                                     return `
                                                     <div class="text-center ${config.layout === 'scroll' || config.layout === 'list' ? `p-6 bg-white ${cardStyleClass} ${borderRadiusClass}` : config.layout === 'cards' ? `bg-white ${cardStyleClass} ${borderRadiusClass} p-4` : ''} ${s.profilePdfUrl ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}" 
-                                                         ${s.profilePdfUrl ? `onclick='viewStudentPdf("${ensurePublicPdfUrl(s.profilePdfUrl)}", JSON.parse("${studentDataJson}"))'` : ''}>
+                                                         data-student-id="${studentId}"
+                                                         data-student-name="${s.name.replace(/"/g, '&quot;')}"
+                                                         data-profile-photo="${s.profilePhotoUrl || ''}"
+                                                         data-before-photo="${s.coverPhotoBeforeUrl || ''}"
+                                                         data-after-photo="${s.coverPhotoAfterUrl || ''}"
+                                                         data-graduation-speech="${(s.graduationSpeech || '').replace(/"/g, '&quot;')}"
+                                                         ${s.profilePdfUrl ? `onclick="viewStudentPdf('${ensurePublicPdfUrl(s.profilePdfUrl)}', {name: this.dataset.studentName, profilePhotoUrl: this.dataset.profilePhoto || null, coverPhotoBeforeUrl: this.dataset.beforePhoto || null, coverPhotoAfterUrl: this.dataset.afterPhoto || null, graduationSpeech: this.dataset.graduationSpeech || null})"` : ''}>
                                                         ${photoUrl ? `
                                                             <img src="${photoUrl}" 
                                                                  alt="${s.name}" 
