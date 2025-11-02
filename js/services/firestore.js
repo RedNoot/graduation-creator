@@ -260,16 +260,71 @@ export const getStudent = async (graduationId, studentId) => {
  */
 export const getAllStudents = async (graduationId) => {
     try {
+        // Try to query with orderBy first
         const q = query(
             collection(db, 'graduations', graduationId, 'students'),
             orderBy('order', 'asc')
         );
         const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => ({
+        const students = snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
         }));
+        
+        // Fallback sorting for students without order field
+        students.sort((a, b) => {
+            // If both have order field, use it
+            if (typeof a.order === 'number' && typeof b.order === 'number') {
+                return a.order - b.order;
+            }
+            // If only one has order, prioritize the one with order
+            if (typeof a.order === 'number') return -1;
+            if (typeof b.order === 'number') return 1;
+            
+            // If neither has order, sort by createdAt timestamp (or name as last resort)
+            const dateA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt || 0);
+            const dateB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt || 0);
+            
+            if (dateA !== dateB) {
+                return dateA - dateB;
+            }
+            
+            // Final fallback: alphabetical by name
+            return (a.name || '').localeCompare(b.name || '');
+        });
+        
+        return students;
     } catch (error) {
+        // If orderBy fails (e.g., missing index or field), fall back to unordered query
+        if (error.code === 'failed-precondition' || error.message?.includes('index')) {
+            console.warn('Order field index missing, using fallback sorting');
+            const snapshot = await getDocs(collection(db, 'graduations', graduationId, 'students'));
+            const students = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+            
+            // Sort with fallback logic
+            students.sort((a, b) => {
+                if (typeof a.order === 'number' && typeof b.order === 'number') {
+                    return a.order - b.order;
+                }
+                if (typeof a.order === 'number') return -1;
+                if (typeof b.order === 'number') return 1;
+                
+                const dateA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt || 0);
+                const dateB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt || 0);
+                
+                if (dateA !== dateB) {
+                    return dateA - dateB;
+                }
+                
+                return (a.name || '').localeCompare(b.name || '');
+            });
+            
+            return students;
+        }
+        
         console.error('Error getting students:', error);
         throw new Error(`Failed to fetch students: ${error.message}`);
     }
@@ -377,7 +432,25 @@ export const onStudentsUpdate = (graduationId, callback) => {
             };
         });
         
-        console.log('[Firestore] Calling callback with', students.length, 'students');
+        // Apply fallback sorting in case some students lack order field
+        students.sort((a, b) => {
+            if (typeof a.order === 'number' && typeof b.order === 'number') {
+                return a.order - b.order;
+            }
+            if (typeof a.order === 'number') return -1;
+            if (typeof b.order === 'number') return 1;
+            
+            const dateA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt || 0);
+            const dateB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt || 0);
+            
+            if (dateA !== dateB) {
+                return dateA - dateB;
+            }
+            
+            return (a.name || '').localeCompare(b.name || '');
+        });
+        
+        console.log('[Firestore] Calling callback with', students.length, 'students (sorted with fallback)');
         callback(students);
     }, (error) => {
         console.error('[Firestore] Error listening to students:', error);
@@ -394,13 +467,29 @@ export const onStudentsUpdate = (graduationId, callback) => {
                     id: doc.id,
                     ...doc.data()
                 }));
-                // Sort by order field if it exists, otherwise by name
+                
+                // Sort with comprehensive fallback logic
                 students.sort((a, b) => {
+                    // If both have order field, use it
                     if (typeof a.order === 'number' && typeof b.order === 'number') {
                         return a.order - b.order;
                     }
+                    // If only one has order, prioritize the one with order
+                    if (typeof a.order === 'number') return -1;
+                    if (typeof b.order === 'number') return 1;
+                    
+                    // If neither has order, sort by createdAt timestamp
+                    const dateA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt || 0);
+                    const dateB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt || 0);
+                    
+                    if (dateA !== dateB) {
+                        return dateA - dateB;
+                    }
+                    
+                    // Final fallback: alphabetical by name
                     return (a.name || '').localeCompare(b.name || '');
                 });
+                
                 callback(students);
             });
         }

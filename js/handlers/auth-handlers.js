@@ -160,7 +160,8 @@ export function setupNewGraduationFormHandler(formElement, navigationFn, dbFunct
             
             const { collection, addDoc } = dbFunctions;
             const newGradRef = await addDoc(collection(dbFunctions.db, 'graduations'), {
-                ownerUid: currentUser.uid,
+                editors: [currentUser.uid],
+                createdBy: currentUser.uid,
                 schoolName: schoolName,
                 graduationYear: graduationYear,
                 createdAt: new Date(),

@@ -1,5 +1,6 @@
 const admin = require('firebase-admin');
 const crypto = require('crypto');
+const rateLimiter = require('./utils/rate-limiter');
 
 // Initialize Firebase Admin if not already initialized
 if (!admin.apps.length) {
@@ -86,6 +87,28 @@ exports.handler = async (event, context) => {
 
     try {
         const { action, graduationId, studentName, accessType, password } = JSON.parse(event.body);
+        
+        // Get client IP for rate limiting
+        const clientIP = rateLimiter.getClientIP(event);
+        
+        // Apply different rate limits based on action
+        let rateLimitConfig = { maxAttempts: 10, windowMs: 60 * 1000, action }; // Default: 10 per minute
+        
+        if (action === 'verifyPassword' || action === 'verifySitePassword') {
+            // Stricter limit for password attempts
+            rateLimitConfig = { maxAttempts: 5, windowMs: 60 * 1000, action: 'password verification' };
+        } else if (action === 'createStudent') {
+            // Moderate limit for student creation
+            rateLimitConfig = { maxAttempts: 20, windowMs: 60 * 1000, action: 'student creation' };
+        }
+        
+        // Check rate limit
+        const rateLimitCheck = rateLimiter.check(clientIP, rateLimitConfig);
+        
+        if (!rateLimitCheck.allowed) {
+            console.warn(`[Rate Limit] ${clientIP} exceeded limit for ${action}`);
+            return rateLimiter.createRateLimitResponse(rateLimitCheck);
+        }
 
         // Validate required fields
         if (!action || !graduationId) {
@@ -201,6 +224,11 @@ exports.handler = async (event, context) => {
 
                 const isValidPassword = verifyPassword(passwordToVerify, student.passwordHash);
                 
+                // Reset rate limit on successful password verification
+                if (isValidPassword) {
+                    rateLimiter.reset(clientIP);
+                }
+                
                 return {
                     statusCode: 200,
                     headers,
@@ -311,6 +339,11 @@ exports.handler = async (event, context) => {
                 
                 // Verify the password
                 const isValidSitePassword = verifyPassword(passwordToVerifySite, storedHash);
+                
+                // Reset rate limit on successful site password verification
+                if (isValidSitePassword) {
+                    rateLimiter.reset(clientIP);
+                }
                 
                 console.log(`Site password verification for graduation ${graduationId}: ${isValidSitePassword ? 'success' : 'failed'}`);
                 

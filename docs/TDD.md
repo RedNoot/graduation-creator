@@ -53,7 +53,9 @@ schoolName: (String)
 
 graduationYear: (Number)
 
-ownerUid: (String) The Firebase UID of the teacher creator.
+editors: (Array of Strings) Array of Firebase UIDs for teachers who can edit this graduation. Multiple teachers can collaborate on the same project.
+
+createdBy: (String) The Firebase UID of the teacher who originally created this graduation (immutable).
 
 isLocked: (Boolean)
 
@@ -129,7 +131,21 @@ Unique Link: The system generates a secure, unguessable ID (uniqueLinkId) and di
 
 Password: The system auto-generates a simple, memorable password (e.g., "RedHat"), hashes it, and stores the hash (passwordHash). The teacher shares the plain-text password with the student.
 
-4.3. PDF Collation (Server-Side)
+4.3. Multi-Teacher Collaboration
+
+Teachers can collaborate on the same graduation project by inviting other teachers as editors.
+
+Editors Array: Each graduation document maintains an editors array containing the Firebase UIDs of all teachers who have edit access.
+
+Inviting Collaborators: From the dashboard settings, any existing editor can invite another teacher by email address. The system looks up the user by email and adds their UID to the editors array.
+
+Removing Collaborators: Editors can remove other collaborators (except themselves). At least one editor must always remain on the project.
+
+Real-time Access Control: If an editor is removed while viewing the project, they are immediately redirected to their dashboard with a notification.
+
+Creator Tracking: The createdBy field (immutable) tracks who originally created the graduation, displayed with a "Creator" badge in the collaborators list.
+
+4.4. PDF Collation (Server-Side)
 
 Offloading this complex task from the browser is critical for reliability.
 
@@ -137,7 +153,7 @@ Trigger: A "Generate Booklet" button in the teacher dashboard invokes a Netlify 
 
 Process: The function fetches all data from Firestore, downloads the required PDFs from Cloudinary, uses a Node.js library (pdf-lib) to merge them into a single file, and uploads the final booklet back to Cloudinary, saving the URL to Firestore.
 
-4.4. Public Graduation Website
+4.5. Public Graduation Website
 
 The public-facing website is a read-only view of the data.
 

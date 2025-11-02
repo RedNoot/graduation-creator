@@ -1,5 +1,7 @@
 const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
 const fetch = require('node-fetch');
+const rateLimiter = require('./utils/rate-limiter');
+const crypto = require('crypto');
 
 // Initialize Firebase Admin (server-side)
 const admin = require('firebase-admin');
@@ -50,6 +52,114 @@ const optimizeCloudinaryPdfUrl = (url) => {
     }
     
     return `${beforeUpload}q_auto:eco/${afterUpload}`;
+};
+
+/**
+ * Extract Cloudinary public ID from URL
+ * @param {string} url - Cloudinary URL
+ * @returns {string|null} - Public ID or null if not a Cloudinary URL
+ */
+const extractCloudinaryPublicId = (url) => {
+    if (!url || !url.includes('res.cloudinary.com')) {
+        return null;
+    }
+    
+    try {
+        // URL format: https://res.cloudinary.com/{cloud_name}/image|raw|video/upload/{transformations}/{public_id}.{extension}
+        const urlParts = url.split('/upload/');
+        if (urlParts.length !== 2) {
+            return null;
+        }
+        
+        // Get everything after /upload/
+        let pathAfterUpload = urlParts[1];
+        
+        // Remove transformations (anything before the version or first non-transformation part)
+        // Transformations are comma-separated or slash-separated parameters
+        const versionMatch = pathAfterUpload.match(/v\d+\//);
+        if (versionMatch) {
+            // If there's a version number, get everything after it
+            pathAfterUpload = pathAfterUpload.substring(pathAfterUpload.indexOf(versionMatch[0]) + versionMatch[0].length);
+        } else {
+            // No version, might have transformations at the start
+            // Look for graduation-pdfs/ or similar folder structure
+            const folderMatch = pathAfterUpload.match(/([a-zA-Z0-9_-]+\/)+/);
+            if (folderMatch) {
+                pathAfterUpload = pathAfterUpload.substring(pathAfterUpload.indexOf(folderMatch[0]));
+            }
+        }
+        
+        // Remove file extension
+        const publicIdWithExtension = pathAfterUpload;
+        const lastDotIndex = publicIdWithExtension.lastIndexOf('.');
+        const publicId = lastDotIndex > 0 ? publicIdWithExtension.substring(0, lastDotIndex) : publicIdWithExtension;
+        
+        return publicId;
+    } catch (error) {
+        console.error('Error extracting Cloudinary public ID:', error);
+        return null;
+    }
+};
+
+/**
+ * Delete a file from Cloudinary
+ * @param {string} publicId - The public ID of the file to delete
+ * @returns {Promise<boolean>} - True if successful, false otherwise
+ */
+const deleteFromCloudinary = async (publicId) => {
+    if (!publicId) {
+        console.log('[Cloudinary Cleanup] No public ID provided, skipping deletion');
+        return false;
+    }
+    
+    try {
+        const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+        const apiKey = process.env.CLOUDINARY_API_KEY;
+        const apiSecret = process.env.CLOUDINARY_API_SECRET;
+        
+        if (!cloudName || !apiKey || !apiSecret) {
+            console.error('[Cloudinary Cleanup] Missing API credentials');
+            return false;
+        }
+        
+        // Generate signature for authenticated deletion
+        const timestamp = Math.floor(Date.now() / 1000);
+        const stringToSign = `public_id=${publicId}&timestamp=${timestamp}${apiSecret}`;
+        const signature = crypto.createHash('sha1').update(stringToSign).digest('hex');
+        
+        // Call Cloudinary delete API
+        const deleteUrl = `https://api.cloudinary.com/v1_1/${cloudName}/image/destroy`;
+        
+        const formData = new URLSearchParams();
+        formData.append('public_id', publicId);
+        formData.append('timestamp', timestamp.toString());
+        formData.append('api_key', apiKey);
+        formData.append('signature', signature);
+        
+        console.log(`[Cloudinary Cleanup] Attempting to delete: ${publicId}`);
+        
+        const response = await fetch(deleteUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: formData.toString()
+        });
+        
+        const result = await response.json();
+        
+        if (result.result === 'ok') {
+            console.log(`[Cloudinary Cleanup] Successfully deleted: ${publicId}`);
+            return true;
+        } else {
+            console.warn(`[Cloudinary Cleanup] Delete response:`, result);
+            return false;
+        }
+        
+    } catch (error) {
+        console.error(`[Cloudinary Cleanup] Error deleting ${publicId}:`, error);
+        return false;
+    }
 };
 
 /**
@@ -364,12 +474,18 @@ exports.handler = async (event, context) => {
         };
     }
 
-    // Rate limiting check (basic implementation)
-    const clientIP = event.headers['x-forwarded-for'] || event.headers['client-ip'] || 'unknown';
-    const rateLimitKey = `pdf-gen-${clientIP}`;
+    // Server-side rate limiting for PDF generation (expensive operation)
+    const clientIP = rateLimiter.getClientIP(event);
+    const rateLimitCheck = rateLimiter.check(clientIP, {
+        maxAttempts: 3, // Only 3 PDF generations per minute (expensive operation)
+        windowMs: 60 * 1000,
+        action: 'PDF generation'
+    });
     
-    // In a production app, you'd use Redis or similar for distributed rate limiting
-    // For now, we'll rely on Netlify's built-in rate limiting
+    if (!rateLimitCheck.allowed) {
+        console.warn(`[Rate Limit] ${clientIP} exceeded PDF generation limit`);
+        return rateLimiter.createRateLimitResponse(rateLimitCheck);
+    }
 
     try {
         // Validate environment variables
@@ -468,9 +584,38 @@ exports.handler = async (event, context) => {
         // Fetch content pages (messages, speeches, etc.)
         const contentPagesSnapshot = await db.collection('graduations').doc(graduationId).collection('contentPages').get();
         const contentPages = [];
+        const validationErrors = [];
+        const MIN_CONTENT_LENGTH = 10;
+        
         contentPagesSnapshot.forEach(doc => {
-            contentPages.push({ id: doc.id, ...doc.data() });
+            const page = { id: doc.id, ...doc.data() };
+            
+            // Server-side validation: ensure content meets minimum length requirements
+            if (!page.title || page.title.trim().length < 3) {
+                validationErrors.push(`Content page "${page.title || 'Untitled'}" has title that is too short (minimum 3 characters)`);
+            }
+            
+            if (!page.content || page.content.trim().length < MIN_CONTENT_LENGTH) {
+                validationErrors.push(`Content page "${page.title || 'Untitled'}" has content that is too short (minimum ${MIN_CONTENT_LENGTH} characters)`);
+            }
+            
+            contentPages.push(page);
         });
+        
+        // Check for validation errors and report them
+        if (validationErrors.length > 0) {
+            console.error('[Content Validation] Found invalid content pages:', validationErrors);
+            return {
+                statusCode: 400,
+                headers,
+                body: JSON.stringify({
+                    error: 'Invalid content detected',
+                    message: 'Some content pages do not meet minimum length requirements.',
+                    details: validationErrors,
+                    suggestion: 'Please edit or remove content pages with insufficient content before generating the booklet.'
+                })
+            };
+        }
         
         // Sort content pages by creation date
         contentPages.sort((a, b) => {
@@ -479,7 +624,7 @@ exports.handler = async (event, context) => {
             return dateA - dateB;
         });
         
-        console.log(`Found ${contentPages.length} content pages`);
+        console.log(`Found ${contentPages.length} valid content pages`);
 
         // Fetch students with PDFs
         const studentsSnapshot = await db.collection('graduations').doc(graduationId).collection('students').get();
@@ -947,18 +1092,55 @@ exports.handler = async (event, context) => {
 
                 const pdfBuffer = await response.arrayBuffer();
                 
-                // Validate PDF file
+                // Validate PDF file structure
                 if (pdfBuffer.byteLength === 0) {
                     console.error(`Empty PDF file for ${student.name}`);
                     skippedStudents.push(student.name);
                     continue;
                 }
-
-                const studentPdf = await PDFDocument.load(pdfBuffer);
-                const pageCount = studentPdf.getPageCount();
+                
+                // Check minimum PDF size (should be at least 1KB for valid PDF)
+                if (pdfBuffer.byteLength < 1024) {
+                    console.error(`PDF too small (${pdfBuffer.byteLength} bytes) for ${student.name}`);
+                    skippedStudents.push(student.name);
+                    continue;
+                }
+                
+                // Validate PDF header (should start with "%PDF-")
+                const pdfHeader = new Uint8Array(pdfBuffer.slice(0, 5));
+                const headerString = String.fromCharCode(...pdfHeader);
+                if (!headerString.startsWith('%PDF-')) {
+                    console.error(`Invalid PDF header for ${student.name}: ${headerString}`);
+                    skippedStudents.push(student.name);
+                    continue;
+                }
+                
+                // Attempt to load and validate PDF structure
+                let studentPdf;
+                let pageCount;
+                
+                try {
+                    studentPdf = await PDFDocument.load(pdfBuffer, {
+                        ignoreEncryption: true, // Try to handle encrypted PDFs
+                        throwOnInvalidObject: false // Be lenient with minor PDF errors
+                    });
+                    pageCount = studentPdf.getPageCount();
+                } catch (loadError) {
+                    console.error(`Failed to load PDF for ${student.name}:`, loadError.message);
+                    console.error(`Error type: ${loadError.name}`);
+                    skippedStudents.push(student.name);
+                    continue;
+                }
                 
                 if (pageCount === 0) {
                     console.error(`No pages in PDF for ${student.name}`);
+                    skippedStudents.push(student.name);
+                    continue;
+                }
+                
+                // Validate page count is reasonable (max 50 pages per student)
+                if (pageCount > 50) {
+                    console.error(`PDF has too many pages (${pageCount}) for ${student.name}`);
                     skippedStudents.push(student.name);
                     continue;
                 }
@@ -1090,6 +1272,29 @@ exports.handler = async (event, context) => {
         console.log(`Successfully uploaded booklet to: ${bookletUrl}`);
         console.log(`Cloudinary version: ${uploadResult.version}`);
         console.log(`Full Cloudinary response:`, JSON.stringify(uploadResult, null, 2));
+
+        // Cleanup old booklet from Cloudinary before updating Firestore
+        try {
+            const gradDoc = await db.collection('graduations').doc(graduationId).get();
+            const oldBookletUrl = gradDoc.data()?.generatedBookletUrl;
+            
+            if (oldBookletUrl && oldBookletUrl !== bookletUrl) {
+                console.log(`[Cloudinary Cleanup] Found old booklet URL: ${oldBookletUrl}`);
+                const publicId = extractCloudinaryPublicId(oldBookletUrl);
+                
+                if (publicId) {
+                    // Delete old booklet asynchronously (don't wait for it)
+                    deleteFromCloudinary(publicId).catch(err => {
+                        console.error('[Cloudinary Cleanup] Failed to delete old booklet:', err);
+                    });
+                } else {
+                    console.warn('[Cloudinary Cleanup] Could not extract public ID from old URL');
+                }
+            }
+        } catch (cleanupError) {
+            // Don't fail the entire operation if cleanup fails
+            console.error('[Cloudinary Cleanup] Error during cleanup:', cleanupError);
+        }
 
         // Update Firestore with the booklet URL
         try {

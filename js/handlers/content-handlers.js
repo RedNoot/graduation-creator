@@ -39,6 +39,19 @@ export function setupCancelContentHandler(cancelBtn) {
 export function setupContentFormHandler(formElement, gradId, handlers) {
     const { sanitizeInput, showModal } = handlers;
     
+    // Track form input changes for collaborative editing
+    const trackInputChange = async () => {
+        const collaborativeEditingManager = (await import('../utils/collaborative-editing.js')).default;
+        collaborativeEditingManager.setPendingChanges(gradId, true);
+    };
+    
+    // Add input listeners to all form fields
+    const formInputs = formElement.querySelectorAll('input, textarea, select');
+    formInputs.forEach(input => {
+        input.addEventListener('input', trackInputChange);
+        input.addEventListener('change', trackInputChange);
+    });
+    
     formElement.addEventListener('submit', async (e) => {
         e.preventDefault();
         
@@ -53,8 +66,26 @@ export function setupContentFormHandler(formElement, gradId, handlers) {
         const bodyImagesInput = document.getElementById('content-body-images');
         const videoFileInput = document.getElementById('content-video-upload');
 
+        // Validate required fields
         if (!title || !content) {
             showModal('Error', 'Please fill in the title and content fields.');
+            return;
+        }
+        
+        // Validate minimum content length (prevent empty/whitespace-only content)
+        const MIN_CONTENT_LENGTH = 10;
+        if (title.trim().length < 3) {
+            showModal('Error', 'Title must be at least 3 characters long.');
+            return;
+        }
+        if (content.trim().length < MIN_CONTENT_LENGTH) {
+            showModal('Error', `Content must be at least ${MIN_CONTENT_LENGTH} characters long.`);
+            return;
+        }
+        
+        // Validate author name if provided
+        if (author && author.trim().length > 0 && author.trim().length < 2) {
+            showModal('Error', 'Author name must be at least 2 characters long.');
             return;
         }
 
@@ -111,6 +142,8 @@ export function setupContentFormHandler(formElement, gradId, handlers) {
             }
             
             const { ContentRepository } = await import('../data/content-repository.js');
+            const collaborativeEditingManager = (await import('../utils/collaborative-editing.js')).default;
+            const { showConflictWarning } = await import('../components/collaborative-ui.js');
             
             const contentData = {
                 title,
@@ -125,26 +158,50 @@ export function setupContentFormHandler(formElement, gradId, handlers) {
                 updatedAt: new Date()
             };
 
-            if (editId) {
-                // Update existing content
-                await ContentRepository.update(gradId, editId, {
-                    ...contentData,
-                    updatedAt: new Date()
-                });
-                showModal('Success', 'Content page updated successfully.');
-            } else {
-                // Add new content
-                await ContentRepository.create(gradId, contentData);
-                showModal('Success', 'Content page added successfully.');
-            }
+            // Use collaborative editing manager for safe update with conflict detection
+            const success = await collaborativeEditingManager.safeUpdate(
+                gradId,
+                async () => {
+                    if (editId) {
+                        // Update existing content
+                        await ContentRepository.update(gradId, editId, {
+                            ...contentData,
+                            updatedAt: new Date()
+                        });
+                    } else {
+                        // Add new content
+                        await ContentRepository.create(gradId, contentData);
+                    }
+                },
+                () => {
+                    // On conflict, show warning modal
+                    return new Promise((resolve) => {
+                        showConflictWarning(() => {
+                            // User chose to reload - reject to cancel save
+                            resolve(false);
+                            window.location.reload();
+                        }, () => {
+                            // User chose to save anyway - resolve to continue
+                            resolve(true);
+                        });
+                    });
+                }
+            );
 
-            document.getElementById('content-form').classList.add('hidden');
-            document.getElementById('add-content-form').reset();
-            delete e.target.dataset.editId;
-            
-            // Clear image previews
-            document.getElementById('author-photo-preview').classList.add('hidden');
-            document.getElementById('body-images-preview').innerHTML = '';
+            if (success) {
+                // Clear pending changes flag
+                collaborativeEditingManager.setPendingChanges(gradId, false);
+                showModal('Success', editId ? 'Content page updated successfully.' : 'Content page added successfully.');
+                
+                document.getElementById('content-form').classList.add('hidden');
+                document.getElementById('add-content-form').reset();
+                delete e.target.dataset.editId;
+                
+                // Clear image previews
+                document.getElementById('author-photo-preview').classList.add('hidden');
+                document.getElementById('body-images-preview').innerHTML = '';
+            }
+            // If not successful, user chose to reload or conflict callback handled it
 
         } catch (error) {
             console.error('Error saving content page:', error);

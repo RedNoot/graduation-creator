@@ -33,6 +33,7 @@
         import { rateLimiter } from './js/utils/rate-limiter.js';
         import { ensurePublicPdfUrl } from './js/utils/url-helpers.js';
         import { generateUrlSlug } from './js/utils/url-slug.js';
+        import { initiateSecureDownload, checkDownloadAvailability } from './js/utils/secure-download.js';
         
         // Import services
         import { app, auth, db } from './js/firebase-init.js';
@@ -100,6 +101,9 @@
         
         // Make utility functions available globally for onclick handlers
         window.copyToClipboard = copyToClipboard;
+        
+        // Make secure download function available globally for onclick handlers
+        window.initiateSecureDownload = (gradId) => initiateSecureDownload(gradId, showModal);
 
         // File upload is now imported from js/services/cloudinary.js
 
@@ -295,8 +299,17 @@
                         createdAt: new Date(),
                     });
                     
-                    // Generate and store URL slug
-                    const urlSlug = generateUrlSlug(schoolName, graduationYear, newGrad.id);
+                    // Generate and store URL slug with uniqueness check
+                    let urlSlug = generateUrlSlug(schoolName, graduationYear, newGrad.id);
+                    
+                    // Check if slug already exists (edge case: same school/year created at same time)
+                    const existingGrad = await GraduationRepository.getBySlug(urlSlug);
+                    if (existingGrad && existingGrad.id !== newGrad.id) {
+                        // Collision detected - append timestamp for uniqueness
+                        console.warn('Slug collision detected, adding timestamp');
+                        urlSlug = `${urlSlug}-${Date.now()}`;
+                    }
+                    
                     await GraduationRepository.update(newGrad.id, { urlSlug });
                     
                     // Create default config subcollection
@@ -2734,10 +2747,7 @@ Are you absolutely sure you want to continue?`,
                                 return '';
                             }
                             
-                            const isScheduled = config.enableDownloadScheduling && config.downloadableAfterDate;
-                            const isAvailable = !isScheduled || new Date() >= new Date(config.downloadableAfterDate);
-                            const downloadUrl = getDownloadUrl(gradData.generatedBookletUrl);
-                            
+                            // Server-side validation will be handled by secure download function
                             return `
                                 <div class="mb-8 flex justify-center ${animationClass}">
                                     <div class="bg-white ${cardStyleClass} ${borderRadiusClass} p-6 w-full max-w-md text-center">
@@ -2747,17 +2757,18 @@ Are you absolutely sure you want to continue?`,
                                             </svg>
                                             Graduation Booklet
                                         </h3>
-                                        ${isAvailable ? `
-                                            <a href="${downloadUrl}" 
-                                               download="${gradData.schoolName}-${gradData.graduationYear}-Booklet.pdf"
-                                               class="inline-flex items-center px-6 py-3 text-base font-medium rounded-md text-white transition-colors hover:opacity-90 ${borderRadiusClass}"
-                                               style="background-color: ${config.primaryColor};">
-                                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                                                </svg>
-                                                Download Booklet
-                                            </a>
-                                            <p class="text-xs text-gray-500 mt-2">PDF format</p>
+                                        <button 
+                                            onclick="window.initiateSecureDownload('${gradId}')"
+                                            class="inline-flex items-center px-6 py-3 text-base font-medium rounded-md text-white transition-colors hover:opacity-90 ${borderRadiusClass}"
+                                            style="background-color: ${config.primaryColor};">
+                                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                            </svg>
+                                            Download Booklet
+                                        </button>
+                                        <p class="text-xs text-gray-500 mt-2">PDF format</p>
+                                        ${config.enableDownloadScheduling && config.downloadableAfterDate ? `
+                                            <p class="text-xs text-gray-500 mt-2">Availability verified server-side</p>
                                         ` : `
                                             <div class="text-center">
                                                 <button disabled 

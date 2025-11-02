@@ -9,6 +9,8 @@ import { GraduationRepository } from '../data/graduation-repository.js';
 import { StudentRepository } from '../data/student-repository.js';
 import { logger } from '../utils/logger.js';
 import { isSlug, extractIdFromSlug } from '../utils/url-slug.js';
+import collaborativeEditingManager from '../utils/collaborative-editing.js';
+import { showActiveEditorsBanner, removeActiveEditorsBanner } from '../components/collaborative-ui.js';
 
 /**
  * Resolve a slug or ID to a graduation ID
@@ -82,20 +84,69 @@ export const createRouter = ({
                         return;
                     }
 
-                    // Detach any previous listener
+                    // Stop tracking previous graduation if any
                     if (currentGraduationListener.current) {
                         currentGraduationListener.current();
                     }
+                    collaborativeEditingManager.stopTracking(gradId, currentUser.uid);
+
+                    // Start presence tracking for collaborative editing
+                    collaborativeEditingManager.startTracking(
+                        gradId,
+                        currentUser.uid,
+                        async (otherEditorUids) => {
+                            // Fetch editor details and show banner
+                            try {
+                                const response = await fetch('/.netlify/functions/manage-editors', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        action: 'getEditorEmails',
+                                        graduationId: gradId,
+                                        requestingUserUid: currentUser.uid
+                                    })
+                                });
+                                
+                                const result = await response.json();
+                                if (result.success) {
+                                    const otherEditors = result.editors.filter(e => 
+                                        e.uid !== currentUser.uid && otherEditorUids.includes(e.uid)
+                                    );
+                                    
+                                    const container = document.getElementById('tab-content');
+                                    if (container && otherEditors.length > 0) {
+                                        showActiveEditorsBanner(otherEditors, container);
+                                    } else {
+                                        removeActiveEditorsBanner();
+                                    }
+                                }
+                            } catch (error) {
+                                console.error('Error fetching editor details:', error);
+                            }
+                        }
+                    );
 
                     // Attach a new realtime listener using repository
                     currentGraduationListener.current = GraduationRepository.onUpdate(gradId, async (gradData) => {
                         if (gradData) {
-                            // Check if user is an editor (handle migration: check both editors array and ownerUid)
-                            const editors = gradData.editors || (gradData.ownerUid ? [gradData.ownerUid] : []);
+                            // Check if user is an editor
+                            const editors = gradData.editors || [];
                             const isEditor = editors.includes(currentUser.uid);
                             
                             if (!isEditor) {
-                                goToDashboard();
+                                // User was removed from editors - show message and redirect
+                                collaborativeEditingManager.stopTracking(gradId, currentUser.uid);
+                                showModal('Access Removed', 'You have been removed from this project by another collaborator. Redirecting to dashboard...', false);
+                                setTimeout(() => {
+                                    goToDashboard();
+                                }, 2000);
+                                return;
+                            }
+
+                            // Check if user has pending changes
+                            if (collaborativeEditingManager.hasPendingChanges(gradId)) {
+                                // Don't re-render - user is actively editing
+                                console.log('[Collaborative] Skipping re-render - user has pending changes');
                                 return;
                             }
 
@@ -104,19 +155,42 @@ export const createRouter = ({
                             
                             renderEditor(gradData, gradId);
                         } else {
-                            goToDashboard();
+                            // Project was deleted
+                            collaborativeEditingManager.stopTracking(gradId, currentUser.uid);
+                            showModal('Project Deleted', 'This project has been deleted. Redirecting to dashboard...', false);
+                            setTimeout(() => {
+                                goToDashboard();
+                            }, 2000);
                         }
                     });
                     break;
                 }
 
                 case 'NEW_GRADUATION': {
+                    // Stop tracking when leaving edit page
+                    if (currentGraduationListener.current) {
+                        const prevGradId = currentGraduationListener.current.gradId;
+                        if (prevGradId) {
+                            collaborativeEditingManager.stopTracking(prevGradId, currentUser.uid);
+                        }
+                        currentGraduationListener.current();
+                    }
+                    removeActiveEditorsBanner();
                     renderNewGraduationForm();
                     break;
                 }
 
                 case 'DASHBOARD':
                 default: {
+                    // Stop tracking when leaving edit page
+                    if (currentGraduationListener.current) {
+                        const prevGradId = currentGraduationListener.current.gradId;
+                        if (prevGradId) {
+                            collaborativeEditingManager.stopTracking(prevGradId, currentUser.uid);
+                        }
+                        currentGraduationListener.current();
+                    }
+                    removeActiveEditorsBanner();
                     renderDashboard();
                     break;
                 }
@@ -185,14 +259,43 @@ export const createPublicRouter = ({
                         
                         if (sitePasswordHash && !isVerified) {
                             // Site is password protected and user hasn't verified yet
-                            // Show password modal instead of rendering the site
+                            // Track state to prevent infinite loops
+                            let isVerifying = false;
+                            let lockoutEndTime = null;
+                            
                             const attemptPassword = async (password, attemptCount = 0) => {
-                                // Rate limiting: max 5 attempts before temporary lockout
+                                // Prevent concurrent verification attempts
+                                if (isVerifying) {
+                                    console.warn('Password verification already in progress');
+                                    return;
+                                }
+                                
+                                // Check if currently in lockout period
+                                if (lockoutEndTime && Date.now() < lockoutEndTime) {
+                                    const remainingSeconds = Math.ceil((lockoutEndTime - Date.now()) / 1000);
+                                    showModal('Too Many Attempts', `Please wait ${remainingSeconds} seconds before trying again.`);
+                                    return;
+                                }
+                                
+                                // Progressive temporary lockouts (no permanent blocking)
                                 if (attemptCount >= 5) {
-                                    showModal('Too Many Attempts', 'Too many failed attempts. Please wait a moment before trying again.');
+                                    // Exponential backoff: 10s, 20s, 40s, 60s, 120s, then 300s (5 min) max
+                                    const lockoutDuration = Math.min(300000, 10000 * Math.pow(2, attemptCount - 5));
+                                    lockoutEndTime = Date.now() + lockoutDuration;
+                                    
+                                    const minutes = Math.floor(lockoutDuration / 60000);
+                                    const seconds = Math.floor((lockoutDuration % 60000) / 1000);
+                                    const timeMessage = minutes > 0 
+                                        ? `${minutes} minute${minutes > 1 ? 's' : ''} and ${seconds} seconds`
+                                        : `${seconds} seconds`;
+                                    
+                                    showModal('Too Many Attempts', `Too many failed attempts. Please wait ${timeMessage} before trying again.`);
+                                    
+                                    // Reset lockout and show modal again after delay
                                     setTimeout(() => {
-                                        attemptPassword(null, 0); // Reset and show modal again
-                                    }, 10000); // 10 second lockout
+                                        lockoutEndTime = null;
+                                        attemptPassword(null, attemptCount);
+                                    }, lockoutDuration);
                                     return;
                                 }
                                 
@@ -202,13 +305,17 @@ export const createPublicRouter = ({
                                         '🔒 Password Protected',
                                         'This graduation site is password protected. Please enter the password to continue.',
                                         (enteredPassword) => attemptPassword(enteredPassword, attemptCount),
-                                        attemptCount > 0 ? 'Incorrect password. Please try again.' : ''
+                                        attemptCount > 0 ? `Incorrect password. Attempt ${attemptCount}/5. Please try again.` : ''
                                     );
                                     return;
                                 }
                                 
                                 // Verify password with serverless function
+                                isVerifying = true;
                                 try {
+                                    const controller = new AbortController();
+                                    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+                                    
                                     const response = await fetch('/.netlify/functions/secure-operations', {
                                         method: 'POST',
                                         headers: { 'Content-Type': 'application/json' },
@@ -216,28 +323,49 @@ export const createPublicRouter = ({
                                             action: 'verifySitePassword',
                                             graduationId: gradId,
                                             passwordToVerifySite: password
-                                        })
+                                        }),
+                                        signal: controller.signal
                                     });
+                                    
+                                    clearTimeout(timeoutId);
+                                    
+                                    if (!response.ok) {
+                                        throw new Error(`Server error: ${response.status}`);
+                                    }
                                     
                                     const result = await response.json();
                                     
-                                    if (response.ok && result.isValid) {
+                                    if (result.isValid) {
                                         // Password correct! Save to session and render the site
                                         sessionStorage.setItem(sessionKey, 'true');
                                         const students = await StudentRepository.getAll(gradId);
                                         renderPublicView(gradData, students, gradId);
                                     } else {
-                                        // Password incorrect, show modal again with error
+                                        // Password incorrect, increment attempt counter
+                                        const newAttemptCount = attemptCount + 1;
+                                        isVerifying = false; // Reset flag before showing modal
+                                        
                                         showPasswordModal(
                                             '🔒 Password Protected',
                                             'This graduation site is password protected. Please enter the password to continue.',
-                                            (enteredPassword) => attemptPassword(enteredPassword, attemptCount + 1),
-                                            'Incorrect password. Please try again.'
+                                            (enteredPassword) => attemptPassword(enteredPassword, newAttemptCount),
+                                            `Incorrect password. Attempt ${newAttemptCount}/5. Please try again.`
                                         );
                                     }
                                 } catch (error) {
+                                    isVerifying = false; // Reset flag on error
                                     console.error('Password verification error:', error);
-                                    showModal('Error', 'An error occurred while verifying the password. Please try again.');
+                                    
+                                    if (error.name === 'AbortError') {
+                                        showModal('Timeout', 'Password verification timed out. Please check your connection and try again.');
+                                    } else {
+                                        showModal('Error', 'An error occurred while verifying the password. Please try again.');
+                                    }
+                                    
+                                    // Allow user to retry after error without incrementing counter
+                                    setTimeout(() => {
+                                        attemptPassword(null, attemptCount);
+                                    }, 2000);
                                 }
                             };
                             

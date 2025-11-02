@@ -123,12 +123,27 @@ export function setupDownloadSchedulingHandler(toggleElement, handlers) {
 export function setupSettingsFormHandler(formElement, handlers) {
     const { showModal, sanitizeInput, uploadToCloudinary, gradId } = handlers;
     
+    // Track form input changes for collaborative editing
+    const trackInputChange = async () => {
+        const collaborativeEditingManager = (await import('../utils/collaborative-editing.js')).default;
+        collaborativeEditingManager.setPendingChanges(gradId, true);
+    };
+    
+    // Add input listeners to all form fields
+    const formInputs = formElement.querySelectorAll('input, textarea, select');
+    formInputs.forEach(input => {
+        input.addEventListener('input', trackInputChange);
+        input.addEventListener('change', trackInputChange);
+    });
+    
     formElement.addEventListener('submit', async (e) => {
         e.preventDefault();
         
         try {
             showModal('Saving...', 'Updating settings...', false);
             const { GraduationRepository } = await import('../data/graduation-repository.js');
+            const collaborativeEditingManager = (await import('../utils/collaborative-editing.js')).default;
+            const { showConflictWarning } = await import('../components/collaborative-ui.js');
             
             const config = {
                 schoolLogo: document.getElementById('schoolLogo')?.value || '',
@@ -160,9 +175,34 @@ export function setupSettingsFormHandler(formElement, handlers) {
                 }
             }
             
-            // Save configuration to Firestore using repository
-            await GraduationRepository.updateConfig(gradId, config);
-            showModal('Success', 'Settings saved successfully.');
+            // Use collaborative editing manager for safe update with conflict detection
+            const success = await collaborativeEditingManager.safeUpdate(
+                gradId,
+                async () => {
+                    // Save configuration to Firestore using repository
+                    await GraduationRepository.updateConfig(gradId, config);
+                },
+                () => {
+                    // On conflict, show warning modal
+                    return new Promise((resolve) => {
+                        showConflictWarning(() => {
+                            // User chose to reload - reject to cancel save
+                            resolve(false);
+                            window.location.reload();
+                        }, () => {
+                            // User chose to save anyway - resolve to continue
+                            resolve(true);
+                        });
+                    });
+                }
+            );
+            
+            if (success) {
+                // Clear pending changes flag
+                collaborativeEditingManager.setPendingChanges(gradId, false);
+                showModal('Success', 'Settings saved successfully.');
+            }
+            // If not successful, user chose to reload or conflict callback handled it
             
         } catch (error) {
             console.error('Error saving settings:', error);

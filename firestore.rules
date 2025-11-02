@@ -5,38 +5,43 @@ service cloud.firestore {
     // Helper function to check if user is an editor of a graduation
     function isEditor(graduationId) {
       let gradData = get(/databases/$(database)/documents/graduations/$(graduationId)).data;
-      return request.auth != null && 
-             (request.auth.uid in gradData.editors || 
-              request.auth.uid == gradData.ownerUid); // Backward compatibility
+      return request.auth != null && request.auth.uid in gradData.editors;
     }
     
     // Graduation documents
     match /graduations/{gradId} {
-      // Allow read if user is an editor or owner
+      // Allow read if user is an editor
       allow read: if request.auth != null && 
-                     (request.auth.uid in resource.data.editors ||
-                      request.auth.uid == resource.data.ownerUid); // Backward compatibility
+                     request.auth.uid in resource.data.editors;
       
       // Allow create if authenticated (user will be added to editors array)
       allow create: if request.auth != null &&
-                       request.auth.uid in request.resource.data.editors;
+                       request.auth.uid in request.resource.data.editors &&
+                       request.resource.data.editors.size() >= 1;
       
-      // Allow update if user is an editor or owner
-      // Special rules for editors array modification
+      // Allow update if user is an editor
+      // Special rules for editors array modification and presence tracking
       allow update: if request.auth != null && 
-                       (request.auth.uid in resource.data.editors ||
-                        request.auth.uid == resource.data.ownerUid) &&
-                       // Ensure editors array always has at least one member (if it exists)
-                       (!exists(request.resource.data.editors) || request.resource.data.editors.size() >= 1) &&
+                       request.auth.uid in resource.data.editors &&
+                       // Ensure editors array always has at least one member
+                       request.resource.data.editors.size() >= 1 &&
                        // Only existing editors can modify the editors array
                        (request.resource.data.editors == resource.data.editors ||
-                        request.auth.uid in resource.data.editors ||
-                        request.auth.uid == resource.data.ownerUid);
+                        request.auth.uid in resource.data.editors) &&
+                       // Prevent modification of createdBy field (immutable)
+                       (!request.resource.data.keys().hasAny(['createdBy']) ||
+                        request.resource.data.createdBy == resource.data.createdBy);
       
-      // Allow delete if user is an editor or owner
+      // Allow presence tracking updates (activeEditors map) without full editor permissions
+      // This allows editors to update their own presence timestamp
+      allow update: if request.auth != null && 
+                       request.auth.uid in resource.data.editors &&
+                       // Only allow updates to activeEditors field
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['activeEditors', 'updatedAt']);
+      
+      // Allow delete if user is an editor
       allow delete: if request.auth != null && 
-                       (request.auth.uid in resource.data.editors ||
-                        request.auth.uid == resource.data.ownerUid);
+                       request.auth.uid in resource.data.editors;
       
       // Students subcollection
       match /students/{studentId} {

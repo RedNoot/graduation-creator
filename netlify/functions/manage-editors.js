@@ -209,14 +209,14 @@ exports.handler = async (event) => {
                         editorEmails.push({
                             uid: editorUid,
                             email: userRecord.email,
-                            isCreator: editorUid === gradData.createdBy
+                            isCreator: editorUid === (gradData.createdBy || gradData.editors[0]) // Fallback for old data
                         });
                     } catch (error) {
                         console.warn(`Could not fetch user ${editorUid}:`, error.message);
                         editorEmails.push({
                             uid: editorUid,
                             email: 'Unknown User',
-                            isCreator: editorUid === gradData.createdBy,
+                            isCreator: editorUid === (gradData.createdBy || gradData.editors[0]),
                             error: true
                         });
                     }
