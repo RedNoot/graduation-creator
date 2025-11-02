@@ -153,6 +153,90 @@ export const StudentRepository = {
      */
     getCollectionRef(graduationId) {
         return collection(db, "graduations", graduationId, "students");
+    },
+
+    /**
+     * Get dashboard statistics for a graduation's students
+     * Efficiently calculates progress metrics for Project Home dashboard
+     * @param {string} graduationId - The graduation ID
+     * @returns {Promise<Object>} Stats object with counts and progress
+     * @example
+     * const stats = await StudentRepository.getDashboardStats(gradId);
+     * // Returns: {
+     * //   totalStudents: 30,
+     * //   pdfCount: 25,
+     * //   photoCount: 20,
+     * //   coverPhotoCount: 18,
+     * //   speechCount: 15,
+     * //   pdfProgress: 83,
+     * //   photoProgress: 67,
+     * //   coverPhotoProgress: 60,
+     * //   speechProgress: 50
+     * // }
+     */
+    async getDashboardStats(graduationId) {
+        try {
+            const students = await this.getAll(graduationId);
+            const totalStudents = students.length;
+            
+            if (totalStudents === 0) {
+                return {
+                    totalStudents: 0,
+                    pdfCount: 0,
+                    photoCount: 0,
+                    coverPhotoCount: 0,
+                    speechCount: 0,
+                    pdfProgress: 0,
+                    photoProgress: 0,
+                    coverPhotoProgress: 0,
+                    speechProgress: 0
+                };
+            }
+            
+            // Count students with each type of asset
+            const pdfCount = students.filter(s => s.profilePdfUrl && s.profilePdfUrl.trim() !== '').length;
+            const photoCount = students.filter(s => s.profilePhotoUrl && s.profilePhotoUrl.trim() !== '').length;
+            
+            // Count students with at least one cover photo
+            const coverPhotoCount = students.filter(s => 
+                (s.coverPhotoBeforeUrl && s.coverPhotoBeforeUrl.trim() !== '') || 
+                (s.coverPhotoAfterUrl && s.coverPhotoAfterUrl.trim() !== '')
+            ).length;
+            
+            // Count students with graduation speech/message
+            const speechCount = students.filter(s => s.graduationSpeech && s.graduationSpeech.trim() !== '').length;
+            
+            // Calculate progress percentages
+            const pdfProgress = Math.round((pdfCount / totalStudents) * 100);
+            const photoProgress = Math.round((photoCount / totalStudents) * 100);
+            const coverPhotoProgress = Math.round((coverPhotoCount / totalStudents) * 100);
+            const speechProgress = Math.round((speechCount / totalStudents) * 100);
+            
+            return {
+                totalStudents,
+                pdfCount,
+                photoCount,
+                coverPhotoCount,
+                speechCount,
+                pdfProgress,
+                photoProgress,
+                coverPhotoProgress,
+                speechProgress
+            };
+        } catch (error) {
+            console.error('[StudentRepository] Error getting dashboard stats:', error);
+            return {
+                totalStudents: 0,
+                pdfCount: 0,
+                photoCount: 0,
+                coverPhotoCount: 0,
+                speechCount: 0,
+                pdfProgress: 0,
+                photoProgress: 0,
+                coverPhotoProgress: 0,
+                speechProgress: 0
+            };
+        }
     }
 };
 
