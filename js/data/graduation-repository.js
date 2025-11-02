@@ -214,41 +214,30 @@ export const GraduationRepository = {
      */
     async setSetupStepComplete(graduationId, stepName) {
         try {
-            // Fetch current graduation data to get the full config object
-            const grad = await this.getById(graduationId);
-            const currentConfig = grad.config || {};
-            const currentSetupStatus = currentConfig.setupStatus || {
-                studentsAdded: false,
-                contentAdded: false,
-                themeCustomized: false,
-                bookletGenerated: false
+            // Use Firestore's dot notation directly for nested field update
+            const { updateDoc, doc: firestoreDoc } = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js');
+            
+            const fieldPath = `config.setupStatus.${stepName}`;
+            const updates = {
+                [fieldPath]: true,
+                updatedAt: new Date()
             };
             
-            // Update the specific step in the setupStatus object
-            const updatedSetupStatus = {
-                ...currentSetupStatus,
-                [stepName]: true
-            };
-            
-            // Update the entire config object with the modified setupStatus
-            const updatedConfig = {
-                ...currentConfig,
-                setupStatus: updatedSetupStatus
-            };
-            
-            await this.update(graduationId, {
-                config: updatedConfig
-            });
+            await updateDoc(firestoreDoc(db, 'graduations', graduationId), updates);
             
             // Check if all steps are complete and update isSetupComplete flag
-            const allStepsComplete = updatedSetupStatus.studentsAdded && 
-                                    updatedSetupStatus.contentAdded && 
-                                    updatedSetupStatus.themeCustomized && 
-                                    updatedSetupStatus.bookletGenerated;
+            const grad = await this.getById(graduationId);
+            const setupStatus = grad.config?.setupStatus || {};
+            const allStepsComplete = setupStatus.studentsAdded && 
+                                    setupStatus.contentAdded && 
+                                    setupStatus.themeCustomized && 
+                                    setupStatus.bookletGenerated;
             
             if (allStepsComplete && !grad.isSetupComplete) {
-                await this.update(graduationId, {
-                    isSetupComplete: true
+                const { updateDoc, doc: firestoreDoc } = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js');
+                await updateDoc(firestoreDoc(db, 'graduations', graduationId), {
+                    isSetupComplete: true,
+                    updatedAt: new Date()
                 });
             }
         } catch (error) {

@@ -263,42 +263,32 @@ async function markSetupComplete(gradId) {
  */
 async function toggleSetupStep(gradId, stepName, isChecked) {
     try {
+        const { updateDoc, doc } = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js');
+        const { db } = await import('../firebase-init.js');
         const { GraduationRepository } = await import('../data/graduation-repository.js');
         
-        // Fetch current graduation data to get the full config object
-        const gradData = await GraduationRepository.getById(gradId);
-        const currentConfig = gradData.config || {};
-        const currentSetupStatus = currentConfig.setupStatus || {
-            studentsAdded: false,
-            contentAdded: false,
-            themeCustomized: false,
-            bookletGenerated: false
+        // Use Firestore's dot notation directly in updateDoc (bypasses the repository layer)
+        // This works with Firestore's native field update syntax
+        const fieldPath = `config.setupStatus.${stepName}`;
+        const updates = {
+            [fieldPath]: isChecked,
+            updatedAt: new Date()
         };
         
-        // Update the specific step in the setupStatus object
-        const updatedSetupStatus = {
-            ...currentSetupStatus,
-            [stepName]: isChecked
-        };
-        
-        // Update the entire config object with the modified setupStatus
-        const updatedConfig = {
-            ...currentConfig,
-            setupStatus: updatedSetupStatus
-        };
-        
-        await GraduationRepository.update(gradId, {
-            config: updatedConfig
-        });
+        await updateDoc(doc(db, 'graduations', gradId), updates);
         
         console.log(`[Setup Guide] Toggled ${stepName} to ${isChecked}`);
         
         // If all steps are complete, mark setup as complete and reload
         if (isChecked) {
-            const allComplete = updatedSetupStatus.studentsAdded && 
-                               updatedSetupStatus.contentAdded && 
-                               updatedSetupStatus.themeCustomized && 
-                               updatedSetupStatus.bookletGenerated;
+            // Fetch current data to check if all steps are now complete
+            const gradData = await GraduationRepository.getById(gradId);
+            const setupStatus = gradData.config?.setupStatus || {};
+            
+            const allComplete = setupStatus.studentsAdded && 
+                               setupStatus.contentAdded && 
+                               setupStatus.themeCustomized && 
+                               setupStatus.bookletGenerated;
             
             if (allComplete) {
                 await markSetupComplete(gradId);
