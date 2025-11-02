@@ -357,7 +357,47 @@
              });
         };
 
-        const renderEditor = (gradData, gradId) => {
+        const renderEditor = async (gradData, gradId) => {
+            // Check if setup is complete
+            const isSetupComplete = gradData.isSetupComplete === true;
+            
+            // If setup is not complete, show Setup Guide instead of tabbed dashboard
+            if (!isSetupComplete) {
+                // Import setup guide component
+                const { renderSetupGuide, setupSetupGuideHandlers } = await import('./js/components/setup-guide.js');
+                
+                // Function to activate tabs (will be used when user clicks setup guide steps)
+                const activateTab = (tabName) => {
+                    // Re-render with full dashboard
+                    renderFullDashboard(gradData, gradId, tabName);
+                };
+                
+                // Setup global handlers for setup guide
+                setupSetupGuideHandlers(activateTab, gradId);
+                
+                // Render setup guide with minimal header
+                const header = renderHeader(gradData.schoolName, currentUser, true);
+                const setupGuideHTML = renderSetupGuide(gradData, gradId, activateTab);
+                appContainer.innerHTML = header + `<main>${setupGuideHTML}</main>`;
+                
+                // Event listeners
+                document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
+                
+                const changeProjectBtn = document.getElementById('change-project-btn');
+                if (changeProjectBtn) {
+                    changeProjectBtn.addEventListener('click', () => {
+                        window.location.hash = '#/dashboard';
+                    });
+                }
+                
+                return; // Exit early - don't render tabs
+            }
+            
+            // Setup is complete - render full tabbed dashboard
+            renderFullDashboard(gradData, gradId);
+        };
+        
+        const renderFullDashboard = (gradData, gradId, initialTab = 'students') => {
             const header = renderHeader(gradData.schoolName, currentUser, true); // Show "Change Project" button
             // Use slug if available, otherwise fall back to gradId
             const urlIdentifier = gradData.urlSlug || gradId;
@@ -368,11 +408,11 @@
                     <!-- TABS -->
                     <div class="mb-6 border-b border-gray-200">
                         <nav class="-mb-px flex space-x-8" aria-label="Tabs">
-                            <a href="#" class="tab-link border-indigo-500 text-indigo-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" data-tab="students">Students</a>
-                            <a href="#" class="tab-link border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" data-tab="content">Content Pages</a>
-                            <a href="#" class="tab-link border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" data-tab="settings">Settings</a>
-                            <a href="#" class="tab-link border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" data-tab="share">Share & View</a>
-                            <a href="#" class="tab-link border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" data-tab="booklet">Booklet</a>
+                            <a href="#" class="tab-link ${initialTab === 'students' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" data-tab="students">Students</a>
+                            <a href="#" class="tab-link ${initialTab === 'content' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" data-tab="content">Content Pages</a>
+                            <a href="#" class="tab-link ${initialTab === 'settings' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" data-tab="settings">Settings</a>
+                            <a href="#" class="tab-link ${initialTab === 'share' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" data-tab="share">Share & View</a>
+                            <a href="#" class="tab-link ${initialTab === 'booklet' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" data-tab="booklet">Booklet</a>
                         </nav>
                     </div>
 
@@ -384,8 +424,29 @@
             `;
             appContainer.innerHTML = header + `<main>${mainContent}</main>`;
             
-            // Initial tab load
-            renderStudentsTab(gradId);
+            // Initial tab load - use the specified tab
+            switch(initialTab) {
+                case 'students':
+                    renderStudentsTab(gradId);
+                    break;
+                case 'content':
+                    renderContentPagesTab(gradId, gradData);
+                    break;
+                case 'settings':
+                    renderSettingsTab(gradId, gradData);
+                    break;
+                case 'share':
+                    renderShareTab(publicUrl);
+                    break;
+                case 'booklet':
+                    (async () => {
+                        const freshGradData = await GraduationRepository.getById(gradId);
+                        if (freshGradData) {
+                            renderBookletTab(gradId, freshGradData);
+                        }
+                    })();
+                    break;
+            }
 
             // Event listeners
             document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
