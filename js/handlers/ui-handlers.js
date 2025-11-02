@@ -198,6 +198,14 @@ export function setupSettingsFormHandler(formElement, handlers) {
             );
             
             if (success) {
+                // Mark setup step as complete for theme customization
+                try {
+                    await GraduationRepository.setSetupStepComplete(gradId, 'themeCustomized');
+                } catch (error) {
+                    console.warn('Failed to update setup status:', error);
+                    // Non-critical, continue
+                }
+                
                 // Clear pending changes flag
                 collaborativeEditingManager.setPendingChanges(gradId, false);
                 showModal('Success', 'Settings saved successfully.');

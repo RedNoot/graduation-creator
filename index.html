@@ -117,6 +117,14 @@
                 await generateBooklet(graduationId, 
                     // Success callback
                     async (result) => {
+                        // Mark setup step as complete for booklet generation
+                        try {
+                            await GraduationRepository.setSetupStepComplete(graduationId, 'bookletGenerated');
+                        } catch (error) {
+                            console.warn('Failed to update setup status:', error);
+                            // Non-critical, continue
+                        }
+                        
                         // Fetch fresh graduation data with the new booklet URL
                         const freshGradData = await GraduationRepository.getById(graduationId);
                         if (freshGradData) {

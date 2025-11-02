@@ -123,6 +123,17 @@ export function setupAddStudentFormHandler(formElement, handlers) {
             // Close loading modal
             closeLoading();
 
+            // Mark setup step as complete if at least one student was added successfully
+            if (results.successful.length > 0) {
+                try {
+                    const { GraduationRepository } = await import('../data/graduation-repository.js');
+                    await GraduationRepository.setSetupStepComplete(gradId, 'studentsAdded');
+                } catch (error) {
+                    console.warn('Failed to update setup status:', error);
+                    // Non-critical, continue
+                }
+            }
+
             // Clear the form
             document.getElementById('add-student-form').reset();
 
@@ -479,6 +490,17 @@ export async function importStudentsFromCSV(file, accessType, gradId, handlers) 
         
         // Close loading modal
         closeLoading();
+        
+        // Mark setup step as complete if at least one student was imported successfully
+        if (results.successful.length > 0) {
+            try {
+                const { GraduationRepository } = await import('../data/graduation-repository.js');
+                await GraduationRepository.setSetupStepComplete(gradId, 'studentsAdded');
+            } catch (error) {
+                console.warn('Failed to update setup status:', error);
+                // Non-critical, continue
+            }
+        }
         
         // Show results
         if (results.failed.length === 0) {

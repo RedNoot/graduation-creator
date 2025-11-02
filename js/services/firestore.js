@@ -40,6 +40,16 @@ export const createGraduation = async (data) => {
         
         const docRef = await addDoc(collection(db, 'graduations'), {
             ...data,
+            isSetupComplete: false,
+            config: {
+                ...(data.config || {}),
+                setupStatus: {
+                    studentsAdded: false,
+                    contentAdded: false,
+                    themeCustomized: false,
+                    bookletGenerated: false
+                }
+            },
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
         });

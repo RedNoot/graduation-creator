@@ -189,6 +189,17 @@ export function setupContentFormHandler(formElement, gradId, handlers) {
             );
 
             if (success) {
+                // Mark setup step as complete if this was a new content page (not an edit)
+                if (!editId) {
+                    try {
+                        const { GraduationRepository } = await import('../data/graduation-repository.js');
+                        await GraduationRepository.setSetupStepComplete(gradId, 'contentAdded');
+                    } catch (error) {
+                        console.warn('Failed to update setup status:', error);
+                        // Non-critical, continue
+                    }
+                }
+                
                 // Clear pending changes flag
                 collaborativeEditingManager.setPendingChanges(gradId, false);
                 showModal('Success', editId ? 'Content page updated successfully.' : 'Content page added successfully.');

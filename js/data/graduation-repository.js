@@ -204,6 +204,38 @@ export const GraduationRepository = {
     async getEditors(graduationId) {
         const grad = await this.getById(graduationId);
         return grad.editors || [];
+    },
+
+    /**
+     * Mark a setup step as complete
+     * @param {string} graduationId - The graduation ID
+     * @param {string} stepName - Name of the step (studentsAdded, contentAdded, themeCustomized, bookletGenerated)
+     * @returns {Promise<void>}
+     */
+    async setSetupStepComplete(graduationId, stepName) {
+        try {
+            const updatePath = `config.setupStatus.${stepName}`;
+            await this.update(graduationId, {
+                [updatePath]: true
+            });
+            
+            // Check if all steps are complete and update isSetupComplete flag
+            const grad = await this.getById(graduationId);
+            const setupStatus = grad.config?.setupStatus || {};
+            const allStepsComplete = setupStatus.studentsAdded && 
+                                    setupStatus.contentAdded && 
+                                    setupStatus.themeCustomized && 
+                                    setupStatus.bookletGenerated;
+            
+            if (allStepsComplete && !grad.isSetupComplete) {
+                await this.update(graduationId, {
+                    isSetupComplete: true
+                });
+            }
+        } catch (error) {
+            console.error(`Error marking setup step '${stepName}' as complete:`, error);
+            // Don't throw - this is non-critical tracking
+        }
     }
 };
 
