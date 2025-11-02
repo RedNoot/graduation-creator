@@ -1,7 +1,55 @@
 /* Graduation Creator - Extracted Styles */
 
+/* ========================================
+   ACCESSIBILITY & FOUNDATIONS
+   ======================================== */
+
+/* Screen reader only content */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* Skip link - visible on focus */
+.skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: #4F46E5;
+    color: white;
+    padding: 8px 16px;
+    text-decoration: none;
+    border-radius: 0 0 4px 0;
+    z-index: 100;
+}
+
+.skip-link:focus {
+    top: 0;
+}
+
+/* Focus visible styling for keyboard navigation */
+*:focus-visible {
+    outline: 3px solid #4F46E5;
+    outline-offset: 2px;
+}
+
+/* Remove default focus outline for mouse users */
+*:focus:not(:focus-visible) {
+    outline: none;
+}
+
+/* Body and base typography */
 body {
     font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 /* Loading spinner animation */
@@ -14,6 +62,64 @@ body {
 @keyframes spin {
     to {
         transform: rotate(360deg);
+    }
+}
+
+/* ========================================
+   MOBILE-FIRST RESPONSIVE UTILITIES
+   ======================================== */
+
+/* Ensure touch targets are at least 44x44px (WCAG) */
+button,
+a,
+input[type="button"],
+input[type="submit"],
+input[type="reset"],
+.btn,
+.touch-target {
+    min-height: 44px;
+    min-width: 44px;
+}
+
+/* Prevent horizontal overflow */
+* {
+    max-width: 100%;
+}
+
+html {
+    overflow-x: hidden;
+}
+
+body {
+    overflow-x: hidden;
+}
+
+/* Responsive images */
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Responsive typography - mobile first */
+html {
+    font-size: 16px; /* Base size for mobile */
+}
+
+@media (min-width: 640px) {
+    html {
+        font-size: 16px;
+    }
+}
+
+@media (min-width: 768px) {
+    html {
+        font-size: 17px;
+    }
+}
+
+@media (min-width: 1024px) {
+    html {
+        font-size: 18px;
     }
 }
 
