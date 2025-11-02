@@ -11,6 +11,7 @@ import { logger } from '../utils/logger.js';
 import { isSlug, extractIdFromSlug } from '../utils/url-slug.js';
 import collaborativeEditingManager from '../utils/collaborative-editing.js';
 import { showActiveEditorsBanner, removeActiveEditorsBanner } from '../components/collaborative-ui.js';
+import { showModal } from '../components/modal.js';
 
 /**
  * Resolve a slug or ID to a graduation ID
