@@ -2514,6 +2514,13 @@ Are you absolutely sure you want to continue?`,
             `;
             
             if (gradData.generatedBookletUrl) {
+                // Format the last generated timestamp
+                let lastGeneratedText = '';
+                if (gradData.bookletGeneratedAt) {
+                    const timestamp = gradData.bookletGeneratedAt.toDate ? gradData.bookletGeneratedAt.toDate() : new Date(gradData.bookletGeneratedAt);
+                    lastGeneratedText = `<p class="text-sm text-gray-600 mt-2">Last generated: ${timestamp.toLocaleString()}</p>`;
+                }
+                
                 if (isScheduled) {
                     if (isAvailable) {
                         bookletInfo = `
@@ -2525,6 +2532,7 @@ Are you absolutely sure you want to continue?`,
                                     <div class="ml-3">
                                         <h3 class="text-sm font-medium text-green-800">Booklet Available</h3>
                                         <p class="text-sm text-green-700">The graduation booklet is now available for download.</p>
+                                        ${lastGeneratedText}
                                     </div>
                                 </div>
                             </div>
@@ -2548,6 +2556,7 @@ Are you absolutely sure you want to continue?`,
                                             <strong>${availableDate.toLocaleDateString()} at ${availableDate.toLocaleTimeString()}</strong>
                                         </p>
                                         ${config.downloadMessage ? `<p class="text-sm text-yellow-700 mt-2">${config.downloadMessage}</p>` : ''}
+                                        ${lastGeneratedText}
                                     </div>
                                 </div>
                             </div>
@@ -2567,6 +2576,7 @@ Are you absolutely sure you want to continue?`,
                                 <div class="ml-3">
                                     <h3 class="text-sm font-medium text-green-800">Booklet Generated</h3>
                                     <p class="text-sm text-green-700">Your graduation booklet is ready for download.</p>
+                                    ${lastGeneratedText}
                                 </div>
                             </div>
                         </div>

@@ -7,6 +7,7 @@
 import * as firestoreService from '../services/firestore.js';
 import { db } from '../firebase-init.js';
 import { collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { replaceAsset, markAssetForDeletion } from '../utils/asset-cleanup.js';
 
 /**
  * Student Repository
@@ -53,6 +54,33 @@ export const StudentRepository = {
      * @returns {Promise<void>}
      */
     async update(graduationId, studentId, updates) {
+        // Track old assets for cleanup if URLs are being replaced
+        if (updates.profilePhotoUrl !== undefined || 
+            updates.coverPhotoBeforeUrl !== undefined || 
+            updates.coverPhotoAfterUrl !== undefined ||
+            updates.profilePdfUrl !== undefined) {
+            
+            try {
+                const currentStudent = await this.getById(graduationId, studentId);
+                
+                if (updates.profilePhotoUrl !== undefined && currentStudent.profilePhotoUrl) {
+                    await replaceAsset(currentStudent.profilePhotoUrl, updates.profilePhotoUrl, 'student-profile-photo');
+                }
+                if (updates.coverPhotoBeforeUrl !== undefined && currentStudent.coverPhotoBeforeUrl) {
+                    await replaceAsset(currentStudent.coverPhotoBeforeUrl, updates.coverPhotoBeforeUrl, 'student-cover-before');
+                }
+                if (updates.coverPhotoAfterUrl !== undefined && currentStudent.coverPhotoAfterUrl) {
+                    await replaceAsset(currentStudent.coverPhotoAfterUrl, updates.coverPhotoAfterUrl, 'student-cover-after');
+                }
+                if (updates.profilePdfUrl !== undefined && currentStudent.profilePdfUrl) {
+                    await replaceAsset(currentStudent.profilePdfUrl, updates.profilePdfUrl, 'student-profile-pdf');
+                }
+            } catch (error) {
+                console.warn('[Asset Cleanup] Error tracking old assets:', error);
+                // Continue with update even if cleanup tracking fails
+            }
+        }
+        
         return firestoreService.updateStudent(graduationId, studentId, updates);
     },
 
@@ -63,6 +91,24 @@ export const StudentRepository = {
      * @returns {Promise<void>}
      */
     async delete(graduationId, studentId) {
+        // Mark student's assets for deletion
+        try {
+            const student = await this.getById(graduationId, studentId);
+            const assetsToDelete = [
+                student.profilePhotoUrl,
+                student.coverPhotoBeforeUrl,
+                student.coverPhotoAfterUrl,
+                student.profilePdfUrl
+            ].filter(Boolean);
+            
+            if (assetsToDelete.length > 0) {
+                await markAssetForDeletion(assetsToDelete, 'student-deleted');
+            }
+        } catch (error) {
+            console.warn('[Asset Cleanup] Error marking student assets:', error);
+            // Continue with deletion even if cleanup tracking fails
+        }
+        
         return firestoreService.deleteStudent(graduationId, studentId);
     },
 

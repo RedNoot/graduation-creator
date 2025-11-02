@@ -6,7 +6,8 @@
 
 import * as firestoreService from '../services/firestore.js';
 import { db } from '../firebase-init.js';
-import { doc, setDoc, collection, query, where, limit, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { doc, setDoc, collection, query, where, limit, getDocs, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { replaceAsset } from '../utils/asset-cleanup.js';
 
 /**
  * Graduation Repository
@@ -65,6 +66,29 @@ export const GraduationRepository = {
      * @returns {Promise<void>}
      */
     async update(graduationId, updates) {
+        // Track old assets for cleanup if URLs are being replaced
+        if (updates.customCoverUrl !== undefined || updates.generatedBookletUrl !== undefined) {
+            try {
+                const gradRef = doc(db, "graduations", graduationId);
+                const gradSnap = await getDoc(gradRef);
+                
+                if (gradSnap.exists()) {
+                    const currentGrad = gradSnap.data();
+                    
+                    if (updates.customCoverUrl !== undefined && currentGrad.customCoverUrl) {
+                        await replaceAsset(currentGrad.customCoverUrl, updates.customCoverUrl, 'graduation-custom-cover');
+                    }
+                    
+                    if (updates.generatedBookletUrl !== undefined && currentGrad.generatedBookletUrl) {
+                        await replaceAsset(currentGrad.generatedBookletUrl, updates.generatedBookletUrl, 'graduation-booklet');
+                    }
+                }
+            } catch (error) {
+                console.warn('[Asset Cleanup] Error tracking old graduation assets:', error);
+                // Continue with update even if cleanup tracking fails
+            }
+        }
+        
         return firestoreService.updateGraduation(graduationId, updates);
     },
 

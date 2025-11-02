@@ -264,6 +264,84 @@ async function deleteGraduationProject(gradId, gradData) {
 }
 
 /**
+ * Process pending asset deletions
+ * @returns {Promise<Object>} Deletion results
+ */
+async function processPendingAssetDeletions() {
+    console.log('\n🧹 Processing pending asset deletions...');
+    
+    const results = {
+        processed: 0,
+        deleted: 0,
+        failed: 0
+    };
+    
+    const cloudinaryConfig = {
+        cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+        apiKey: process.env.CLOUDINARY_API_KEY,
+        apiSecret: process.env.CLOUDINARY_API_SECRET
+    };
+    
+    try {
+        // Get all pending deletions (batch of 100)
+        const pendingSnapshot = await db.collection('assetsPendingDeletion')
+            .where('status', '==', 'pending')
+            .limit(100)
+            .get();
+        
+        console.log(`Found ${pendingSnapshot.size} pending assets to delete`);
+        results.processed = pendingSnapshot.size;
+        
+        if (pendingSnapshot.empty) {
+            return results;
+        }
+        
+        // Process each asset
+        for (const doc of pendingSnapshot.docs) {
+            const asset = doc.data();
+            
+            try {
+                const success = await deleteCloudinaryAsset(
+                    asset.url,
+                    cloudinaryConfig.cloudName,
+                    cloudinaryConfig.apiKey,
+                    cloudinaryConfig.apiSecret
+                );
+                
+                if (success) {
+                    results.deleted++;
+                    // Delete the tracking document
+                    await doc.ref.delete();
+                    console.log(`✓ Deleted asset: ${asset.context} (${asset.publicId})`);
+                } else {
+                    results.failed++;
+                    // Mark as failed but keep document for retry
+                    await doc.ref.update({ 
+                        status: 'failed',
+                        lastAttempt: admin.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+            } catch (error) {
+                console.error(`Error processing asset ${doc.id}:`, error);
+                results.failed++;
+                await doc.ref.update({ 
+                    status: 'failed',
+                    lastAttempt: admin.firestore.FieldValue.serverTimestamp(),
+                    error: error.message
+                });
+            }
+        }
+        
+        console.log(`✓ Asset cleanup: ${results.deleted} deleted, ${results.failed} failed`);
+        return results;
+        
+    } catch (error) {
+        console.error('Error processing pending assets:', error);
+        return results;
+    }
+}
+
+/**
  * Main scheduled function handler
  */
 exports.handler = async (event) => {
@@ -275,7 +353,8 @@ exports.handler = async (event) => {
         deleted: 0,
         failed: 0,
         skipped: 0,
-        details: []
+        details: [],
+        assetsCleanup: null
     };
     
     try {
@@ -342,11 +421,17 @@ exports.handler = async (event) => {
             }
         }
         
+        // Process pending asset deletions
+        results.assetsCleanup = await processPendingAssetDeletions();
+        
         console.log('\n📊 Cleanup Summary:');
         console.log(`   - Projects checked: ${results.checked}`);
         console.log(`   - Projects deleted: ${results.deleted}`);
         console.log(`   - Projects failed: ${results.failed}`);
         console.log(`   - Projects skipped: ${results.skipped}`);
+        console.log(`   - Assets processed: ${results.assetsCleanup.processed}`);
+        console.log(`   - Assets deleted: ${results.assetsCleanup.deleted}`);
+        console.log(`   - Assets failed: ${results.assetsCleanup.failed}`);
         
         return {
             statusCode: 200,

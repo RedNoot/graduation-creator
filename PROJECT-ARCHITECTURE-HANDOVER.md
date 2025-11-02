@@ -127,6 +127,15 @@ netlify/functions/
 
 ```
 firestore/
+├── assetsPendingDeletion/{docId}            # Orphaned asset tracking
+│   ├── url: string                          # Full Cloudinary URL
+│   ├── publicId: string                     # Extracted public ID
+│   ├── context: string                      # Asset type context
+│   ├── markedAt: timestamp                  # When marked for deletion
+│   ├── status: 'pending'|'failed'           # Processing status
+│   ├── lastAttempt: timestamp               # Last deletion attempt
+│   └── error: string                        # Error message if failed
+│
 ├── graduations/{gradId}                     # Main graduation documents
 │   ├── schoolName: string
 │   ├── graduationYear: number
@@ -135,6 +144,7 @@ firestore/
 │   ├── createdBy: uid
 │   ├── ownerUid: uid (backwards compat)
 │   ├── generatedBookletUrl: string
+│   ├── bookletGeneratedAt: timestamp        # Last booklet generation time
 │   ├── customCoverUrl: string
 │   ├── activeEditors: map<uid, timestamp>   # Real-time presence
 │   ├── lockedFields: map<fieldPath, {editorUid, email, timestamp}>  # Field-level locks (NEW)
@@ -282,6 +292,7 @@ User navigates away
 - ✅ Validation & error handling
 - ✅ Rate limiting (3 requests/minute)
 - ✅ Cloudinary cleanup (old booklets)
+- ✅ Generation timestamp tracking (bookletGeneratedAt)
 
 **Flow:**
 ```
@@ -472,7 +483,53 @@ if (isAvailable) {
 }
 ```
 
-### 9. Error Handling & Monitoring
+### 9. Orphaned Asset Cleanup System
+
+**Status:** ✅ Fully Implemented (Nov 2, 2025)
+
+**Purpose:** Automatically track and delete replaced/deleted Cloudinary assets to prevent storage bloat and unnecessary costs.
+
+**Components:**
+- `js/utils/asset-cleanup.js` - Asset tracking utilities
+- `netlify/functions/scheduled-cleanup.js` - Daily cleanup processor
+- Firestore collection: `assetsPendingDeletion`
+
+**Features:**
+- ✅ Automatic tracking when assets are replaced
+- ✅ Graceful degradation (tracking failures don't block operations)
+- ✅ Two-phase deletion (mark → process)
+- ✅ Context tracking (student photos, PDFs, content images, etc.)
+- ✅ Daily scheduled cleanup via Netlify function
+- ✅ Failed deletion retry mechanism
+
+**Tracked Assets:**
+- Student profile photos
+- Student cover photos (before/after)
+- Student profile PDFs
+- Content page author photos
+- Content page body images
+- Custom cover pages
+- Generated booklets
+
+**Flow:**
+```javascript
+// When asset is replaced:
+await replaceAsset(oldUrl, newUrl, 'student-profile-photo');
+  → Adds oldUrl to assetsPendingDeletion collection
+  → Status: 'pending'
+  
+// Daily at 2 AM (scheduled-cleanup.js):
+Query assetsPendingDeletion where status='pending'
+  → For each asset:
+    - Delete from Cloudinary via Admin API
+    - If success: Delete tracking doc
+    - If failed: Mark status='failed' for retry
+```
+
+**Integration:**
+All repository update/delete methods automatically track old assets using try-catch blocks to ensure operations continue even if tracking fails.
+
+### 10. Error Handling & Monitoring
 
 **Status:** ✅ Fully Implemented
 
@@ -993,6 +1050,8 @@ Response: {
 ### Short-Term (Next 3 Months)
 
 - [x] ✅ Real-time form field locking (show who's editing what) - **COMPLETED Nov 2, 2025**
+- [x] ✅ Booklet generation timestamp display - **COMPLETED Nov 2, 2025**
+- [x] ✅ Orphaned asset cleanup system - **COMPLETED Nov 2, 2025**
 - [ ] Email notifications for editor invites
 - [ ] Bulk student photo upload
 - [ ] PDF preview before generation
