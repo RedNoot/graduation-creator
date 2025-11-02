@@ -161,7 +161,8 @@ export const viewStudentPdf = async (pdfUrl, studentNameOrData) => {
     
     if (hasPhotos || hasMessage) {
         headerContent = `
-            <div class="border-b border-gray-200 bg-white p-6">
+            <!-- Student Info Section (scrolls with PDF) -->
+            <div class="bg-white p-6 border-b border-gray-200">
                 <!-- Student Name -->
                 <h2 class="text-2xl font-bold text-gray-900 mb-4 text-center">${studentName}</h2>
                 
@@ -212,7 +213,7 @@ export const viewStudentPdf = async (pdfUrl, studentNameOrData) => {
     }
     
     modal.innerHTML = `
-        <div class="bg-white w-full max-w-5xl h-full max-h-[95vh] flex flex-col shadow-2xl rounded-lg overflow-hidden">
+        <div class="bg-white w-full max-w-5xl h-full max-h-[95vh] shadow-2xl rounded-lg overflow-hidden relative">
             <!-- Close button - minimal, top-right corner -->
             <button 
                 onclick="window.closeStudentPdfModal()" 
@@ -222,14 +223,16 @@ export const viewStudentPdf = async (pdfUrl, studentNameOrData) => {
                 &times;
             </button>
             
-            <!-- Student Header Content (photos, message) -->
-            ${headerContent}
-            
-            <!-- PDF Content Area -->
-            <div id="pdf-content" class="flex-1 overflow-hidden flex items-center justify-center bg-gray-50">
-                <div class="text-center">
-                    <div class="spinner w-12 h-12 border-4 border-indigo-600 rounded-full mx-auto mb-4"></div>
-                    <p class="text-gray-600">Loading PDF...</p>
+            <!-- Scrollable container for student info + PDF -->
+            <div class="h-full overflow-y-auto">
+                ${headerContent}
+                
+                <!-- PDF Content Area -->
+                <div id="pdf-content" class="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+                    <div class="text-center">
+                        <div class="spinner w-12 h-12 border-4 border-indigo-600 rounded-full mx-auto mb-4"></div>
+                        <p class="text-gray-600">Loading PDF...</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -261,12 +264,14 @@ export const viewStudentPdf = async (pdfUrl, studentNameOrData) => {
         const blob = await response.blob();
         const blobUrl = URL.createObjectURL(blob);
         
-        // Replace loading state with PDF viewer (no toolbar, seamless integration)
+        // Replace loading state with PDF viewer (full height, scrollable)
         const pdfContent = document.getElementById('pdf-content');
+        pdfContent.className = 'bg-white';
         pdfContent.innerHTML = `
             <iframe 
-                src="${blobUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH" 
-                class="w-full h-full border-0 bg-white"
+                src="${blobUrl}#toolbar=0&navpanes=0&scrollbar=1&view=FitH" 
+                class="w-full border-0 bg-white"
+                style="height: 1200px; display: block;"
                 title="${studentName}'s Profile PDF"
             ></iframe>
         `;
