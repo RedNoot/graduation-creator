@@ -77,7 +77,8 @@ js/
 │   ├── layout.js               # Page layout components
 │   ├── modal.js                # Modal dialogs
 │   ├── tabs.js                 # Tab navigation
-│   └── collaborative-ui.js     # Real-time editing UI
+│   ├── collaborative-ui.js     # Real-time editing UI
+│   └── setup-guide.js          # Onboarding wizard for new projects
 ├── data/                        # Repository Pattern (Data Layer)
 │   ├── graduation-repository.js
 │   ├── student-repository.js
@@ -592,7 +593,73 @@ User adds first student
 - Foundation for setup wizard UI (Task 19)
 - Available in `gradData` for conditional rendering
 
-### 11. Error Handling & Monitoring
+**UI Component:**
+- `js/components/setup-guide.js` - Visual onboarding wizard (Task 19)
+- Renders as full-screen alternative to tabbed dashboard for new projects
+- Shows golden path checklist with dynamic completion indicators
+- Clickable steps activate corresponding tabs
+- Auto-completes and reloads when all steps done
+- Includes skip option for experienced users
+
+### 11. Onboarding Experience (Setup Guide)
+
+**Status:** ✅ Fully Implemented (Nov 2, 2025)
+
+**Purpose:** Provide guided onboarding for new graduation projects to improve user experience and reduce confusion.
+
+**Component:** `js/components/setup-guide.js`
+
+**Features:**
+- ✅ Full-screen Setup Guide replaces tabbed dashboard for new projects
+- ✅ 4-step golden path checklist with visual progress
+- ✅ Dynamic checkmarks (✅/⬜) based on `config.setupStatus`
+- ✅ Clickable steps activate corresponding tabs
+- ✅ Auto-completion celebration when all steps done
+- ✅ Skip option for experienced users
+- ✅ Beautiful gradient design with responsive layout
+
+**Setup Steps Shown:**
+1. **Add Your Students** → Activates Students tab
+2. **Add Speeches & Messages** → Activates Content tab
+3. **Customize Your Site** → Activates Settings tab
+4. **Generate Booklet & Publish** → Activates Booklet tab
+
+**Conditional Rendering:**
+```javascript
+// In renderEditor (index.html)
+if (!gradData.isSetupComplete) {
+  // Show Setup Guide (full-screen onboarding)
+  renderSetupGuide(gradData, gradId, activateTab);
+} else {
+  // Show full tabbed dashboard
+  renderFullDashboard(gradData, gradId);
+}
+```
+
+**User Flow:**
+```
+New project created
+  → isSetupComplete: false
+  → User sees Setup Guide instead of tabs
+  
+User clicks "Add Your Students"
+  → activateTab('students') called
+  → Full dashboard renders with Students tab active
+  → User adds first student
+  → studentsAdded flips to true
+  → Setup Guide shows checkmark on next visit
+  
+All 4 steps completed
+  → Setup Guide shows celebration message
+  → User clicks "Continue to Dashboard"
+  → Page reloads, shows full tabbed interface
+  → isSetupComplete: true persists forever
+```
+
+**Skip Functionality:**
+Users familiar with the system can click "skip to full dashboard" link to bypass the guide and immediately access all tabs.
+
+### 12. Error Handling & Monitoring
 
 **Status:** ✅ Fully Implemented
 
