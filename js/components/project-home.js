@@ -96,13 +96,13 @@ const renderQuickAction = (action) => {
         return `
             <button 
                 onclick="document.querySelector('[data-page=\\"${action.page}\\"]')?.click()"
-                class="flex items-center gap-4 p-6 border-2 rounded-lg transition-all transform hover:scale-[1.02] ${primaryClass}">
-                <span class="text-4xl">${action.icon}</span>
+                class="flex items-center gap-3 p-4 border-2 rounded-lg transition-all transform hover:scale-[1.02] ${primaryClass}">
+                <span class="text-2xl">${action.icon}</span>
                 <div class="text-left flex-1">
-                    <p class="text-xl font-bold">${action.title}</p>
+                    <p class="text-base font-bold">${action.title}</p>
                     <p class="text-sm opacity-90">${action.description}</p>
                 </div>
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                 </svg>
             </button>
@@ -112,11 +112,11 @@ const renderQuickAction = (action) => {
     return `
         <button 
             onclick="document.querySelector('[data-page=\\"${action.page}\\"]')?.click()"
-            class="flex items-center gap-3 p-4 border-2 border-gray-200 rounded-lg transition-all ${hoverClass}">
-            <span class="text-3xl">${action.icon}</span>
+            class="flex items-center gap-2 p-3 border-2 border-gray-200 rounded-lg transition-all ${hoverClass}">
+            <span class="text-2xl">${action.icon}</span>
             <div class="text-left">
-                <p class="font-medium text-gray-900">${action.title}</p>
-                <p class="text-sm text-gray-600">${action.description}</p>
+                <p class="text-sm font-medium text-gray-900">${action.title}</p>
+                <p class="text-xs text-gray-600">${action.description}</p>
             </div>
         </button>
     `;
@@ -146,48 +146,48 @@ export const renderProjectHome = async (gradData, gradId, navigateToPage) => {
         const readyForBooklet = hasStudents && hasPdfs;
 
         return `
-            <div class="space-y-6" id="project-home-dashboard">
+            <div class="space-y-4" id="project-home-dashboard">
                 <!-- Project Header -->
-                <div class="bg-gradient-to-r from-indigo-600 to-purple-700 text-white p-8 rounded-lg shadow-lg">
-                    <h2 class="text-3xl font-bold mb-2">
+                <div class="bg-gradient-to-r from-indigo-600 to-purple-700 text-white p-6 rounded-lg shadow-lg">
+                    <h2 class="text-xl font-bold mb-1">
                         ${gradData.schoolName || 'Graduation Project'}
                     </h2>
-                    <p class="text-indigo-100 text-lg">
+                    <p class="text-indigo-100 text-sm">
                         Graduation Year: ${gradData.graduationYear || 'Not set'}
                     </p>
                     ${gradData.generatedBookletUrl ? `
-                        <div class="mt-4 inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full">
-                            <span class="text-2xl">✅</span>
-                            <span class="font-medium">Booklet Generated</span>
+                        <div class="mt-3 inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full">
+                            <span class="text-lg">✅</span>
+                            <span class="text-sm font-medium">Booklet Generated</span>
                         </div>
                     ` : ''}
                 </div>
 
                 <!-- Upload Progress Section -->
-                <div class="bg-white p-6 rounded-lg shadow">
-                    <h3 class="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
-                        <span class="text-2xl">📊</span>
+                <div class="bg-white p-4 rounded-lg shadow">
+                    <h3 class="text-base font-bold text-gray-900 mb-1 flex items-center gap-2">
+                        <span class="text-lg">📊</span>
                         Upload Progress
                     </h3>
-                    <p class="text-gray-600 mb-6">Track student submissions and content completion</p>
+                    <p class="text-sm text-gray-600 mb-4">Track student submissions and content completion</p>
 
                     ${stats.totalStudents === 0 ? `
-                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-                            <div class="flex items-start gap-3">
-                                <span class="text-2xl">⚠️</span>
+                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-3">
+                            <div class="flex items-start gap-2">
+                                <span class="text-lg">⚠️</span>
                                 <div>
-                                    <p class="font-medium text-yellow-800">No students added yet</p>
-                                    <p class="text-sm text-yellow-700 mt-1">Add students to start tracking their progress.</p>
+                                    <p class="text-sm font-medium text-yellow-800">No students added yet</p>
+                                    <p class="text-xs text-yellow-700 mt-1">Add students to start tracking their progress.</p>
                                     <button 
                                         onclick="document.querySelector('[data-page=\\"students\\"]')?.click()"
-                                        class="mt-3 px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 text-sm font-medium">
+                                        class="mt-2 px-3 py-1.5 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 text-xs font-medium">
                                         Add Students Now
                                     </button>
                                 </div>
                             </div>
                         </div>
                     ` : `
-                        <div class="space-y-6">
+                        <div class="space-y-4">
                             <!-- PDF Progress -->
                             ${renderProgressBar(
                                 stats.pdfCount,
@@ -228,48 +228,48 @@ export const renderProjectHome = async (gradData, gradId, navigateToPage) => {
                 </div>
 
                 <!-- Quick Stats Cards -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <!-- Total Students -->
-                    <div class="bg-indigo-50 p-6 rounded-lg border border-indigo-200 shadow-sm">
+                    <div class="bg-indigo-50 p-4 rounded-lg border border-indigo-200 shadow-sm">
                         <div class="flex items-center justify-between">
                             <div>
-                                <p class="text-sm text-indigo-600 font-medium uppercase tracking-wide">Total Students</p>
-                                <p class="text-4xl font-bold text-indigo-900 mt-2">${stats.totalStudents}</p>
+                                <p class="text-xs text-indigo-600 font-medium uppercase tracking-wide">Total Students</p>
+                                <p class="text-2xl font-bold text-indigo-900 mt-1">${stats.totalStudents}</p>
                             </div>
-                            <span class="text-5xl">👥</span>
+                            <span class="text-3xl">👥</span>
                         </div>
                     </div>
 
                     <!-- Content Pages -->
-                    <div class="bg-green-50 p-6 rounded-lg border border-green-200 shadow-sm">
+                    <div class="bg-green-50 p-4 rounded-lg border border-green-200 shadow-sm">
                         <div class="flex items-center justify-between">
                             <div>
-                                <p class="text-sm text-green-600 font-medium uppercase tracking-wide">Content Pages</p>
-                                <p class="text-4xl font-bold text-green-900 mt-2">${contentPages.length}</p>
+                                <p class="text-xs text-green-600 font-medium uppercase tracking-wide">Content Pages</p>
+                                <p class="text-2xl font-bold text-green-900 mt-1">${contentPages.length}</p>
                             </div>
-                            <span class="text-5xl">📝</span>
+                            <span class="text-3xl">📝</span>
                         </div>
                     </div>
 
                     <!-- Booklet Status -->
-                    <div class="bg-purple-50 p-6 rounded-lg border border-purple-200 shadow-sm">
+                    <div class="bg-purple-50 p-4 rounded-lg border border-purple-200 shadow-sm">
                         <div class="flex items-center justify-between">
                             <div>
-                                <p class="text-sm text-purple-600 font-medium uppercase tracking-wide">Booklet Status</p>
-                                <p class="text-2xl font-bold text-purple-900 mt-2">
+                                <p class="text-xs text-purple-600 font-medium uppercase tracking-wide">Booklet Status</p>
+                                <p class="text-base font-bold text-purple-900 mt-1">
                                     ${gradData.generatedBookletUrl ? '✅ Generated' : readyForBooklet ? '⚡ Ready' : '⏳ Pending'}
                                 </p>
                             </div>
-                            <span class="text-5xl">📄</span>
+                            <span class="text-3xl">📄</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- Primary Quick Action - Generate Booklet -->
                 ${readyForBooklet ? `
-                    <div class="bg-white p-6 rounded-lg shadow">
-                        <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                            <span class="text-2xl">⚡</span>
+                    <div class="bg-white p-4 rounded-lg shadow">
+                        <h3 class="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
+                            <span class="text-lg">⚡</span>
                             Ready to Generate
                         </h3>
                         ${renderQuickAction({
@@ -284,9 +284,9 @@ export const renderProjectHome = async (gradData, gradId, navigateToPage) => {
                 ` : ''}
 
                 <!-- Quick Actions Grid -->
-                <div class="bg-white p-6 rounded-lg shadow">
-                    <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                        <span class="text-2xl">🚀</span>
+                <div class="bg-white p-4 rounded-lg shadow">
+                    <h3 class="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
+                        <span class="text-lg">🚀</span>
                         Quick Actions
                     </h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -325,12 +325,12 @@ export const renderProjectHome = async (gradData, gradId, navigateToPage) => {
                 </div>
 
                 <!-- Public Links Section -->
-                <div class="bg-gradient-to-r from-blue-500 to-cyan-600 text-white p-6 rounded-lg shadow">
-                    <h3 class="text-lg font-bold mb-2 flex items-center gap-2">
-                        <span class="text-2xl">🌐</span>
+                <div class="bg-gradient-to-r from-blue-500 to-cyan-600 text-white p-4 rounded-lg shadow">
+                    <h3 class="text-base font-bold mb-1 flex items-center gap-2">
+                        <span class="text-lg">🌐</span>
                         Share Your Graduation Site
                     </h3>
-                    <p class="text-blue-100 mb-4">Share these links with students, parents, and teachers</p>
+                    <p class="text-sm text-blue-100 mb-3">Share these links with students, parents, and teachers</p>
                     
                     <div class="space-y-3">
                         <!-- Public View Link -->
@@ -393,12 +393,12 @@ export const renderProjectHome = async (gradData, gradId, navigateToPage) => {
     } catch (error) {
         console.error('[ProjectHome] Error rendering dashboard:', error);
         return `
-            <div class="bg-red-50 border border-red-200 rounded-lg p-6">
-                <div class="flex items-start gap-3">
-                    <span class="text-3xl">⚠️</span>
+            <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div class="flex items-start gap-2">
+                    <span class="text-xl">⚠️</span>
                     <div>
-                        <p class="font-medium text-red-800">Error loading dashboard</p>
-                        <p class="text-sm text-red-700 mt-1">Please refresh the page or contact support if the issue persists.</p>
+                        <p class="text-sm font-medium text-red-800">Error loading dashboard</p>
+                        <p class="text-xs text-red-700 mt-1">Please refresh the page or contact support if the issue persists.</p>
                     </div>
                 </div>
             </div>

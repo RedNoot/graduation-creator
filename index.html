@@ -424,7 +424,7 @@
                 
                 switch(page) {
                     case 'home':
-                        renderHomeTab(gradId, gradData);
+                        renderHomeTab(gradId, gradData, handleNavigation);
                         break;
                     case 'students':
                         renderStudentsTab(gradId);
@@ -433,7 +433,7 @@
                         renderContentPagesTab(gradId, gradData);
                         break;
                     case 'settings':
-                        renderSettingsTab(gradId, gradData);
+                        renderSettingsTab(gradId, gradData.config || {}, gradData.customCoverUrl);
                         break;
                     case 'share':
                         renderShareTab(publicUrl);
@@ -475,7 +475,7 @@
             setupMainNavListeners(handleNavigation);
         };
 
-        const renderHomeTab = async (gradId, gradData) => {
+        const renderHomeTab = async (gradId, gradData, handleNavigation) => {
             console.log('[Home Tab] renderHomeTab called with gradId:', gradId);
             
             const contentContainer = document.getElementById('tab-content');
