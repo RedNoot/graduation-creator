@@ -1,0 +1,132 @@
+/* =============================================================================
+   VIBRANT COMPACT THEME - MAIN BUNDLE
+   Imports all theme modules in correct order
+   Version: 1.0.0
+   ============================================================================= */
+
+/* Import theme configuration (CSS variables) */
+@import url('../theme-config.css');
+
+/* Import base styles (typography, resets, utilities) */
+@import url('./vibrant-compact-base.css');
+
+/* Import glassmorphism components */
+@import url('./vibrant-compact-glass.css');
+
+/* Import animated gradients */
+@import url('./vibrant-compact-gradient.css');
+
+/* =============================================================================
+   THEME-SPECIFIC OVERRIDES
+   Additional customizations that combine multiple modules
+   ============================================================================= */
+
+/* Combined glass + gradient button */
+.vct-button-glass-gradient {
+  background: var(--vct-gradient-primary);
+  backdrop-filter: blur(var(--vct-glass-blur-light));
+  -webkit-backdrop-filter: blur(var(--vct-glass-blur-light));
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  color: white;
+}
+
+/* Glass card with gradient header */
+.vct-card-glass-gradient-header {
+  background: var(--vct-glass-bg);
+  backdrop-filter: blur(var(--vct-glass-blur));
+  -webkit-backdrop-filter: blur(var(--vct-glass-blur));
+  border: 1px solid var(--vct-glass-border);
+  border-radius: var(--vct-radius-lg);
+  overflow: hidden;
+}
+
+.vct-card-glass-gradient-header::before {
+  content: '';
+  display: block;
+  height: 4px;
+  background: var(--vct-gradient-primary);
+}
+
+/* Gradient text on glass background */
+.vct-glass-panel-gradient-text {
+  background: var(--vct-glass-bg);
+  backdrop-filter: blur(var(--vct-glass-blur));
+  -webkit-backdrop-filter: blur(var(--vct-glass-blur));
+  border: 1px solid var(--vct-glass-border);
+  border-radius: var(--vct-radius-lg);
+  padding: var(--vct-space-lg);
+}
+
+.vct-glass-panel-gradient-text h1,
+.vct-glass-panel-gradient-text h2,
+.vct-glass-panel-gradient-text h3 {
+  background: var(--vct-gradient-primary);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* =============================================================================
+   PRINT STYLES
+   Ensure theme looks good when printed
+   ============================================================================= */
+
+@media print {
+  .vct-nav-glass,
+  .vct-fab-glass,
+  .vct-button-glass,
+  .vct-button-gradient {
+    display: none;
+  }
+  
+  .vct-card-glass,
+  .vct-modal-glass {
+    background: white;
+    border: 1px solid var(--vct-gray-300);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  
+  .vct-gradient-text,
+  .vct-gradient-text-lg {
+    -webkit-text-fill-color: var(--vct-primary);
+    background: none;
+  }
+}
+
+/* =============================================================================
+   ACCESSIBILITY ENHANCEMENTS
+   Ensure theme is accessible to all users
+   ============================================================================= */
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .vct-card-glass,
+  .vct-button-glass,
+  .vct-input-glass,
+  .vct-modal-glass {
+    border-width: 2px;
+  }
+}
+
+/* Focus visible for keyboard navigation */
+.vct-button-glass:focus-visible,
+.vct-button-gradient:focus-visible,
+.vct-input-glass:focus-visible,
+.vct-nav-link:focus-visible {
+  outline: 3px solid var(--vct-primary);
+  outline-offset: 2px;
+}
+
+/* Screen reader only content */
+.vct-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}

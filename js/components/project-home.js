@@ -90,12 +90,12 @@ const renderQuickAction = (action) => {
     };
 
     const hoverClass = colorClasses[action.color] || colorClasses.indigo;
-    const primaryClass = action.primary ? 'md:col-span-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white border-transparent hover:from-indigo-600 hover:to-purple-700' : '';
+    const primaryClass = action.primary ? 'md:col-span-2 vct-gradient-hero text-white border-transparent hover:opacity-90' : '';
 
     if (action.primary) {
         return `
             <button 
-                class="quick-action-btn flex items-center gap-3 p-4 border-2 rounded-lg transition-all transform hover:scale-[1.02] ${primaryClass}"
+                class="quick-action-btn vct-card-glass flex items-center gap-3 p-4 transition-all transform hover:scale-[1.02] ${primaryClass}"
                 data-target-page="${action.page}">
                 <span class="text-2xl">${action.icon}</span>
                 <div class="text-left flex-1">
@@ -111,7 +111,7 @@ const renderQuickAction = (action) => {
 
     return `
         <button 
-            class="quick-action-btn flex items-center gap-2 p-3 border-2 border-gray-200 rounded-lg transition-all ${hoverClass}"
+            class="quick-action-btn vct-card-glass flex items-center gap-2 p-3 transition-all ${hoverClass}"
             data-target-page="${action.page}">
             <span class="text-2xl">${action.icon}</span>
             <div class="text-left">
@@ -148,7 +148,7 @@ export const renderProjectHome = async (gradData, gradId, navigateToPage) => {
         return `
             <div class="space-y-4" id="project-home-dashboard">
                 <!-- Project Header -->
-                <div class="bg-gradient-to-r from-indigo-600 to-purple-700 text-white p-6 rounded-lg shadow-lg">
+                <div class="vct-gradient-hero text-white p-6">
                     <h2 class="text-xl font-bold mb-1">
                         ${gradData.schoolName || 'Graduation Project'}
                     </h2>
@@ -164,8 +164,8 @@ export const renderProjectHome = async (gradData, gradId, navigateToPage) => {
                 </div>
 
                 <!-- Upload Progress Section -->
-                <div class="bg-white p-4 rounded-lg shadow">
-                    <h3 class="text-base font-bold text-gray-900 mb-1 flex items-center gap-2">
+                <div class="vct-card-glass p-4">
+                    <h3 class="vct-heading-3 mb-1 flex items-center gap-2">
                         <span class="text-lg">📊</span>
                         Upload Progress
                     </h3>
@@ -267,8 +267,8 @@ export const renderProjectHome = async (gradData, gradId, navigateToPage) => {
 
                 <!-- Primary Quick Action - Generate Booklet -->
                 ${readyForBooklet ? `
-                    <div class="bg-white p-4 rounded-lg shadow">
-                        <h3 class="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
+                    <div class="vct-card-glass p-4">
+                        <h3 class="vct-heading-3 mb-3 flex items-center gap-2">
                             <span class="text-lg">⚡</span>
                             Ready to Generate
                         </h3>
@@ -284,8 +284,8 @@ export const renderProjectHome = async (gradData, gradId, navigateToPage) => {
                 ` : ''}
 
                 <!-- Quick Actions Grid -->
-                <div class="bg-white p-4 rounded-lg shadow">
-                    <h3 class="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
+                <div class="vct-card-glass p-4">
+                    <h3 class="vct-heading-3 mb-3 flex items-center gap-2">
                         <span class="text-lg">🚀</span>
                         Quick Actions
                     </h3>

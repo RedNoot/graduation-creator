@@ -86,6 +86,26 @@ export const createRouter = ({
                         return;
                     }
 
+                    // Fetch graduation data first to verify user is an editor
+                    const gradData = await GraduationRepository.getById(gradId);
+                    
+                    if (!gradData) {
+                        showModal('Not Found', 'Graduation project not found.');
+                        goToDashboard();
+                        return;
+                    }
+                    
+                    // Check if user is an editor (with backwards compatibility for ownerUid)
+                    const editors = gradData.editors || [];
+                    const isEditor = editors.includes(currentUser.uid) || 
+                                   (gradData.ownerUid && gradData.ownerUid === currentUser.uid);
+                    
+                    if (!isEditor) {
+                        showModal('Access Denied', 'You do not have permission to edit this graduation project.');
+                        goToDashboard();
+                        return;
+                    }
+
                     // Stop tracking previous graduation if any
                     if (currentGraduationListener.current) {
                         currentGraduationListener.current();
@@ -96,7 +116,7 @@ export const createRouter = ({
                     // Initialize field lock manager for this graduation
                     fieldLockManager.initialize(gradId, currentUser.uid, currentUser.email);
 
-                    // Start presence tracking for collaborative editing
+                    // Start presence tracking for collaborative editing (only for editors)
                     collaborativeEditingManager.startTracking(
                         gradId,
                         currentUser.uid,
@@ -112,6 +132,12 @@ export const createRouter = ({
                                         requestingUserUid: currentUser.uid
                                     })
                                 });
+                                
+                                // Handle 403 - user is not an editor (expected for viewers)
+                                if (response.status === 403) {
+                                    console.debug('[Collaborative] User is not an editor - skipping active editors banner');
+                                    return;
+                                }
                                 
                                 const result = await response.json();
                                 if (result.success) {

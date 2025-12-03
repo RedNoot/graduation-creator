@@ -4,7 +4,8 @@
   "description": "Grade 6 Graduation Website Creator",
   "main": "index.html",
   "scripts": {
-    "dev": "python -m http.server 8000",
+    "dev": "netlify dev",
+    "dev:python": "python -m http.server 8000",
     "build": "echo 'Static site - no build required'",
     "deploy": "netlify deploy --prod"
   },

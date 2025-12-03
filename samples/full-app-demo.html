@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en" data-style="minimalist">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graduation Creator - Full App Demo (Vibrant Compact)</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="css/full-app-demo.css">
+</head>
+<body>
+    <!-- Glass Navigation Bar -->
+    <nav id="mainNav" class="glass-nav-bar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <span class="gradient-text-nav">🎓 Graduation Creator</span>
+            </div>
+            
+            <div class="nav-links">
+                <button class="nav-link active" data-page="home">
+                    <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                    </svg>
+                    Dashboard
+                </button>
+                <button class="nav-link" data-page="students">
+                    <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                    </svg>
+                    Students
+                </button>
+                <button class="nav-link" data-page="booklet">
+                    <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                    </svg>
+                    Booklet
+                </button>
+                <button class="nav-link" data-page="settings">
+                    <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    Settings
+                </button>
+            </div>
+            
+            <div class="nav-actions">
+                <button class="glass-button glass-button-sm">
+                    <span>Rob K</span>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        
+        <!-- HOME/DASHBOARD PAGE -->
+        <div id="page-home" class="page-content active">
+            <!-- Hero Section with Animated Gradient -->
+            <section class="gradient-hero">
+                <div class="hero-content">
+                    <h1 class="hero-title gradient-text-lg">Class of 2025 Graduation</h1>
+                    <p class="hero-subtitle">St. Joseph's Secondary School</p>
+                    <div class="hero-stats">
+                        <div class="hero-stat">
+                            <span class="stat-value">67</span>
+                            <span class="stat-label">Students</span>
+                        </div>
+                        <div class="stat-divider"></div>
+                        <div class="hero-stat">
+                            <span class="stat-value">62</span>
+                            <span class="stat-label">PDFs Ready</span>
+                        </div>
+                        <div class="stat-divider"></div>
+                        <div class="hero-stat">
+                            <span class="stat-value">93%</span>
+                            <span class="stat-label">Complete</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Progress Dashboard -->
+            <section class="dashboard-grid">
+                <!-- Progress Cards -->
+                <div class="glass-card">
+                    <div class="card-header">
+                        <h3 class="card-title">📊 Project Progress</h3>
+                    </div>
+                    <div class="card-content">
+                        <!-- PDF Upload Progress -->
+                        <div class="progress-section">
+                            <div class="progress-header">
+                                <span class="progress-label">Student PDFs</span>
+                                <span class="progress-count">62 / 67</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill gradient-border-animated" style="width: 93%"></div>
+                            </div>
+                            <p class="progress-note">93% complete • 5 students remaining</p>
+                        </div>
+
+                        <!-- Photo Upload Progress -->
+                        <div class="progress-section">
+                            <div class="progress-header">
+                                <span class="progress-label">Profile Photos</span>
+                                <span class="progress-count">67 / 67</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 100%; background: linear-gradient(90deg, #10B981 0%, #059669 100%)"></div>
+                            </div>
+                            <p class="progress-note">✅ All photos uploaded!</p>
+                        </div>
+
+                        <!-- Content Pages Progress -->
+                        <div class="progress-section">
+                            <div class="progress-header">
+                                <span class="progress-label">Content Pages</span>
+                                <span class="progress-count">8 / 12</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 67%; background: linear-gradient(90deg, #F59E0B 0%, #D97706 100%)"></div>
+                            </div>
+                            <p class="progress-note">67% complete • 4 pages to go</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="glass-card">
+                    <div class="card-header">
+                        <h3 class="card-title">⚡ Quick Actions</h3>
+                    </div>
+                    <div class="card-content">
+                        <div class="quick-actions-grid">
+                            <button class="quick-action-button gradient-button" id="generateBookletBtn">
+                                <span class="action-icon">📚</span>
+                                <div class="action-text">
+                                    <span class="action-title">Generate Booklet</span>
+                                    <span class="action-desc">Create PDF booklet</span>
+                                </div>
+                                <svg class="action-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                </svg>
+                            </button>
+
+                            <button class="quick-action-button" data-page="students">
+                                <span class="action-icon">👥</span>
+                                <div class="action-text">
+                                    <span class="action-title">Manage Students</span>
+                                    <span class="action-desc">Add or edit students</span>
+                                </div>
+                            </button>
+
+                            <button class="quick-action-button" id="importStudentsBtn">
+                                <span class="action-icon">📥</span>
+                                <div class="action-text">
+                                    <span class="action-title">Import Students</span>
+                                    <span class="action-desc">Upload CSV file</span>
+                                </div>
+                            </button>
+
+                            <button class="quick-action-button" data-page="settings">
+                                <span class="action-icon">🎨</span>
+                                <div class="action-text">
+                                    <span class="action-title">Customize Theme</span>
+                                    <span class="action-desc">Colors & branding</span>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="glass-card dashboard-span-2">
+                    <div class="card-header">
+                        <h3 class="card-title">📋 Recent Activity</h3>
+                        <span class="badge badge-success">Live</span>
+                    </div>
+                    <div class="card-content">
+                        <div class="activity-list">
+                            <div class="activity-item">
+                                <div class="activity-icon activity-icon-success">✓</div>
+                                <div class="activity-details">
+                                    <p class="activity-text"><strong>Sarah Chen</strong> uploaded PDF profile</p>
+                                    <p class="activity-time">2 minutes ago</p>
+                                </div>
+                            </div>
+                            <div class="activity-item">
+                                <div class="activity-icon activity-icon-info">📸</div>
+                                <div class="activity-details">
+                                    <p class="activity-text"><strong>Michael O'Brien</strong> updated profile photo</p>
+                                    <p class="activity-time">15 minutes ago</p>
+                                </div>
+                            </div>
+                            <div class="activity-item">
+                                <div class="activity-icon activity-icon-success">✓</div>
+                                <div class="activity-details">
+                                    <p class="activity-text"><strong>Emma Walsh</strong> uploaded PDF profile</p>
+                                    <p class="activity-time">1 hour ago</p>
+                                </div>
+                            </div>
+                            <div class="activity-item">
+                                <div class="activity-icon activity-icon-warning">⚙️</div>
+                                <div class="activity-details">
+                                    <p class="activity-text"><strong>You</strong> updated project settings</p>
+                                    <p class="activity-time">3 hours ago</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- STUDENTS PAGE -->
+        <div id="page-students" class="page-content">
+            <div class="page-header">
+                <div>
+                    <h2 class="page-title gradient-text-lg">Student Management</h2>
+                    <p class="page-subtitle">Manage student profiles, photos, and PDFs</p>
+                </div>
+                <div class="page-actions">
+                    <button class="glass-button" id="addStudentBtn">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Add Student
+                    </button>
+                    <button class="glass-button glass-button-secondary">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                        </svg>
+                        Export CSV
+                    </button>
+                </div>
+            </div>
+
+            <!-- Student Grid -->
+            <div class="student-grid">
+                <!-- Student Card 1 -->
+                <div class="glass-card student-card">
+                    <div class="student-card-header">
+                        <img src="https://i.pravatar.cc/150?img=1" alt="Sarah Chen" class="student-avatar">
+                        <div class="student-status student-status-complete">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="student-card-body">
+                        <h4 class="student-name">Sarah Chen</h4>
+                        <div class="student-badges">
+                            <span class="badge badge-success badge-sm">✓ PDF</span>
+                            <span class="badge badge-success badge-sm">✓ Photo</span>
+                        </div>
+                        <div class="student-actions">
+                            <button class="btn-icon" title="Upload Photo">📸</button>
+                            <button class="btn-icon" title="Upload PDF">📄</button>
+                            <button class="btn-icon" title="View PDF">👁️</button>
+                            <button class="btn-icon btn-icon-danger" title="Delete">🗑️</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Student Card 2 -->
+                <div class="glass-card student-card">
+                    <div class="student-card-header">
+                        <img src="https://i.pravatar.cc/150?img=5" alt="Michael O'Brien" class="student-avatar">
+                        <div class="student-status student-status-complete">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="student-card-body">
+                        <h4 class="student-name">Michael O'Brien</h4>
+                        <div class="student-badges">
+                            <span class="badge badge-success badge-sm">✓ PDF</span>
+                            <span class="badge badge-success badge-sm">✓ Photo</span>
+                        </div>
+                        <div class="student-actions">
+                            <button class="btn-icon">📸</button>
+                            <button class="btn-icon">📄</button>
+                            <button class="btn-icon">👁️</button>
+                            <button class="btn-icon btn-icon-danger">🗑️</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Student Card 3 -->
+                <div class="glass-card student-card">
+                    <div class="student-card-header">
+                        <img src="https://i.pravatar.cc/150?img=9" alt="Emma Walsh" class="student-avatar">
+                        <div class="student-status student-status-complete">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="student-card-body">
+                        <h4 class="student-name">Emma Walsh</h4>
+                        <div class="student-badges">
+                            <span class="badge badge-success badge-sm">✓ PDF</span>
+                            <span class="badge badge-success badge-sm">✓ Photo</span>
+                        </div>
+                        <div class="student-actions">
+                            <button class="btn-icon">📸</button>
+                            <button class="btn-icon">📄</button>
+                            <button class="btn-icon">👁️</button>
+                            <button class="btn-icon btn-icon-danger">🗑️</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Student Card 4 - Incomplete -->
+                <div class="glass-card student-card">
+                    <div class="student-card-header">
+                        <img src="https://i.pravatar.cc/150?img=12" alt="James Murphy" class="student-avatar">
+                        <div class="student-status student-status-incomplete">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="student-card-body">
+                        <h4 class="student-name">James Murphy</h4>
+                        <div class="student-badges">
+                            <span class="badge badge-warning badge-sm">○ No PDF</span>
+                            <span class="badge badge-success badge-sm">✓ Photo</span>
+                        </div>
+                        <div class="student-actions">
+                            <button class="btn-icon">📸</button>
+                            <button class="btn-icon gradient-button-icon">📄</button>
+                            <button class="btn-icon" disabled>👁️</button>
+                            <button class="btn-icon btn-icon-danger">🗑️</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Student Card 5 -->
+                <div class="glass-card student-card">
+                    <div class="student-card-header">
+                        <img src="https://i.pravatar.cc/150?img=15" alt="Aoife Kelly" class="student-avatar">
+                        <div class="student-status student-status-complete">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="student-card-body">
+                        <h4 class="student-name">Aoife Kelly</h4>
+                        <div class="student-badges">
+                            <span class="badge badge-success badge-sm">✓ PDF</span>
+                            <span class="badge badge-success badge-sm">✓ Photo</span>
+                        </div>
+                        <div class="student-actions">
+                            <button class="btn-icon">📸</button>
+                            <button class="btn-icon">📄</button>
+                            <button class="btn-icon">👁️</button>
+                            <button class="btn-icon btn-icon-danger">🗑️</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Student Card 6 -->
+                <div class="glass-card student-card">
+                    <div class="student-card-header">
+                        <img src="https://i.pravatar.cc/150?img=20" alt="Liam Byrne" class="student-avatar">
+                        <div class="student-status student-status-complete">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="student-card-body">
+                        <h4 class="student-name">Liam Byrne</h4>
+                        <div class="student-badges">
+                            <span class="badge badge-success badge-sm">✓ PDF</span>
+                            <span class="badge badge-success badge-sm">✓ Photo</span>
+                        </div>
+                        <div class="student-actions">
+                            <button class="btn-icon">📸</button>
+                            <button class="btn-icon">📄</button>
+                            <button class="btn-icon">👁️</button>
+                            <button class="btn-icon btn-icon-danger">🗑️</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- BOOKLET PAGE -->
+        <div id="page-booklet" class="page-content">
+            <div class="page-header">
+                <div>
+                    <h2 class="page-title gradient-text-lg">Graduation Booklet</h2>
+                    <p class="page-subtitle">Generate and download the complete graduation booklet PDF</p>
+                </div>
+            </div>
+
+            <div class="booklet-layout">
+                <!-- Booklet Preview Card -->
+                <div class="glass-card booklet-preview-card">
+                    <div class="booklet-preview">
+                        <div class="booklet-cover gradient-animated">
+                            <div class="booklet-cover-content">
+                                <h3 class="booklet-cover-title">Class of 2025</h3>
+                                <p class="booklet-cover-school">St. Joseph's Secondary School</p>
+                                <div class="booklet-cover-stats">
+                                    <span>67 Graduates</span>
+                                    <span>•</span>
+                                    <span>62 Profiles</span>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="preview-note">Preview of generated booklet cover</p>
+                    </div>
+                </div>
+
+                <!-- Booklet Generation Card -->
+                <div class="glass-card">
+                    <div class="card-header">
+                        <h3 class="card-title">📚 Booklet Generation</h3>
+                    </div>
+                    <div class="card-content">
+                        <div class="booklet-stats">
+                            <div class="booklet-stat">
+                                <div class="stat-icon stat-icon-success">✓</div>
+                                <div>
+                                    <p class="stat-number">62</p>
+                                    <p class="stat-label">PDFs Ready</p>
+                                </div>
+                            </div>
+                            <div class="booklet-stat">
+                                <div class="stat-icon stat-icon-warning">⚠</div>
+                                <div>
+                                    <p class="stat-number">5</p>
+                                    <p class="stat-label">Missing</p>
+                                </div>
+                            </div>
+                            <div class="booklet-stat">
+                                <div class="stat-icon stat-icon-info">📄</div>
+                                <div>
+                                    <p class="stat-number">~250</p>
+                                    <p class="stat-label">Total Pages</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="booklet-options">
+                            <h4 class="options-title">Booklet Options</h4>
+                            <label class="checkbox-label">
+                                <input type="checkbox" checked>
+                                <span>Include table of contents</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" checked>
+                                <span>Include school cover page</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox">
+                                <span>Add page numbers</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox">
+                                <span>Include only complete profiles</span>
+                            </label>
+                        </div>
+
+                        <div class="booklet-actions">
+                            <button class="gradient-button gradient-button-lg" id="generateFinalBookletBtn">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                Generate Complete Booklet
+                            </button>
+                            <p class="button-note">This will combine all 62 student PDFs into one file</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Booklets -->
+                <div class="glass-card booklet-history">
+                    <div class="card-header">
+                        <h3 class="card-title">📋 Previous Generations</h3>
+                    </div>
+                    <div class="card-content">
+                        <div class="history-list">
+                            <div class="history-item">
+                                <div class="history-icon">📄</div>
+                                <div class="history-details">
+                                    <p class="history-name">Complete_Booklet_v3.pdf</p>
+                                    <p class="history-meta">Nov 8, 2025 • 62 profiles • 248 pages</p>
+                                </div>
+                                <button class="glass-button-icon">⬇️</button>
+                            </div>
+                            <div class="history-item">
+                                <div class="history-icon">📄</div>
+                                <div class="history-details">
+                                    <p class="history-name">Complete_Booklet_v2.pdf</p>
+                                    <p class="history-meta">Nov 7, 2025 • 58 profiles • 232 pages</p>
+                                </div>
+                                <button class="glass-button-icon">⬇️</button>
+                            </div>
+                            <div class="history-item">
+                                <div class="history-icon">📄</div>
+                                <div class="history-details">
+                                    <p class="history-name">Complete_Booklet_v1.pdf</p>
+                                    <p class="history-meta">Nov 5, 2025 • 45 profiles • 180 pages</p>
+                                </div>
+                                <button class="glass-button-icon">⬇️</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SETTINGS PAGE -->
+        <div id="page-settings" class="page-content">
+            <div class="page-header">
+                <div>
+                    <h2 class="page-title gradient-text-lg">Project Settings</h2>
+                    <p class="page-subtitle">Customize your graduation website</p>
+                </div>
+            </div>
+
+            <div class="settings-grid">
+                <div class="glass-card">
+                    <div class="card-header">
+                        <h3 class="card-title">🎨 Theme & Branding</h3>
+                    </div>
+                    <div class="card-content">
+                        <div class="form-group">
+                            <label class="form-label">Primary Color</label>
+                            <div class="color-picker-grid">
+                                <button class="color-swatch active" style="background: #7C3AED"></button>
+                                <button class="color-swatch" style="background: #3B82F6"></button>
+                                <button class="color-swatch" style="background: #10B981"></button>
+                                <button class="color-swatch" style="background: #F59E0B"></button>
+                                <button class="color-swatch" style="background: #EF4444"></button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">School Name</label>
+                            <input type="text" class="glass-input" value="St. Joseph's Secondary School">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Graduation Year</label>
+                            <input type="text" class="glass-input" value="2025">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <div class="card-header">
+                        <h3 class="card-title">🔒 Access & Permissions</h3>
+                    </div>
+                    <div class="card-content">
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" checked>
+                                <span>Public website enabled</span>
+                            </label>
+                            <p class="form-help">Allow anyone to view the graduation website</p>
+                        </div>
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox">
+                                <span>Require password for viewing</span>
+                            </label>
+                            <p class="form-help">Add password protection to the public site</p>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Public URL</label>
+                            <div class="url-display glass-card-nested">
+                                <span>graduationcreator.app/class-2025-stjosephs</span>
+                                <button class="glass-button-icon">📋</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card settings-span-2">
+                    <div class="card-header">
+                        <h3 class="card-title">📅 Booklet Release Schedule</h3>
+                    </div>
+                    <div class="card-content">
+                        <div class="schedule-grid">
+                            <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="scheduleToggle">
+                                    <span>Schedule automatic release</span>
+                                </label>
+                                <p class="form-help">Automatically make booklet available at a specific date/time</p>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Release Date</label>
+                                <input type="date" class="glass-input" value="2025-06-15">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Release Time</label>
+                                <input type="time" class="glass-input" value="09:00">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-actions">
+                <button class="gradient-button" id="saveSettingsBtn">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    Save All Changes
+                </button>
+                <button class="glass-button glass-button-secondary">
+                    Reset to Defaults
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Glass Modal for Add Student -->
+    <div id="addStudentModal" class="modal-overlay">
+        <div class="glass-modal">
+            <div class="modal-header">
+                <h3 class="modal-title gradient-text-lg">Add New Student</h3>
+                <button class="modal-close" id="closeAddStudentModal">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-content">
+                <div class="form-group">
+                    <label class="form-label">Student Name</label>
+                    <input type="text" class="glass-input" placeholder="Enter full name">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Profile Photo (Optional)</label>
+                    <div class="file-upload-zone">
+                        <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        <p>Click to upload or drag and drop</p>
+                        <p class="text-xs text-gray-500">PNG, JPG up to 10MB</p>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Profile PDF (Optional)</label>
+                    <div class="file-upload-zone">
+                        <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                        </svg>
+                        <p>Click to upload or drag and drop</p>
+                        <p class="text-xs text-gray-500">PDF up to 25MB</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="glass-button glass-button-secondary" id="cancelAddStudent">Cancel</button>
+                <button class="gradient-button" id="confirmAddStudent">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    Add Student
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Toast (for confetti triggers) -->
+    <div id="successToast" class="toast toast-hidden">
+        <div class="toast-icon">🎉</div>
+        <div class="toast-content">
+            <p class="toast-title">Success!</p>
+            <p class="toast-message">Action completed successfully</p>
+        </div>
+    </div>
+
+    <script src="js/full-app-demo.js"></script>
+</body>
+</html>

@@ -1,0 +1,222 @@
+/* =========================================
+   STYLE 1: VIBRANT COMPACT (Space Grotesk)
+   Tight • Dense • Efficient
+   ========================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+:root[data-style="minimalist"] {
+  /* Electric Vibrant Palette - Same as Bold & Vibrant */
+  --primary-900: #1E0A3C;
+  --primary-800: #2E1065;
+  --primary-700: #4C1D95;
+  --primary-600: #7C3AED;
+  --primary-500: #8B5CF6;
+  --primary-400: #A78BFA;
+  --primary-50: #F3EEFF;
+  
+  --text-primary: #0F0F23;
+  --text-secondary: #2E1065;
+  --text-tertiary: #4C1D95;
+  --text-inverse: #FFFFFF;
+  
+  --bg-page: #F8F7FF;
+  --bg-app: #FAFAFF;
+  --bg-elevated: #FFFFFF;
+  --bg-overlay: rgba(30, 10, 60, 0.85);
+  
+  --success-600: #10B981;
+  --success-100: #D1FAE5;
+  --warning-600: #F59E0B;
+  --warning-100: #FEF3C7;
+  --error-600: #EF4444;
+  --error-100: #FEE2E2;
+  --info-600: #3B82F6;
+  --info-100: #DBEAFE;
+  
+  --border-light: #E9E4FF;
+  --border-medium: #D8CCFF;
+  --border-dark: #A78BFA;
+  
+  --shadow-sm: 0 2px 6px rgba(124, 58, 237, 0.15);
+  --shadow-md: 0 4px 12px rgba(124, 58, 237, 0.2);
+  --shadow-lg: 0 8px 24px rgba(124, 58, 237, 0.25);
+  --shadow-xl: 0 16px 48px rgba(124, 58, 237, 0.3);
+}
+
+/* Space Grotesk Font - Geometric & Modern, COMPACT SIZING */
+[data-style="minimalist"] body {
+  font-family: 'Space Grotesk', -apple-system, system-ui, sans-serif;
+  color: #0F0F23;
+  font-size: 0.875rem; /* 14px - Compact */
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+}
+
+[data-style="minimalist"] .text-h1,
+[data-style="minimalist"] .text-h2,
+[data-style="minimalist"] .text-h3,
+[data-style="minimalist"] h1,
+[data-style="minimalist"] h2,
+[data-style="minimalist"] h3 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  background: linear-gradient(135deg, #7C3AED 0%, #3B82F6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+[data-style="minimalist"] h1,
+[data-style="minimalist"] .text-h1 {
+  font-size: 1.5rem; /* 24px - Compact */
+}
+
+[data-style="minimalist"] h2,
+[data-style="minimalist"] .text-h2 {
+  font-size: 1.25rem; /* 20px - Compact */
+}
+
+[data-style="minimalist"] h3,
+[data-style="minimalist"] .text-h3 {
+  font-size: 1.125rem; /* 18px - Compact */
+}
+
+/* Compact Buttons */
+[data-style="minimalist"] .btn {
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.8125rem; /* 13px */
+  padding: 0.5rem 1rem; /* Tighter padding */
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+[data-style="minimalist"] .btn-primary {
+  background: linear-gradient(135deg, #7C3AED 0%, #6366F1 50%, #3B82F6 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+}
+
+[data-style="minimalist"] .btn-primary:hover {
+  box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4);
+  transform: translateY(-2px);
+}
+
+[data-style="minimalist"] .btn-secondary {
+  background: white;
+  color: #7C3AED;
+  border: 2px solid #7C3AED;
+}
+
+[data-style="minimalist"] .btn-tertiary {
+  background: linear-gradient(135deg, #F3EEFF 0%, #E9E4FF 100%);
+  color: #7C3AED;
+}
+
+[data-style="minimalist"] .btn-danger {
+  background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+  color: white;
+}
+
+/* Compact Cards */
+[data-style="minimalist"] .card {
+  border-radius: 12px;
+}
+
+[data-style="minimalist"] .card-raised {
+  padding: 1rem; /* Tighter padding */
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.15);
+}
+
+[data-style="minimalist"] .card-elevated {
+  padding: 1.25rem;
+  box-shadow: 0 6px 16px rgba(124, 58, 237, 0.2);
+}
+
+[data-style="minimalist"] .card-success {
+  border-left: 4px solid #10B981;
+  background: linear-gradient(135deg, #D1FAE5 0%, #FFFFFF 100%);
+}
+
+[data-style="minimalist"] .card-warning {
+  border-left: 4px solid #F59E0B;
+  background: linear-gradient(135deg, #FEF3C7 0%, #FFFFFF 100%);
+}
+
+[data-style="minimalist"] .card-error {
+  border-left: 4px solid #EF4444;
+  background: linear-gradient(135deg, #FEE2E2 0%, #FFFFFF 100%);
+}
+
+[data-style="minimalist"] .card-info {
+  border-left: 4px solid #3B82F6;
+  background: linear-gradient(135deg, #DBEAFE 0%, #FFFFFF 100%);
+}
+
+/* Compact Forms */
+[data-style="minimalist"] .form-input {
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem; /* Tighter */
+  font-size: 0.875rem;
+  border: 2px solid #E9E4FF;
+}
+
+[data-style="minimalist"] .form-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+/* Compact Progress */
+[data-style="minimalist"] .progress-bar {
+  height: 8px; /* Thinner */
+  border-radius: 10px;
+}
+
+[data-style="minimalist"] .progress-bar-fill.indigo {
+  background: linear-gradient(90deg, #7C3AED 0%, #3B82F6 100%);
+}
+
+/* Compact Badges */
+[data-style="minimalist"] .badge {
+  padding: 0.25rem 0.625rem; /* Smaller */
+  font-size: 0.6875rem; /* 11px */
+  border-radius: 6px;
+  font-weight: 700;
+}
+
+[data-style="minimalist"] .badge-success {
+  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+  color: white;
+}
+
+[data-style="minimalist"] .badge-warning {
+  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+  color: white;
+}
+
+[data-style="minimalist"] .badge-error {
+  background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+  color: white;
+}
+
+[data-style="minimalist"] .badge-info {
+  background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+  color: white;
+}
+
+/* Compact Navigation */
+[data-style="minimalist"] .nav-container {
+  padding: 0.75rem 1.5rem; /* Tighter */
+}
+
+[data-style="minimalist"] .nav-link {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+[data-style="minimalist"] .nav-link.active::after {
+  background: linear-gradient(90deg, #7C3AED 0%, #3B82F6 100%);
+}

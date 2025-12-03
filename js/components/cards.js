@@ -18,7 +18,7 @@ export const renderStudentCard = (student, graduationId, options = {}) => {
     } = options;
     
     return `
-        <div class="bg-white p-4 rounded-lg shadow border border-gray-200 hover:shadow-md transition-shadow">
+        <div class="vct-card-glass p-4">
             <div class="flex gap-3 items-start">
                 <!-- Student Photo -->
                 <div class="flex-shrink-0">
@@ -59,13 +59,13 @@ export const renderStudentCard = (student, graduationId, options = {}) => {
                 ${showUploadBtn ? `
                     <button 
                         onclick="window.uploadPhotoForStudentWrapper('${student.id}', '${student.name}')"
-                        class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded hover:bg-green-200 transition-colors"
+                        class="vct-button-glass-sm bg-green-100 text-green-700"
                         title="Upload profile photo">
                         📸 Photo
                     </button>
                     <button 
                         onclick="window.uploadPdfForStudentWrapper('${student.id}', '${student.name}')"
-                        class="px-2 py-1 bg-indigo-100 text-indigo-700 text-xs rounded hover:bg-indigo-200 transition-colors"
+                        class="vct-button-glass-sm bg-indigo-100 text-indigo-700"
                         title="Upload PDF profile">
                         📄 PDF
                     </button>
@@ -74,7 +74,7 @@ export const renderStudentCard = (student, graduationId, options = {}) => {
                 ${showDownloadBtn && student.profilePdfUrl ? `
                     <button 
                         onclick="window.viewStudentPdf('${student.profilePdfUrl}', '${student.name}')"
-                        class="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded hover:bg-blue-200 transition-colors">
+                        class="vct-button-glass-sm bg-blue-100 text-blue-700">
                         View PDF
                     </button>
                 ` : ''}
@@ -82,7 +82,7 @@ export const renderStudentCard = (student, graduationId, options = {}) => {
                 ${showDeleteBtn ? `
                     <button 
                         onclick="window.removePdfForStudent('${student.id}', '${student.name}', '${graduationId}')"
-                        class="px-2 py-1 bg-red-100 text-red-700 text-xs rounded hover:bg-red-200 transition-colors">
+                        class="vct-button-glass-sm bg-red-100 text-red-700">
                         Delete
                     </button>
                 ` : ''}
@@ -136,7 +136,7 @@ export const renderContentCard = (content, options = {}) => {
     }[content.type] || 'bg-gray-100 text-gray-800';
     
     return `
-        <div class="bg-white p-4 rounded-lg shadow border border-gray-200 hover:shadow-md transition-shadow">
+        <div class="vct-card-glass p-4">
             <div class="flex justify-between items-start gap-2">
                 <div class="flex-1">
                     <div class="flex items-center gap-2 mb-2">
@@ -154,7 +154,7 @@ export const renderContentCard = (content, options = {}) => {
                 ${showEditBtn ? `
                     <button 
                         onclick="window.editContentPage('${content.id}')"
-                        class="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded hover:bg-blue-200 transition-colors">
+                        class="vct-button-glass-sm bg-blue-100 text-blue-700">
                         Edit
                     </button>
                 ` : ''}
@@ -162,7 +162,7 @@ export const renderContentCard = (content, options = {}) => {
                 ${showDeleteBtn ? `
                     <button 
                         onclick="window.deleteContentPage('${content.id}')"
-                        class="px-2 py-1 bg-red-100 text-red-700 text-xs rounded hover:bg-red-200 transition-colors">
+                        class="vct-button-glass-sm bg-red-100 text-red-700">
                         Delete
                     </button>
                 ` : ''}

@@ -184,3 +184,34 @@ export function setupNewGraduationFormHandler(formElement, navigationFn, dbFunct
 export function setupCancelHandler(cancelBtn, navigationFn) {
     cancelBtn.addEventListener('click', () => navigationFn());
 }
+
+/**
+ * Setup forgot password button handler
+ * @param {HTMLElement} forgotPasswordBtn - Forgot password button element
+ * @param {Function} showForgotPasswordModalFn - Function to show forgot password modal
+ * @param {Function} resetPasswordFn - Password reset function from auth service
+ * @param {Function} showModalFn - Function to show modal
+ */
+export function setupForgotPasswordHandler(forgotPasswordBtn, showForgotPasswordModalFn, resetPasswordFn, showModalFn) {
+    if (!forgotPasswordBtn) return;
+    
+    forgotPasswordBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        
+        showForgotPasswordModalFn(async (email) => {
+            try {
+                // Show loading state
+                showModalFn('Sending...', 'Sending password reset email...', false);
+                
+                // Call the reset password function
+                await resetPasswordFn(email);
+                
+                // Show success message
+                showModalFn('Email Sent', `Password reset link has been sent to ${email}. Please check your inbox and spam folder.`);
+            } catch (error) {
+                console.error('Password reset error:', error);
+                showModalFn('Error', error.message || 'Failed to send password reset email. Please try again.');
+            }
+        });
+    });
+}

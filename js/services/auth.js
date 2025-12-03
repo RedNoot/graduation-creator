@@ -10,7 +10,8 @@ import {
     createUserWithEmailAndPassword, 
     signInWithEmailAndPassword, 
     signOut as firebaseSignOut,
-    onAuthStateChanged
+    onAuthStateChanged,
+    sendPasswordResetEmail
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
 /**
@@ -163,10 +164,64 @@ export const onAuthStateChange = (callback) => {
     return onAuthStateChanged(auth, callback);
 };
 
+/**
+ * Send password reset email to user
+ * @param {string} email - User email
+ * @returns {Promise<void>}
+ */
+export const resetPassword = async (email) => {
+    try {
+        logger.debug('Attempting to send password reset email', { email });
+        
+        // Firebase sends reset email - no error means it was queued successfully
+        await sendPasswordResetEmail(auth, email);
+        
+        logger.authAction('password_reset_request', 'anonymous', email, {
+            method: 'email'
+        });
+        
+        logger.debug('Password reset email sent successfully', { email });
+        
+        // Note: Firebase will send the email even if the account doesn't exist (security measure)
+        // This prevents email enumeration attacks
+        console.log('Password reset email request processed for:', email);
+    } catch (error) {
+        logger.error('Password reset error', error, {
+            email: email,
+            action: 'password_reset',
+            errorCode: error.code,
+            errorMessage: error.message
+        });
+        
+        console.error('Firebase password reset error:', error.code, error.message);
+        
+        // Provide user-friendly error messages
+        let errorMessage = 'Failed to send password reset email. ';
+        if (error.code === 'auth/user-not-found') {
+            errorMessage += 'No account found with this email address.';
+        } else if (error.code === 'auth/invalid-email') {
+            errorMessage += 'Please enter a valid email address.';
+        } else if (error.code === 'auth/too-many-requests') {
+            errorMessage += 'Too many reset attempts. Please try again later.';
+        } else if (error.code === 'auth/missing-continue-uri') {
+            errorMessage += 'Email configuration error. Please contact support.';
+        } else if (error.code === 'auth/invalid-continue-uri') {
+            errorMessage += 'Email configuration error. Please contact support.';
+        } else if (error.code === 'auth/unauthorized-continue-uri') {
+            errorMessage += 'Email configuration error. Please contact support.';
+        } else {
+            errorMessage += error.message;
+        }
+        
+        throw new Error(errorMessage);
+    }
+};
+
 export default {
     verifyStudentPassword,
     signUp,
     signIn,
     signOut,
-    onAuthStateChange
+    onAuthStateChange,
+    resetPassword
 };

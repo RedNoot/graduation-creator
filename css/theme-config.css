@@ -1,0 +1,167 @@
+/* =============================================================================
+   VIBRANT COMPACT THEME - CSS VARIABLES & CONFIGURATION
+   Theme Prefix: vct- (vibrant compact theme)
+   ============================================================================= */
+
+:root {
+  /* ===== BRAND COLORS ===== */
+  --vct-primary: #7C3AED;
+  --vct-primary-dark: #6D28D9;
+  --vct-primary-light: #8B5CF6;
+  --vct-secondary: #6366F1;
+  --vct-secondary-dark: #4F46E5;
+  --vct-accent: #3B82F6;
+  --vct-accent-dark: #2563EB;
+  
+  /* ===== SEMANTIC COLORS ===== */
+  --vct-success: #10B981;
+  --vct-success-dark: #059669;
+  --vct-success-light: #34D399;
+  --vct-warning: #F59E0B;
+  --vct-warning-dark: #D97706;
+  --vct-warning-light: #FBBF24;
+  --vct-error: #EF4444;
+  --vct-error-dark: #DC2626;
+  --vct-error-light: #F87171;
+  --vct-info: #3B82F6;
+  --vct-info-dark: #2563EB;
+  --vct-info-light: #60A5FA;
+  
+  /* ===== NEUTRAL PALETTE ===== */
+  --vct-gray-50: #F9FAFB;
+  --vct-gray-100: #F3F4F6;
+  --vct-gray-200: #E5E7EB;
+  --vct-gray-300: #D1D5DB;
+  --vct-gray-400: #9CA3AF;
+  --vct-gray-500: #6B7280;
+  --vct-gray-600: #4B5563;
+  --vct-gray-700: #374151;
+  --vct-gray-800: #1F2937;
+  --vct-gray-900: #111827;
+  
+  --vct-white: #FFFFFF;
+  --vct-black: #000000;
+  
+  /* ===== SPACING SCALE (COMPACT) ===== */
+  --vct-space-xs: 4px;
+  --vct-space-sm: 8px;
+  --vct-space-md: 12px;
+  --vct-space-lg: 16px;
+  --vct-space-xl: 24px;
+  --vct-space-2xl: 32px;
+  --vct-space-3xl: 48px;
+  
+  /* ===== TYPOGRAPHY ===== */
+  --vct-font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  --vct-font-family-mono: 'Courier New', monospace;
+  
+  /* Font Sizes (Compact Scale) */
+  --vct-font-size-xs: 11px;
+  --vct-font-size-sm: 12px;
+  --vct-font-size-base: 14px;
+  --vct-font-size-lg: 16px;
+  --vct-font-size-xl: 20px;
+  --vct-font-size-2xl: 24px;
+  --vct-font-size-3xl: 32px;
+  --vct-font-size-4xl: 40px;
+  
+  /* Line Heights */
+  --vct-line-height-tight: 1.25;
+  --vct-line-height-normal: 1.5;
+  --vct-line-height-relaxed: 1.75;
+  
+  /* Font Weights */
+  --vct-font-weight-normal: 400;
+  --vct-font-weight-medium: 500;
+  --vct-font-weight-semibold: 600;
+  --vct-font-weight-bold: 700;
+  --vct-font-weight-extrabold: 800;
+  
+  /* Letter Spacing */
+  --vct-letter-spacing-tight: -0.02em;
+  --vct-letter-spacing-normal: 0;
+  --vct-letter-spacing-wide: 0.03em;
+  --vct-letter-spacing-wider: 0.05em;
+  
+  /* ===== BORDER RADIUS ===== */
+  --vct-radius-sm: 6px;
+  --vct-radius-md: 8px;
+  --vct-radius-lg: 12px;
+  --vct-radius-xl: 16px;
+  --vct-radius-2xl: 20px;
+  --vct-radius-full: 9999px;
+  
+  /* ===== SHADOWS ===== */
+  --vct-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --vct-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+  --vct-shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.1);
+  --vct-shadow-xl: 0 12px 24px rgba(0, 0, 0, 0.12);
+  --vct-shadow-2xl: 0 16px 48px rgba(0, 0, 0, 0.15);
+  
+  /* ===== GLASSMORPHISM EFFECTS ===== */
+  --vct-glass-bg: rgba(255, 255, 255, 0.4);
+  --vct-glass-bg-light: rgba(255, 255, 255, 0.25);
+  --vct-glass-bg-medium: rgba(255, 255, 255, 0.5);
+  --vct-glass-bg-heavy: rgba(255, 255, 255, 0.7);
+  --vct-glass-border: rgba(255, 255, 255, 0.3);
+  --vct-glass-border-light: rgba(255, 255, 255, 0.2);
+  --vct-glass-blur: 10px;
+  --vct-glass-blur-light: 8px;
+  --vct-glass-blur-heavy: 16px;
+  
+  /* ===== GRADIENTS ===== */
+  --vct-gradient-primary: linear-gradient(135deg, var(--vct-primary) 0%, var(--vct-secondary) 100%);
+  --vct-gradient-primary-reverse: linear-gradient(135deg, var(--vct-secondary) 0%, var(--vct-primary) 100%);
+  --vct-gradient-accent: linear-gradient(135deg, var(--vct-secondary) 0%, var(--vct-accent) 100%);
+  --vct-gradient-success: linear-gradient(135deg, var(--vct-success) 0%, var(--vct-success-dark) 100%);
+  --vct-gradient-warning: linear-gradient(135deg, var(--vct-warning) 0%, var(--vct-warning-dark) 100%);
+  --vct-gradient-error: linear-gradient(135deg, var(--vct-error) 0%, var(--vct-error-dark) 100%);
+  
+  /* Animated Gradient Background */
+  --vct-gradient-hero: linear-gradient(270deg, var(--vct-primary), var(--vct-secondary), var(--vct-accent), var(--vct-primary));
+  
+  /* Background Gradients */
+  --vct-bg-gradient-light: linear-gradient(135deg, var(--vct-gray-50) 0%, var(--vct-gray-200) 100%);
+  
+  /* ===== TRANSITIONS ===== */
+  --vct-transition-fast: 150ms ease;
+  --vct-transition-base: 200ms ease;
+  --vct-transition-slow: 300ms ease;
+  --vct-transition-slower: 500ms ease;
+  
+  /* ===== Z-INDEX SCALE ===== */
+  --vct-z-base: 1;
+  --vct-z-dropdown: 100;
+  --vct-z-sticky: 200;
+  --vct-z-fixed: 300;
+  --vct-z-modal-backdrop: 900;
+  --vct-z-modal: 1000;
+  --vct-z-toast: 1100;
+  --vct-z-tooltip: 1200;
+  
+  /* ===== BREAKPOINTS (for reference in JS) ===== */
+  --vct-breakpoint-sm: 640px;
+  --vct-breakpoint-md: 768px;
+  --vct-breakpoint-lg: 1024px;
+  --vct-breakpoint-xl: 1280px;
+  --vct-breakpoint-2xl: 1536px;
+}
+
+/* ===== DARK MODE SUPPORT (Future) ===== */
+[data-theme="dark"] {
+  --vct-gray-50: #1F2937;
+  --vct-gray-100: #374151;
+  --vct-gray-200: #4B5563;
+  --vct-gray-300: #6B7280;
+  --vct-gray-400: #9CA3AF;
+  --vct-gray-500: #D1D5DB;
+  --vct-gray-600: #E5E7EB;
+  --vct-gray-700: #F3F4F6;
+  --vct-gray-800: #F9FAFB;
+  --vct-gray-900: #FFFFFF;
+  
+  --vct-glass-bg: rgba(31, 41, 55, 0.4);
+  --vct-glass-border: rgba(75, 85, 99, 0.3);
+  
+  --vct-bg-gradient-light: linear-gradient(135deg, #1F2937 0%, #111827 100%);
+}

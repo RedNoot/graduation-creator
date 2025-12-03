@@ -26,7 +26,7 @@ export const showModal = (title, message, showClose = true, buttons = null) => {
     const modalId = `modal-${Date.now()}`;
     const modal = document.createElement('div');
     modal.id = modalId;
-    modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4';
+    modal.className = 'vct-modal-overlay fixed inset-0 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4';
     modal.setAttribute('role', 'dialog');
     modal.setAttribute('aria-modal', 'true');
     modal.setAttribute('aria-labelledby', `modal-title-${modalId}`);
@@ -35,14 +35,14 @@ export const showModal = (title, message, showClose = true, buttons = null) => {
     if (buttons && Array.isArray(buttons)) {
         // Custom buttons provided
         buttonsHtml = buttons.map((btn, idx) => 
-            `<button id="modal-btn-${idx}" aria-label="${btn.text}" class="px-4 py-2 ${btn.style} text-base font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 flex-1 ${idx > 0 ? 'ml-2' : ''}">${btn.text}</button>`
+            `<button id="modal-btn-${idx}" aria-label="${btn.text}" class="vct-button-glass px-4 py-2 ${btn.style} text-base font-medium flex-1 ${idx > 0 ? 'ml-2' : ''}">${btn.text}</button>`
         ).join('');
     } else if (showClose) {
-        buttonsHtml = `<button id="close-modal-btn" aria-label="Close dialog" class="px-4 py-2 bg-indigo-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-300">Close</button>`;
+        buttonsHtml = `<button id="close-modal-btn" aria-label="Close dialog" class="vct-button-gradient px-4 py-2 text-base font-medium w-full">Close</button>`;
     }
     
     modal.innerHTML = `
-        <div class="relative mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white" role="document">
+        <div class="vct-modal-glass relative mx-auto p-5 w-full max-w-md" role="document">
             <div class="mt-3 text-center">
                 <h3 id="modal-title-${modalId}" class="text-lg leading-6 font-medium text-gray-900">${title}</h3>
                 <div class="mt-2 px-4 sm:px-7 py-3">
@@ -196,13 +196,13 @@ export const showLoadingModal = (title, message) => {
     const modalId = `modal-${Date.now()}`;
     const modal = document.createElement('div');
     modal.id = modalId;
-    modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4';
+    modal.className = 'vct-modal-overlay fixed inset-0 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4';
     modal.setAttribute('role', 'alert');
     modal.setAttribute('aria-live', 'assertive');
     modal.setAttribute('aria-labelledby', `modal-title-${modalId}`);
     
     modal.innerHTML = `
-        <div class="relative mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white" role="document">
+        <div class="vct-modal-glass relative mx-auto p-5 w-full max-w-md" role="document">
             <div class="mt-3 text-center">
                 <h3 id="modal-title-${modalId}" class="text-lg leading-6 font-medium text-gray-900">${title}</h3>
                 <div class="mt-2 px-4 sm:px-7 py-3">
@@ -234,13 +234,13 @@ export const showPasswordModal = (title, message, onSubmit, errorMessage = '') =
     const modalId = `modal-${Date.now()}`;
     const modal = document.createElement('div');
     modal.id = modalId;
-    modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4';
+    modal.className = 'vct-modal-overlay fixed inset-0 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4';
     modal.setAttribute('role', 'dialog');
     modal.setAttribute('aria-modal', 'true');
     modal.setAttribute('aria-labelledby', `modal-title-${modalId}`);
     
     modal.innerHTML = `
-        <div class="relative mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white" role="document">
+        <div class="vct-modal-glass relative mx-auto p-5 w-full max-w-md" role="document">
             <div class="mt-3">
                 <div class="text-center mb-4" aria-hidden="true">
                     <svg class="w-16 h-16 mx-auto text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -323,6 +323,132 @@ export const showPasswordModal = (title, message, onSubmit, errorMessage = '') =
     setTimeout(() => passwordInput.focus(), 100);
 };
 
+/**
+ * Show forgot password modal with email input
+ * @param {Function} onSubmit - Callback function to handle email submission
+ * @returns {void}
+ */
+export const showForgotPasswordModal = (onSubmit) => {
+    const modalId = `forgot-password-modal-${Date.now()}`;
+    const modal = document.createElement('div');
+    modal.id = modalId;
+    modal.className = 'vct-modal-overlay fixed inset-0 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-labelledby', `modal-title-${modalId}`);
+    
+    modal.innerHTML = `
+        <div class="vct-modal-glass relative mx-auto p-5 w-full max-w-md" role="document">
+            <div class="mt-3">
+                <h3 id="modal-title-${modalId}" class="text-lg leading-6 font-medium text-gray-900 text-center mb-4">Reset Password</h3>
+                <div class="px-4 sm:px-7 py-3">
+                    <p class="text-sm text-gray-600 mb-4">Enter your email address and we'll send you a link to reset your password.</p>
+                    <div>
+                        <label for="reset-email-${modalId}" class="block text-sm font-medium text-gray-700 mb-1">Email address</label>
+                        <input 
+                            type="email" 
+                            id="reset-email-${modalId}" 
+                            placeholder="your.email@example.com"
+                            required
+                            aria-required="true"
+                            aria-label="Email address for password reset"
+                            class="vct-input-glass w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        >
+                    </div>
+                </div>
+                <div class="px-4 py-3 flex gap-3">
+                    <button id="cancel-reset-btn-${modalId}" aria-label="Cancel password reset" class="vct-button-glass px-4 py-2 text-base font-medium flex-1">
+                        Cancel
+                    </button>
+                    <button id="submit-reset-btn-${modalId}" aria-label="Send password reset email" class="vct-button-gradient px-4 py-2 text-base font-medium flex-1">
+                        Send Reset Link
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+
+    // Setup focus trap
+    const modalContent = modal.querySelector('[role="document"]');
+    const focusTrap = new FocusTrap(modalContent);
+    focusTrap.activate();
+    activeFocusTraps.set(modalId, focusTrap);
+    
+    const emailInput = document.getElementById(`reset-email-${modalId}`);
+    const submitBtn = document.getElementById(`submit-reset-btn-${modalId}`);
+    const cancelBtn = document.getElementById(`cancel-reset-btn-${modalId}`);
+    
+    const closeModalFn = () => {
+        const trap = activeFocusTraps.get(modalId);
+        if (trap) {
+            trap.deactivate();
+            activeFocusTraps.delete(modalId);
+        }
+        if (document.getElementById(modalId)) {
+            modal.remove();
+        }
+    };
+
+    const handleSubmit = () => {
+        const email = emailInput.value.trim();
+        // Basic email validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        
+        if (!email) {
+            emailInput.classList.add('border-red-500');
+            emailInput.setAttribute('aria-invalid', 'true');
+            setTimeout(() => {
+                emailInput.classList.remove('border-red-500');
+                emailInput.removeAttribute('aria-invalid');
+            }, 2000);
+            return;
+        }
+        
+        if (!emailRegex.test(email)) {
+            emailInput.classList.add('border-red-500');
+            emailInput.setAttribute('aria-invalid', 'true');
+            // Show error message
+            const errorMsg = document.createElement('p');
+            errorMsg.className = 'text-xs text-red-500 mt-1';
+            errorMsg.textContent = 'Please enter a valid email address';
+            errorMsg.id = `email-error-${modalId}`;
+            emailInput.parentElement.appendChild(errorMsg);
+            
+            setTimeout(() => {
+                emailInput.classList.remove('border-red-500');
+                emailInput.removeAttribute('aria-invalid');
+                const err = document.getElementById(`email-error-${modalId}`);
+                if (err) err.remove();
+            }, 3000);
+            return;
+        }
+        
+        closeModalFn();
+        onSubmit(email);
+    };
+    
+    // Handle Escape key
+    modal.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeModalFn();
+        }
+    });
+
+    submitBtn.addEventListener('click', handleSubmit);
+    cancelBtn.addEventListener('click', closeModalFn);
+    
+    emailInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            handleSubmit();
+        }
+    });
+    
+    // Focus the input after trap is active
+    setTimeout(() => emailInput.focus(), 100);
+};
+
 export default {
     showModal,
     closeModal,
@@ -330,5 +456,6 @@ export default {
     showSuccessModal,
     showConfirmModal,
     showLoadingModal,
-    showPasswordModal
+    showPasswordModal,
+    showForgotPasswordModal
 };

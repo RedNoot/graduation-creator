@@ -1,0 +1,463 @@
+/* =============================================================================
+   VIBRANT COMPACT THEME - GLASSMORPHISM COMPONENTS
+   Components: Cards, Buttons, Inputs, Modals, Navigation
+   ============================================================================= */
+
+/* ===== GLASS CARDS ===== */
+
+.vct-card-glass {
+  background: var(--vct-glass-bg);
+  backdrop-filter: blur(var(--vct-glass-blur));
+  -webkit-backdrop-filter: blur(var(--vct-glass-blur));
+  border: 1px solid var(--vct-glass-border);
+  border-radius: var(--vct-radius-lg);
+  padding: var(--vct-space-lg);
+  box-shadow: var(--vct-shadow-lg);
+  transition: all var(--vct-transition-base);
+}
+
+.vct-card-glass:hover {
+  box-shadow: var(--vct-shadow-xl);
+  transform: translateY(-2px);
+}
+
+.vct-card-glass-light {
+  background: var(--vct-glass-bg-light);
+  backdrop-filter: blur(var(--vct-glass-blur-light));
+  -webkit-backdrop-filter: blur(var(--vct-glass-blur-light));
+}
+
+.vct-card-glass-heavy {
+  background: var(--vct-glass-bg-heavy);
+  backdrop-filter: blur(var(--vct-glass-blur-heavy));
+  -webkit-backdrop-filter: blur(var(--vct-glass-blur-heavy));
+}
+
+.vct-card-glass-nested {
+  background: rgba(255, 255, 255, 0.3);
+  border: 1px solid var(--vct-glass-border-light);
+  border-radius: var(--vct-radius-md);
+  padding: var(--vct-space-md);
+}
+
+/* ===== GLASS NAVIGATION ===== */
+
+.vct-nav-glass {
+  position: sticky;
+  top: 0;
+  z-index: var(--vct-z-sticky);
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--vct-glass-border);
+  box-shadow: var(--vct-shadow-md);
+  padding: var(--vct-space-md) 0;
+}
+
+.vct-nav-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 var(--vct-space-xl);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vct-space-xl);
+}
+
+.vct-nav-brand {
+  font-weight: var(--vct-font-weight-bold);
+  font-size: var(--vct-font-size-lg);
+}
+
+.vct-nav-links {
+  display: flex;
+  gap: var(--vct-space-sm);
+  flex: 1;
+}
+
+.vct-nav-link {
+  display: flex;
+  align-items: center;
+  gap: var(--vct-space-sm);
+  padding: var(--vct-space-sm) var(--vct-space-md);
+  border: none;
+  background: transparent;
+  color: var(--vct-gray-600);
+  font-weight: var(--vct-font-weight-medium);
+  font-size: var(--vct-font-size-sm);
+  text-transform: uppercase;
+  letter-spacing: var(--vct-letter-spacing-wider);
+  border-radius: var(--vct-radius-md);
+  cursor: pointer;
+  transition: all var(--vct-transition-base);
+  text-decoration: none;
+}
+
+.vct-nav-link:hover {
+  background: rgba(124, 58, 237, 0.1);
+  color: var(--vct-primary);
+}
+
+.vct-nav-link.active {
+  background: rgba(124, 58, 237, 0.15);
+  color: var(--vct-primary);
+  font-weight: var(--vct-font-weight-semibold);
+}
+
+/* ===== GLASS BUTTONS ===== */
+
+.vct-button-glass {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--vct-space-sm);
+  padding: var(--vct-space-sm) var(--vct-space-lg);
+  background: var(--vct-glass-bg-medium);
+  backdrop-filter: blur(var(--vct-glass-blur-light));
+  -webkit-backdrop-filter: blur(var(--vct-glass-blur-light));
+  border: 1px solid var(--vct-glass-border);
+  border-radius: var(--vct-radius-md);
+  color: var(--vct-gray-800);
+  font-weight: var(--vct-font-weight-semibold);
+  font-size: var(--vct-font-size-sm);
+  text-transform: uppercase;
+  letter-spacing: var(--vct-letter-spacing-wide);
+  cursor: pointer;
+  transition: all var(--vct-transition-base);
+  box-shadow: var(--vct-shadow-sm);
+}
+
+.vct-button-glass:hover {
+  background: var(--vct-glass-bg-heavy);
+  box-shadow: var(--vct-shadow-md);
+  transform: translateY(-1px);
+}
+
+.vct-button-glass:active {
+  transform: translateY(0);
+}
+
+.vct-button-glass:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.vct-button-glass-sm {
+  padding: 6px var(--vct-space-md);
+  font-size: var(--vct-font-size-xs);
+}
+
+.vct-button-glass-lg {
+  padding: var(--vct-space-md) var(--vct-space-xl);
+  font-size: var(--vct-font-size-base);
+}
+
+.vct-button-glass-icon {
+  padding: var(--vct-space-sm);
+  border-radius: var(--vct-radius-sm);
+}
+
+/* ===== GLASS INPUTS ===== */
+
+.vct-input-glass {
+  width: 100%;
+  padding: var(--vct-space-md);
+  background: var(--vct-glass-bg-medium);
+  backdrop-filter: blur(var(--vct-glass-blur-light));
+  -webkit-backdrop-filter: blur(var(--vct-glass-blur-light));
+  border: 1px solid var(--vct-glass-border);
+  border-radius: var(--vct-radius-md);
+  font-family: var(--vct-font-family);
+  font-size: var(--vct-font-size-sm);
+  color: var(--vct-gray-900);
+  transition: all var(--vct-transition-base);
+}
+
+.vct-input-glass:focus {
+  outline: none;
+  border-color: var(--vct-primary);
+  background: var(--vct-glass-bg-heavy);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+}
+
+.vct-input-glass::placeholder {
+  color: var(--vct-gray-400);
+}
+
+.vct-input-glass:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Input variations */
+.vct-input-glass-error {
+  border-color: var(--vct-error);
+}
+
+.vct-input-glass-error:focus {
+  border-color: var(--vct-error);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.vct-input-glass-success {
+  border-color: var(--vct-success);
+}
+
+.vct-textarea-glass {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.vct-select-glass {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236B7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--vct-space-md) center;
+  background-size: 16px;
+  padding-right: var(--vct-space-2xl);
+}
+
+/* ===== GLASS MODALS ===== */
+
+.vct-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--vct-z-modal-backdrop);
+  padding: var(--vct-space-xl);
+}
+
+.vct-modal-overlay.active {
+  display: flex;
+}
+
+.vct-modal-glass {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(var(--vct-glass-blur-heavy));
+  -webkit-backdrop-filter: blur(var(--vct-glass-blur-heavy));
+  border: 1px solid var(--vct-glass-border);
+  border-radius: var(--vct-radius-xl);
+  max-width: 500px;
+  width: 100%;
+  box-shadow: var(--vct-shadow-2xl);
+  animation: vct-modalSlideIn var(--vct-transition-slow) ease;
+}
+
+@keyframes vct-modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-32px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.vct-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--vct-space-lg);
+  border-bottom: 1px solid var(--vct-glass-border);
+}
+
+.vct-modal-title {
+  font-size: var(--vct-font-size-lg);
+  font-weight: var(--vct-font-weight-bold);
+}
+
+.vct-modal-close {
+  padding: var(--vct-space-xs);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--vct-gray-600);
+  transition: all var(--vct-transition-fast);
+}
+
+.vct-modal-close:hover {
+  color: var(--vct-gray-900);
+  transform: scale(1.1);
+}
+
+.vct-modal-content {
+  padding: var(--vct-space-lg);
+}
+
+.vct-modal-footer {
+  display: flex;
+  gap: var(--vct-space-md);
+  justify-content: flex-end;
+  padding: var(--vct-space-lg);
+  border-top: 1px solid var(--vct-glass-border);
+}
+
+/* ===== GLASS DROPDOWN ===== */
+
+.vct-dropdown-glass {
+  position: relative;
+}
+
+.vct-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: var(--vct-space-sm);
+  min-width: 200px;
+  background: var(--vct-glass-bg-heavy);
+  backdrop-filter: blur(var(--vct-glass-blur));
+  -webkit-backdrop-filter: blur(var(--vct-glass-blur));
+  border: 1px solid var(--vct-glass-border);
+  border-radius: var(--vct-radius-md);
+  box-shadow: var(--vct-shadow-xl);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px);
+  transition: all var(--vct-transition-base);
+  z-index: var(--vct-z-dropdown);
+}
+
+.vct-dropdown-menu.active {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.vct-dropdown-item {
+  display: block;
+  width: 100%;
+  padding: var(--vct-space-sm) var(--vct-space-md);
+  border: none;
+  background: transparent;
+  text-align: left;
+  font-size: var(--vct-font-size-sm);
+  color: var(--vct-gray-700);
+  cursor: pointer;
+  transition: all var(--vct-transition-fast);
+}
+
+.vct-dropdown-item:hover {
+  background: rgba(124, 58, 237, 0.1);
+  color: var(--vct-primary);
+}
+
+.vct-dropdown-item:first-child {
+  border-radius: var(--vct-radius-md) var(--vct-radius-md) 0 0;
+}
+
+.vct-dropdown-item:last-child {
+  border-radius: 0 0 var(--vct-radius-md) var(--vct-radius-md);
+}
+
+.vct-dropdown-divider {
+  height: 1px;
+  background: var(--vct-glass-border);
+  margin: var(--vct-space-xs) 0;
+}
+
+/* ===== GLASS FAB (Floating Action Button) ===== */
+
+.vct-fab-glass {
+  position: fixed;
+  bottom: var(--vct-space-xl);
+  right: var(--vct-space-xl);
+  width: 56px;
+  height: 56px;
+  border-radius: var(--vct-radius-full);
+  background: rgba(124, 58, 237, 0.3);
+  backdrop-filter: blur(var(--vct-glass-blur));
+  -webkit-backdrop-filter: blur(var(--vct-glass-blur));
+  border: 1px solid var(--vct-glass-border);
+  color: var(--vct-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--vct-transition-base);
+  box-shadow: 0 4px 20px rgba(124, 58, 237, 0.3);
+  z-index: var(--vct-z-fixed);
+}
+
+.vct-fab-glass:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 32px rgba(124, 58, 237, 0.4);
+  background: rgba(124, 58, 237, 0.4);
+}
+
+/* ===== GLASS BADGE ===== */
+
+.vct-badge-glass {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px var(--vct-space-sm);
+  background: var(--vct-glass-bg-light);
+  backdrop-filter: blur(var(--vct-glass-blur-light));
+  border: 1px solid var(--vct-glass-border);
+  border-radius: var(--vct-radius-full);
+  font-size: var(--vct-font-size-xs);
+  font-weight: var(--vct-font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: var(--vct-letter-spacing-wider);
+}
+
+/* ===== GLASS TOAST ===== */
+
+.vct-toast-glass {
+  position: fixed;
+  bottom: var(--vct-space-xl);
+  right: var(--vct-space-xl);
+  display: flex;
+  gap: var(--vct-space-md);
+  padding: var(--vct-space-lg);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--vct-glass-border);
+  border-radius: var(--vct-radius-lg);
+  box-shadow: var(--vct-shadow-xl);
+  z-index: var(--vct-z-toast);
+  animation: vct-toastSlideIn var(--vct-transition-slow) ease;
+}
+
+@keyframes vct-toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ===== RESPONSIVE GLASS COMPONENTS ===== */
+
+@media (max-width: 768px) {
+  .vct-nav-links {
+    gap: 0;
+  }
+  
+  .vct-nav-link {
+    padding: var(--vct-space-sm);
+    font-size: 10px;
+  }
+  
+  .vct-modal-glass {
+    max-width: 95%;
+  }
+  
+  .vct-fab-glass {
+    bottom: var(--vct-space-lg);
+    right: var(--vct-space-lg);
+  }
+}

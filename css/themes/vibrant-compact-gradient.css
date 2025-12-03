@@ -1,0 +1,471 @@
+/* =============================================================================
+   VIBRANT COMPACT THEME - ANIMATED GRADIENTS
+   Components: Gradient Backgrounds, Text, Borders, Animations
+   ============================================================================= */
+
+/* ===== GRADIENT TEXT ===== */
+
+.vct-gradient-text {
+  background: var(--vct-gradient-primary);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 200% 200%;
+  animation: vct-gradientTextShift 3s ease infinite;
+}
+
+.vct-gradient-text-lg {
+  background: linear-gradient(135deg, var(--vct-primary) 0%, var(--vct-secondary) 50%, var(--vct-accent) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 200% 200%;
+  animation: vct-gradientTextShift 3s ease infinite;
+}
+
+@keyframes vct-gradientTextShift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* ===== GRADIENT BACKGROUNDS ===== */
+
+.vct-gradient-hero {
+  background: var(--vct-gradient-hero);
+  background-size: 400% 400%;
+  animation: vct-gradientFlow 8s ease infinite;
+  border-radius: var(--vct-radius-xl);
+  padding: var(--vct-space-2xl);
+  color: white;
+  box-shadow: 0 8px 32px rgba(124, 58, 237, 0.3);
+}
+
+@keyframes vct-gradientFlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.vct-gradient-primary-bg {
+  background: var(--vct-gradient-primary);
+  color: white;
+}
+
+.vct-gradient-accent-bg {
+  background: var(--vct-gradient-accent);
+  color: white;
+}
+
+.vct-gradient-success-bg {
+  background: var(--vct-gradient-success);
+  color: white;
+}
+
+.vct-gradient-warning-bg {
+  background: var(--vct-gradient-warning);
+  color: white;
+}
+
+.vct-gradient-error-bg {
+  background: var(--vct-gradient-error);
+  color: white;
+}
+
+/* ===== GRADIENT BUTTONS ===== */
+
+.vct-button-gradient {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--vct-space-sm);
+  padding: var(--vct-space-md) var(--vct-space-xl);
+  background: var(--vct-gradient-primary);
+  border: none;
+  border-radius: var(--vct-radius-md);
+  color: white;
+  font-weight: var(--vct-font-weight-bold);
+  font-size: var(--vct-font-size-sm);
+  text-transform: uppercase;
+  letter-spacing: var(--vct-letter-spacing-wider);
+  cursor: pointer;
+  transition: all var(--vct-transition-slow);
+  box-shadow: 0 4px 16px rgba(124, 58, 237, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.vct-button-gradient::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left var(--vct-transition-slower) ease;
+}
+
+.vct-button-gradient:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(124, 58, 237, 0.4);
+}
+
+.vct-button-gradient:hover::before {
+  left: 100%;
+}
+
+.vct-button-gradient:active {
+  transform: translateY(0);
+}
+
+.vct-button-gradient:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.vct-button-gradient-sm {
+  padding: var(--vct-space-sm) var(--vct-space-lg);
+  font-size: var(--vct-font-size-xs);
+}
+
+.vct-button-gradient-lg {
+  padding: var(--vct-space-lg) var(--vct-space-2xl);
+  font-size: var(--vct-font-size-base);
+}
+
+/* ===== GRADIENT BORDERS ===== */
+
+.vct-gradient-border {
+  position: relative;
+  background: white;
+  border-radius: var(--vct-radius-lg);
+  padding: var(--vct-space-lg);
+}
+
+.vct-gradient-border::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: var(--vct-gradient-primary);
+  border-radius: var(--vct-radius-lg);
+  z-index: -1;
+}
+
+.vct-gradient-border-animated {
+  position: relative;
+  background: white;
+  border-radius: var(--vct-radius-lg);
+  padding: 2px;
+  overflow: hidden;
+}
+
+.vct-gradient-border-animated::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, var(--vct-primary), var(--vct-secondary), var(--vct-accent), var(--vct-primary));
+  background-size: 400% 400%;
+  border-radius: var(--vct-radius-lg);
+  z-index: -1;
+  animation: vct-gradientRotate 4s linear infinite;
+}
+
+@keyframes vct-gradientRotate {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* ===== MESH GRADIENT BACKGROUND ===== */
+
+.vct-gradient-mesh {
+  position: relative;
+  border-radius: var(--vct-radius-xl);
+  overflow: hidden;
+  background: #1E0A3C;
+}
+
+.vct-gradient-mesh::before,
+.vct-gradient-mesh::after {
+  content: '';
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.6;
+  animation: vct-meshMove 10s ease-in-out infinite;
+}
+
+.vct-gradient-mesh::before {
+  background: radial-gradient(circle, var(--vct-primary) 0%, transparent 70%);
+  top: -100px;
+  left: -100px;
+}
+
+.vct-gradient-mesh::after {
+  background: radial-gradient(circle, var(--vct-accent) 0%, transparent 70%);
+  bottom: -100px;
+  right: -100px;
+  animation-delay: -5s;
+}
+
+@keyframes vct-meshMove {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(30px, -30px) scale(1.1);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+}
+
+/* ===== PROGRESS BARS WITH GRADIENTS ===== */
+
+.vct-progress-bar {
+  height: 8px;
+  background: rgba(229, 231, 235, 0.8);
+  border-radius: var(--vct-radius-md);
+  overflow: hidden;
+}
+
+.vct-progress-fill {
+  height: 100%;
+  background: var(--vct-gradient-primary);
+  border-radius: var(--vct-radius-md);
+  transition: width var(--vct-transition-slower) ease;
+}
+
+.vct-progress-fill-animated {
+  background: linear-gradient(90deg, var(--vct-primary) 0%, var(--vct-secondary) 50%, var(--vct-accent) 100%);
+  background-size: 200% 100%;
+  animation: vct-progressShimmer 2s ease infinite;
+}
+
+@keyframes vct-progressShimmer {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.vct-progress-bar-lg {
+  height: 12px;
+}
+
+.vct-progress-bar-sm {
+  height: 6px;
+}
+
+/* ===== GRADIENT BADGES ===== */
+
+.vct-badge-gradient {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px var(--vct-space-sm);
+  background: var(--vct-gradient-primary);
+  border: none;
+  border-radius: var(--vct-radius-full);
+  color: white;
+  font-size: var(--vct-font-size-xs);
+  font-weight: var(--vct-font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: var(--vct-letter-spacing-wider);
+}
+
+.vct-badge-gradient-success {
+  background: var(--vct-gradient-success);
+}
+
+.vct-badge-gradient-warning {
+  background: var(--vct-gradient-warning);
+}
+
+.vct-badge-gradient-error {
+  background: var(--vct-gradient-error);
+}
+
+/* ===== GRADIENT CARDS ===== */
+
+.vct-card-gradient {
+  background: var(--vct-gradient-primary);
+  border-radius: var(--vct-radius-lg);
+  padding: var(--vct-space-lg);
+  color: white;
+  box-shadow: var(--vct-shadow-lg);
+  transition: all var(--vct-transition-base);
+}
+
+.vct-card-gradient:hover {
+  box-shadow: var(--vct-shadow-2xl);
+  transform: translateY(-2px);
+}
+
+.vct-card-gradient-hero {
+  background: var(--vct-gradient-hero);
+  background-size: 400% 400%;
+  animation: vct-gradientFlow 8s ease infinite;
+}
+
+/* ===== SKELETON LOADERS WITH GRADIENT ===== */
+
+.vct-skeleton {
+  background: linear-gradient(90deg, var(--vct-gray-200) 25%, var(--vct-gray-100) 50%, var(--vct-gray-200) 75%);
+  background-size: 200% 100%;
+  animation: vct-skeletonPulse 1.5s ease-in-out infinite;
+  border-radius: var(--vct-radius-md);
+}
+
+@keyframes vct-skeletonPulse {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.vct-skeleton-text {
+  height: 14px;
+  margin: var(--vct-space-sm) 0;
+}
+
+.vct-skeleton-heading {
+  height: 24px;
+  margin: var(--vct-space-md) 0;
+}
+
+.vct-skeleton-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--vct-radius-full);
+}
+
+/* ===== GRADIENT UNDERLINES ===== */
+
+.vct-link-gradient {
+  position: relative;
+  color: var(--vct-gray-900);
+  text-decoration: none;
+  font-weight: var(--vct-font-weight-semibold);
+}
+
+.vct-link-gradient::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: var(--vct-gradient-primary);
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform var(--vct-transition-base);
+}
+
+.vct-link-gradient:hover::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+/* ===== GRADIENT DIVIDERS ===== */
+
+.vct-divider-gradient {
+  height: 2px;
+  background: var(--vct-gradient-primary);
+  border: none;
+  margin: var(--vct-space-lg) 0;
+  border-radius: var(--vct-radius-full);
+}
+
+.vct-divider-gradient-vertical {
+  width: 2px;
+  height: 100%;
+  background: var(--vct-gradient-primary);
+  margin: 0 var(--vct-space-lg);
+}
+
+/* ===== GRADIENT ICONS ===== */
+
+.vct-icon-gradient {
+  background: var(--vct-gradient-primary);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ===== HOVER GRADIENT EFFECTS ===== */
+
+.vct-hover-gradient {
+  position: relative;
+  overflow: hidden;
+}
+
+.vct-hover-gradient::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(124, 58, 237, 0.2) 0%, transparent 70%);
+  transform: translate(-50%, -50%);
+  transition: width var(--vct-transition-slow) ease, height var(--vct-transition-slow) ease;
+}
+
+.vct-hover-gradient:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+/* ===== RESPONSIVE GRADIENTS ===== */
+
+@media (max-width: 768px) {
+  .vct-gradient-hero {
+    padding: var(--vct-space-xl);
+  }
+  
+  .vct-gradient-mesh::before,
+  .vct-gradient-mesh::after {
+    width: 200px;
+    height: 200px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vct-gradient-text,
+  .vct-gradient-hero,
+  .vct-gradient-border-animated,
+  .vct-progress-fill-animated,
+  .vct-skeleton {
+    animation: none;
+  }
+}

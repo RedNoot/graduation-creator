@@ -65,15 +65,15 @@ export const renderMainNav = (activePage) => {
 
     // Build navigation HTML
     return `
-        <nav class="main-nav bg-white border-b border-gray-200 shadow-sm" role="navigation" aria-label="Main navigation">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <nav class="main-nav vct-nav-glass" role="navigation" aria-label="Main navigation">
+            <div class="vct-nav-container">
                 <div class="flex items-center justify-between h-16">
-                    <div class="flex items-center space-x-1">
+                    <div class="vct-nav-links flex items-center space-x-1">
                         ${navStructure.map(item => {
                             const isActive = item.id === activeParent;
-                            const baseClass = `nav-item px-4 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                            const baseClass = `vct-nav-link px-4 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                                 isActive 
-                                    ? 'text-indigo-600 bg-indigo-50' 
+                                    ? 'active text-indigo-600 bg-indigo-50' 
                                     : 'text-gray-700 hover:text-indigo-600 hover:bg-gray-50'
                             }`;
 
@@ -91,7 +91,7 @@ export const renderMainNav = (activePage) => {
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                                             </svg>
                                         </button>
-                                        <div class="nav-dropdown-menu absolute left-0 mt-1 w-56 bg-white rounded-md shadow-lg border border-gray-200 z-50 hidden" role="menu">
+                                        <div class="vct-dropdown-glass absolute left-0 mt-1 w-56 z-50 hidden" role="menu">
                                             ${item.children.map(child => {
                                                 const isChildActive = child.page === activePage;
                                                 return `
@@ -139,6 +139,7 @@ let documentListenersSetup = false;
  * @returns {void}
  */
 export const setupMainNavListeners = (onNavigate) => {
+    console.log('[MainNav] Setting up navigation listeners');
     // Handle direct navigation links
     const navLinks = document.querySelectorAll('.nav-link');
     navLinks.forEach(link => {
@@ -153,13 +154,15 @@ export const setupMainNavListeners = (onNavigate) => {
 
     // Handle dropdown menu items
     const dropdownItems = document.querySelectorAll('.dropdown-item');
+    console.log('[MainNav] Found dropdown items:', dropdownItems.length);
     dropdownItems.forEach(item => {
         item.addEventListener('click', (e) => {
+            console.log('[MainNav] Dropdown item clicked:', item.textContent.trim());
             e.preventDefault();
             const page = item.getAttribute('data-page');
             if (onNavigate && page) {
                 // Close dropdown
-                const dropdown = item.closest('.nav-dropdown-menu');
+                const dropdown = item.closest('.vct-dropdown-glass');
                 if (dropdown) {
                     dropdown.classList.add('hidden');
                     const button = dropdown.previousElementSibling;
@@ -176,8 +179,10 @@ export const setupMainNavListeners = (onNavigate) => {
 
     // Handle dropdown toggles
     const dropdownButtons = document.querySelectorAll('.nav-dropdown-btn');
+    console.log('[MainNav] Found dropdown buttons:', dropdownButtons.length);
     dropdownButtons.forEach(button => {
         button.addEventListener('click', (e) => {
+            console.log('[MainNav] Dropdown button clicked:', button.textContent.trim());
             e.preventDefault();
             e.stopPropagation();
             
@@ -185,7 +190,7 @@ export const setupMainNavListeners = (onNavigate) => {
             const isHidden = dropdown.classList.contains('hidden');
             
             // Close all other dropdowns first
-            document.querySelectorAll('.nav-dropdown-menu').forEach(menu => {
+            document.querySelectorAll('.vct-dropdown-glass').forEach(menu => {
                 if (menu !== dropdown) {
                     menu.classList.add('hidden');
                     const otherButton = menu.previousElementSibling;
@@ -216,7 +221,7 @@ export const setupMainNavListeners = (onNavigate) => {
         // Close dropdowns when clicking outside
         document.addEventListener('click', (e) => {
             if (!e.target.closest('.nav-dropdown-wrapper')) {
-                document.querySelectorAll('.nav-dropdown-menu').forEach(menu => {
+                document.querySelectorAll('.vct-dropdown-glass').forEach(menu => {
                     menu.classList.add('hidden');
                     const button = menu.previousElementSibling;
                     if (button) {
@@ -231,7 +236,7 @@ export const setupMainNavListeners = (onNavigate) => {
         // Close dropdowns on Escape key
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
-                document.querySelectorAll('.nav-dropdown-menu').forEach(menu => {
+                document.querySelectorAll('.vct-dropdown-glass').forEach(menu => {
                     menu.classList.add('hidden');
                     const button = menu.previousElementSibling;
                     if (button) {

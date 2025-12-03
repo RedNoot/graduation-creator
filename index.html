@@ -12,13 +12,18 @@
     <!-- Tailwind CSS CDN - Note: For production, consider installing as PostCSS plugin -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Vibrant Compact Theme -->
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/themes/vibrant-compact.css">
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <!-- SortableJS for drag-and-drop -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <!-- Custom styles -->
     <link rel="stylesheet" href="css/styles.css">
 </head>
-<body class="bg-gray-50 text-gray-800">
+<body class="bg-gray-50 text-gray-800 vct-theme">
 
     <div id="app" class="min-h-screen">
         <!-- Main application content will be rendered here -->
@@ -37,13 +42,13 @@
         
         // Import services
         import { app, auth, db } from './js/firebase-init.js';
-        import { verifyStudentPassword, signUp, signIn, signOut as authSignOut } from './js/services/auth.js';
+        import { verifyStudentPassword, signUp, signIn, signOut as authSignOut, resetPassword } from './js/services/auth.js';
         import { uploadFile, getDownloadUrl, showUploadModal } from './js/services/cloudinary.js';
         import { generateBooklet, viewStudentPdf, closeStudentPdfModal } from './js/services/pdf-service.js';
         import * as firestoreService from './js/services/firestore.js';
         
         // Import components
-        import { showModal, closeModal, showErrorModal, showSuccessModal, showConfirmModal, showLoadingModal, showPasswordModal } from './js/components/modal.js';
+        import { showModal, closeModal, showErrorModal, showSuccessModal, showConfirmModal, showLoadingModal, showPasswordModal, showForgotPasswordModal } from './js/components/modal.js';
         import { renderHeader, renderLoading, renderPageLayout } from './js/components/layout.js';
         import { renderLoginPage as renderLoginPageComponent, renderNewGraduationForm as renderNewGraduationFormComponent, renderInputField, renderTextareaField, renderCheckboxField } from './js/components/forms.js';
         import { renderTabNav, renderTabContent, setupTabListeners, renderButtonGroup } from './js/components/tabs.js';
@@ -57,7 +62,7 @@
         import { createRouter, createPublicRouter } from './js/router/router.js';
         
         // Import event handlers
-        import { setupAuthToggleHandler, setupAuthSubmitHandler, setupLogoutHandler, setupCreateNewHandler, setupNewGraduationFormHandler, setupCancelHandler } from './js/handlers/auth-handlers.js';
+        import { setupAuthToggleHandler, setupAuthSubmitHandler, setupLogoutHandler, setupCreateNewHandler, setupNewGraduationFormHandler, setupCancelHandler, setupForgotPasswordHandler } from './js/handlers/auth-handlers.js';
         import { setupAddStudentFormHandler, setupCopyGeneralUrlHandler, deleteStudent, uploadPdfForStudent, uploadPhotoForStudent, removePdfForStudent, editStudentCoverPage } from './js/handlers/student-handlers.js';
         import { setupAddContentHandler, setupCancelContentHandler, setupContentFormHandler, editContentPage, deleteContentPage, setupPageOrderHandlers } from './js/handlers/content-handlers.js';
         import { setupTabHandlers, setupDownloadSchedulingHandler, setupSettingsFormHandler } from './js/handlers/ui-handlers.js';
@@ -177,6 +182,7 @@
             const authSubtitle = document.getElementById('auth-subtitle');
             const toggleText = document.getElementById('toggle-text');
             const passwordHint = document.getElementById('password-hint');
+            const forgotPasswordBtn = document.getElementById('forgot-password-btn');
             
             // State object for auth mode
             const authState = { isSignUpMode: false, auth };
@@ -188,6 +194,9 @@
                 signInWithEmailAndPassword 
             }, authState);
             
+            // Setup forgot password handler
+            setupForgotPasswordHandler(forgotPasswordBtn, showForgotPasswordModal, resetPassword, showModal);
+            
             console.log('Login page handlers attached!');
         };
         
@@ -197,10 +206,10 @@
             let mainContent = `
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-xl font-semibold">Your Projects</h2>
-                        <button id="create-new-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Create New Graduation</button>
+                        <h2 class="vct-heading-2 vct-gradient-text">Your Projects</h2>
+                        <button id="create-new-btn" class="vct-button-gradient">Create New Graduation</button>
                     </div>
-                    <div id="graduations-list" class="bg-white shadow overflow-hidden sm:rounded-md">
+                    <div id="graduations-list" class="vct-card-glass p-6">
                         <div class="p-8 text-center text-gray-500">Loading projects...</div>
                     </div>
                 </div>
@@ -221,16 +230,14 @@
             if (graduations.length === 0) {
                 listContainer.innerHTML = `<div class="p-8 text-center text-gray-500">You haven't created any graduation websites yet.</div>`;
             } else {
-                let html = '<ul>';
+                let html = '<ul class="space-y-3">';
                 graduations.forEach(grad => {
                     html += `
-                        <li class="border-t border-gray-200">
-                            <a href="#/edit/${grad.id}" class="block hover:bg-gray-50">
-                                <div class="px-4 py-4 sm:px-6">
-                                    <div class="flex items-center justify-between">
-                                        <p class="text-lg font-medium text-indigo-600 truncate">${grad.schoolName || 'Untitled Project'}</p>
-                                        <p class="ml-2 flex-shrink-0 text-sm text-gray-500">${grad.graduationYear || ''}</p>
-                                    </div>
+                        <li class="vct-card-glass-light p-4 hover:scale-[1.01] transition-transform">
+                            <a href="#/edit/${grad.id}" class="block">
+                                <div class="flex items-center justify-between">
+                                    <p class="vct-text-lg font-medium vct-gradient-text truncate">${grad.schoolName || 'Untitled Project'}</p>
+                                    <p class="ml-2 flex-shrink-0 text-sm text-gray-500">${grad.graduationYear || ''}</p>
                                 </div>
                             </a>
                         </li>
@@ -246,20 +253,20 @@
              const header = renderHeader("Create New Graduation", currentUser);
              let mainContent = `
                 <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                    <div class="bg-white p-8 rounded-lg shadow">
+                    <div class="vct-card-glass p-8">
                          <form id="new-grad-form">
                             <div class="space-y-6">
                                 <div>
                                     <label for="schoolName" class="block text-sm font-medium text-gray-700">School Name</label>
-                                    <input type="text" id="schoolName" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                    <input type="text" id="schoolName" required class="vct-input-glass w-full mt-1">
                                 </div>
                                 <div>
                                     <label for="graduationYear" class="block text-sm font-medium text-gray-700">Graduation Year</label>
-                                    <input type="number" id="graduationYear" required value="${new Date().getFullYear()}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                    <input type="number" id="graduationYear" required value="${new Date().getFullYear()}" class="vct-input-glass w-full mt-1">
                                 </div>
                                 <div class="flex justify-end gap-4">
-                                    <button type="button" id="cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancel</button>
-                                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Create</button>
+                                    <button type="button" id="cancel-btn" class="vct-button-glass px-4 py-2">Cancel</button>
+                                    <button type="submit" class="vct-button-gradient px-4 py-2">Create</button>
                                 </div>
                             </div>
                         </form>
@@ -418,16 +425,23 @@
             `;
             appContainer.innerHTML = header + mainNav + `<main>${mainContent}</main>`;
             
+            // Track current page to avoid unnecessary re-renders
+            let currentPage = null; // Start as null so first navigation always triggers
+
             // Navigation handler function
-            const handleNavigation = (page) => {
-                console.log('[Navigation] Switching to page:', page);
+            const handleNavigation = async (page) => {
+                console.log('[Navigation] Switching to page:', page, '(current:', currentPage, ')');
+                
+                // Only re-render navigation if page actually changed
+                const pageChanged = page !== currentPage;
+                currentPage = page;
                 
                 switch(page) {
                     case 'home':
-                        renderHomeTab(gradId, gradData, handleNavigation);
+                        await renderHomeTab(gradId, gradData, handleNavigation);
                         break;
                     case 'students':
-                        renderStudentsTab(gradId);
+                        await renderStudentsTab(gradId);
                         break;
                     case 'content':
                         renderContentPagesTab(gradId, gradData);
@@ -439,22 +453,22 @@
                         renderShareTab(publicUrl);
                         break;
                     case 'booklet':
-                        (async () => {
-                            const freshGradData = await GraduationRepository.getById(gradId);
-                            if (freshGradData) {
-                                renderBookletTab(gradId, freshGradData);
-                            }
-                        })();
+                        const freshGradData = await GraduationRepository.getById(gradId);
+                        if (freshGradData) {
+                            renderBookletTab(gradId, freshGradData);
+                        }
                         break;
                     default:
-                        renderStudentsTab(gradId);
+                        await renderStudentsTab(gradId);
                 }
                 
-                // Re-render navigation with new active page
-                const navContainer = document.querySelector('.main-nav');
-                if (navContainer) {
-                    navContainer.outerHTML = renderMainNav(page);
-                    setupMainNavListeners(handleNavigation);
+                // Only re-render navigation if page actually changed
+                if (pageChanged) {
+                    const navContainer = document.querySelector('.main-nav');
+                    if (navContainer) {
+                        navContainer.outerHTML = renderMainNav(page);
+                        setupMainNavListeners(handleNavigation);
+                    }
                 }
             };
 
@@ -470,9 +484,6 @@
                     window.location.hash = '#/dashboard';
                 });
             }
-
-            // Setup navigation listeners
-            setupMainNavListeners(handleNavigation);
         };
 
         const renderHomeTab = async (gradId, gradData, handleNavigation) => {
@@ -2530,21 +2541,21 @@ Are you absolutely sure you want to continue?`,
         const renderShareTab = (publicUrl) => {
             const contentContainer = document.getElementById('tab-content');
             contentContainer.innerHTML = `
-                 <div class="bg-white p-6 rounded-lg shadow">
-                    <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">Share Your Website</h3>
+                 <div class="vct-card-glass p-6">
+                    <h3 class="vct-heading-3 mb-4">Share Your Website</h3>
                     <div class="space-y-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Public URL</label>
                             <div class="mt-1 flex rounded-md shadow-sm">
-                                <input type="text" readonly id="public-url-input" value="${publicUrl}" class="flex-1 block w-full rounded-none rounded-l-md sm:text-sm border-gray-300 bg-gray-50 p-2">
-                                <button id="copy-url-btn" class="inline-flex items-center px-3 rounded-r-md border border-l-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">Copy</button>
+                                <input type="text" readonly id="public-url-input" value="${publicUrl}" class="vct-input-glass flex-1 rounded-r-none">
+                                <button id="copy-url-btn" class="vct-button-glass-sm rounded-l-none">Copy</button>
                             </div>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">QR Code</label>
-                            <div id="qrcode" class="mt-2 p-4 bg-white inline-block border rounded-md"></div>
+                            <div id="qrcode" class="mt-2 p-4 bg-white/50 inline-block border border-gray-200 rounded-md"></div>
                         </div>
-                         <a href="${publicUrl}" target="_blank" class="inline-block mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Open Public Site</a>
+                         <a href="${publicUrl}" target="_blank" class="vct-button-gradient inline-block mt-4 px-4 py-2">Open Public Site</a>
                     </div>
                 </div>
             `;
@@ -2593,7 +2604,7 @@ Are you absolutely sure you want to continue?`,
             
             let bookletInfo = `
                 <p class="text-gray-600 mb-4">Click the button to combine all uploaded student PDFs into a single downloadable booklet.</p>
-                <button id="generate-booklet-btn" class="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Generate Booklet</button>
+                <button id="generate-booklet-btn" class="vct-button-gradient px-6 py-2">Generate Booklet</button>
             `;
             
             if (gradData.generatedBookletUrl) {
@@ -2620,8 +2631,8 @@ Are you absolutely sure you want to continue?`,
                                 </div>
                             </div>
                             <div class="flex gap-4">
-                                <a href="${downloadUrl}" download="graduation-booklet.pdf" class="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Download Booklet</a>
-                                <button id="generate-booklet-btn" class="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Re-generate Booklet</button>
+                                <a href="${downloadUrl}" download="graduation-booklet.pdf" class="vct-button-gradient px-6 py-2 inline-block">Download Booklet</a>
+                                <button id="generate-booklet-btn" class="vct-button-glass px-6 py-2">Re-generate Booklet</button>
                             </div>
                         `;
                     } else {
@@ -2644,8 +2655,8 @@ Are you absolutely sure you want to continue?`,
                                 </div>
                             </div>
                             <div class="flex gap-4">
-                                <button disabled class="px-6 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed">Download Not Yet Available</button>
-                                <button id="generate-booklet-btn" class="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Re-generate Booklet</button>
+                                <button disabled class="vct-button-glass px-6 py-2 opacity-50 cursor-not-allowed">Download Not Yet Available</button>
+                                <button id="generate-booklet-btn" class="vct-button-gradient px-6 py-2">Re-generate Booklet</button>
                             </div>
                         `;
                     }
@@ -2664,16 +2675,16 @@ Are you absolutely sure you want to continue?`,
                             </div>
                         </div>
                         <div class="flex gap-4">
-                            <a href="${downloadUrl}" download="graduation-booklet.pdf" class="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Download Booklet</a>
-                            <button id="generate-booklet-btn" class="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Re-generate Booklet</button>
+                            <a href="${downloadUrl}" download="graduation-booklet.pdf" class="vct-button-gradient px-6 py-2 inline-block">Download Booklet</a>
+                            <button id="generate-booklet-btn" class="vct-button-glass px-6 py-2">Re-generate Booklet</button>
                         </div>
                     `;
                 }
             }
             
             contentContainer.innerHTML = `
-                 <div class="bg-white p-6 rounded-lg shadow">
-                    <h3 class="text-lg font-medium leading-6 text-gray-900 mb-2">Graduation Booklet</h3>
+                 <div class="vct-card-glass p-6">
+                    <h3 class="vct-heading-3 mb-2">Graduation Booklet</h3>
                     ${bookletInfo}
                     
                     ${isScheduled ? `
@@ -2862,20 +2873,7 @@ Are you absolutely sure you want to continue?`,
                                         <p class="text-xs text-gray-500 mt-2">PDF format</p>
                                         ${config.enableDownloadScheduling && config.downloadableAfterDate ? `
                                             <p class="text-xs text-gray-500 mt-2">Availability verified server-side</p>
-                                        ` : `
-                                            <div class="text-center">
-                                                <button disabled 
-                                                        class="inline-flex items-center px-6 py-3 text-base font-medium rounded-md text-white bg-gray-400 cursor-not-allowed opacity-60 ${borderRadiusClass}">
-                                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                                                    </svg>
-                                                    Booklet Locked
-                                                </button>
-                                                <p class="text-sm mt-3" style="color: ${config.secondaryColor};">
-                                                    ${config.downloadMessage || `Available after ${new Date(config.downloadableAfterDate).toLocaleDateString()}`}
-                                                </p>
-                                            </div>
-                                        `}
+                                        ` : ''}
                                     </div>
                                 </div>
                             `;

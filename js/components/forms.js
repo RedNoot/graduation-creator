@@ -20,24 +20,29 @@ export const renderLoginPage = () => {
             </div>
 
             <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-                <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+                <div class="vct-card-glass py-8 px-4 sm:px-10">
                     <form id="auth-form" class="space-y-6">
                         <div>
                             <label for="email" class="block text-sm font-medium text-gray-700">Email address</label>
                             <div class="mt-1">
-                                <input id="email" name="email" type="email" autocomplete="email" required class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                <input id="email" name="email" type="email" autocomplete="email" required class="vct-input-glass w-full">
                             </div>
                         </div>
                         <div>
                             <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
                             <div class="mt-1">
-                                <input id="password" name="password" type="password" autocomplete="current-password" required class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                <input id="password" name="password" type="password" autocomplete="current-password" required class="vct-input-glass w-full">
                             </div>
                             <div id="password-hint" class="mt-1 text-xs text-gray-500 hidden">Password must be at least 6 characters long</div>
                         </div>
+                        <div class="flex items-center justify-end">
+                            <button type="button" id="forgot-password-btn" class="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+                                Forgot password?
+                            </button>
+                        </div>
                         <div id="auth-error" class="text-red-500 text-sm hidden"></div>
                         <div class="flex items-center justify-between">
-                            <button id="auth-submit-btn" type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            <button id="auth-submit-btn" type="submit" class="vct-button-gradient w-full">
                                 Sign in
                             </button>
                         </div>
@@ -108,7 +113,7 @@ export const renderInputField = (name, label, placeholder = '', value = '', requ
                 placeholder="${placeholder}"
                 value="${value}"
                 ${required ? 'required' : ''}
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                class="vct-input-glass w-full mt-1">
         </div>
     `;
 };
@@ -131,7 +136,7 @@ export const renderTextareaField = (name, label, placeholder = '', value = '', r
                 id="${name}" 
                 placeholder="${placeholder}"
                 rows="${rows}"
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">${value}</textarea>
+                class="vct-input-glass w-full mt-1">${value}</textarea>
         </div>
     `;
 };
